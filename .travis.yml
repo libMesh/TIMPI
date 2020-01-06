@@ -1,0 +1,40 @@
+language: cpp
+script:
+  - ./bootstrap
+  - ./configure || cat config.log
+  - make check CXXFLAGS='-std=c++11 -Werror -Wall -Wextra -Wcast-align -Wdisabled-optimization -Wformat=2 -Wformat-nonliteral -Wformat-security -Wformat-y2k -Winvalid-pch -Wmissing-field-initializers -Wmissing-include-dirs -Wpacked -Wstack-protector -Wtrigraphs -Wunreachable-code -Wunused-label -Wunused-parameter -Wunused-value -Wvariadic-macros -Wvolatile-register-var -Wwrite-strings' || (cat test/test-suite.log && false)
+matrix:
+  include:
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7 openmpi-bin openmpi-common libopenmpi-dev
+      env:
+        - MATRIX_EVAL="CC=mpicc && CXX=mpicxx"
+
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.6
+          packages:
+            - clang-3.6
+      env:
+        - MATRIX_EVAL="CC=clang-3.6 && CXX=clang++-3.6"
+
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+      env:
+        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+
+before_install:
+    - eval "${MATRIX_EVAL}"

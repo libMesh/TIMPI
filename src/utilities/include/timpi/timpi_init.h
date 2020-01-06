@@ -98,9 +98,9 @@ public:
 private:
   Communicator * _comm;
 
+#ifdef TIMPI_HAVE_MPI
   bool i_initialized_mpi;
 
-#ifdef TIMPI_HAVE_MPI
   MPI_Errhandler my_errhandler;
   bool err_handler_set;
 #endif

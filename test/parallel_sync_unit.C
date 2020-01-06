@@ -178,7 +178,7 @@ Communicator *TestCommWorld;
 
     auto compose_replies =
       []
-      (processor_id_type pid,
+      (processor_id_type /* pid */,
        const std::vector<unsigned int> & query,
        std::vector<unsigned int> & response)
       {
@@ -305,7 +305,7 @@ Communicator *TestCommWorld;
 
     auto compose_replies =
       []
-      (processor_id_type pid,
+      (processor_id_type /* pid */,
        const std::vector<std::vector<unsigned int>> & query,
        std::vector<std::vector<unsigned int>> & response)
       {
