@@ -103,8 +103,7 @@ TIMPIInit::TIMPIInit (int argc, const char * const * argv,
 #else
 TIMPIInit::TIMPIInit (int /* argc */, const char * const * /* argv */,
                             bool /* handle_mpi_errors */,
-                            bool /* using_threads */) :
-  i_initialized_mpi(false)
+                            bool /* using_threads */)
 {
   this->_comm = new Communicator(); // So comm() doesn't dereference null
 }
