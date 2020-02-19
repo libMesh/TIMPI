@@ -177,18 +177,18 @@ std::vector<std::string> pt_number;
     // Test Scalar scatter
     {
       std::vector<processor_id_type> src;
-      processor_id_type dest;
+      processor_id_type dest = 0;
 
       if (TestCommWorld->rank() == 0)
         {
           src.resize(TestCommWorld->size());
           for (processor_id_type i=0; i<src.size(); i++)
-            src[i] = i;
+            src[i] = i + 1;
         }
 
       TestCommWorld->scatter(src, dest);
 
-      TIMPI_UNIT_ASSERT( TestCommWorld->rank() == dest );
+      TIMPI_UNIT_ASSERT( TestCommWorld->rank() + 1 == dest );
     }
 
     // Test Vector Scatter (equal-sized chunks)
