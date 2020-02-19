@@ -45,6 +45,12 @@ AC_DEFINE_UNQUOTED([MINOR_VERSION],$GENERIC_MINOR_VERSION,[Minor version])
 AC_DEFINE_UNQUOTED([MICRO_VERSION],$GENERIC_MICRO_VERSION,[Micro version])
 
 
+# by default CFLAGS and CXXFLAGS are set to '-g -O2' on systems that support them.
+# this causes a problem if we then declare a different optimization level. So
+# default them to empty, regardless of what the system supports.
+: ${CFLAGS=""}
+: ${CXXFLAGS=""}
+
 
 dnl------------------------------
 dnl Checks for compilers
