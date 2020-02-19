@@ -2712,7 +2712,8 @@ inline void Communicator::gather(const unsigned int root_id,
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
 inline void Communicator::allgather(const T & sendval,
                                     std::vector<T,A> & recv) const
 {
@@ -2734,6 +2735,26 @@ inline void Communicator::allgather(const T & sendval,
     recv[0] = sendval;
 }
 
+template <typename T, typename A,
+          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+inline void Communicator::allgather(const T & sendval,
+                                    std::vector<T,A> & recv) const
+{
+  TIMPI_LOG_SCOPE ("allgather()","Parallel");
+
+  timpi_assert(this->size());
+  recv.resize(this->size());
+
+  unsigned int comm_size = this->size();
+  if (comm_size > 1)
+    {
+      std::vector<T> range = {sendval};
+
+      allgather_packed_range((void *)(NULL), range.begin(), range.end(), recv.begin());
+    }
+  else if (comm_size > 0)
+    recv[0] = sendval;
+}
 
 
 template <typename T, typename A>
