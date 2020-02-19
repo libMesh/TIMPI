@@ -21,6 +21,7 @@
 
 // TIMPI Includes
 #include "timpi/timpi_assert.h"
+#include "timpi/packing_forward.h"
 
 // C++ includes
 #include <cstddef>
@@ -43,7 +44,7 @@ namespace Parallel
  * Users will need to specialize this class for their particular data
  * types.
  */
-template <typename T>
+template <typename T, typename Enable>
 class Packing {
 public:
   // Should be an MPI sendable type in specializations, e.g.

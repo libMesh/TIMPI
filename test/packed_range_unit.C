@@ -5,7 +5,7 @@
 
 #define TIMPI_UNIT_ASSERT(expr) \
   if (!(expr)) \
-    timpi_error();
+    timpi_error()
 
 template <typename T>
 struct null_output_iterator
@@ -26,7 +26,6 @@ struct null_output_iterator
   // construct one or have any of its methods called.
   null_output_iterator & operator*() { return *this; }
 };
-
 
 namespace libMesh {
 namespace Parallel {
@@ -144,6 +143,23 @@ Communicator *TestCommWorld;
        (std::string*)NULL);
   }
 
+  void testContainerAllGather()
+  {
+    // This method uses a specialized allgather method that is only defined
+    // when we have MPI
+#ifdef TIMPI_HAVE_MPI
+    std::vector<std::string> vals;
+    const unsigned int my_rank = TestCommWorld->rank();
+    TestCommWorld->allgather(std::string(my_rank+1, '0' + my_rank), vals);
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = vals.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    for (std::size_t i = 0; i < vec_size; ++i)
+      TIMPI_UNIT_ASSERT(vals[i] == std::string(i + 1, '0' + i));
+#endif
+  }
 
   void testContainerSendReceive()
   {
@@ -189,6 +205,7 @@ int main(int argc, const char * const * argv)
 
   testNullAllGather();
   testNullSendReceive();
+  testContainerAllGather();
   testContainerSendReceive();
 
   return 0;

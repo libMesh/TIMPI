@@ -56,12 +56,11 @@ struct standardtype_dependent_false : std::false_type
  * More complicated data types may need to provide a pointer-to-T so
  * that we can use MPI_Address without constructing a new T.
  */
-template <typename T>
+template <typename T, typename Enable = void>
 class StandardType : public DataType
 {
-  // Get a slightly better compiler diagnostic
-  static_assert(standardtype_dependent_false<T>::value,
-                "Only specializations of StandardType may be used, did you forget to include a header file (e.g. parallel_algebra.h)?");
+public:
+  static const bool is_fixed_type = false;
 
   /*
    * The unspecialized class is useless, so we make its constructor
@@ -87,6 +86,8 @@ private:
   public:                                                            \
     explicit                                                         \
       StandardType(const cxxtype * = nullptr) : DataType(mpitype) {} \
+                                                                     \
+    static const bool is_fixed_type = true;                          \
   }
 
 #else
@@ -98,6 +99,8 @@ private:
   public:                                                     \
     explicit                                                  \
       StandardType(const cxxtype * = nullptr) : DataType() {} \
+                                                              \
+    static const bool is_fixed_type = true;                   \
   }
 
 #endif
@@ -140,6 +143,8 @@ TIMPI_STANDARD_TYPE(long double,MPI_LONG_DOUBLE);
     ~StandardType() {
       this->free();
     }
+
+    static const bool is_fixed_type = true;
   };
 # endif
 #else
@@ -211,6 +216,9 @@ public:
   }
 
   ~StandardType() { this->free(); }
+
+  static const bool is_fixed_type = StandardType<T1>::is_fixed_type
+    && StandardType<T2>::is_fixed_type;
 };
 
 
@@ -283,6 +291,19 @@ void FillDisplacementArray<n_minus_i>::fill
 }
 
 
+template <typename Head, typename... Tail>
+struct CheckAllFixedTypes
+{
+  static const bool is_fixed_type = StandardType<Head>::is_fixed_type &&
+                                    CheckAllFixedTypes<Tail...>::is_fixed_type;
+};
+
+template <typename Head>
+struct CheckAllFixedTypes<Head>
+{
+  static const bool is_fixed_type = StandardType<Head>::is_fixed_type;
+};
+
 template<typename... Types>
 class StandardType<std::tuple<Types...>> : public DataType
 {
@@ -347,6 +368,8 @@ public:
   }
 
   ~StandardType() { this->free(); }
+
+  static const bool is_fixed_type = CheckAllFixedTypes<Types...>::is_fixed_type;
 };
 
 
@@ -359,6 +382,8 @@ public:
     DataType(StandardType<T>(nullptr), 2) {}
 
   ~StandardType() { this->free(); }
+
+  static const bool is_fixed_type = StandardType<T>::is_fixed_type;
 };
 
 } // namespace TIMPI

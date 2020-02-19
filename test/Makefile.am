@@ -15,15 +15,18 @@ if BUILD_DBG_MODE
   packed_range_unit_dbg_SOURCES = packed_range_unit.C
   parallel_sync_unit_dbg_SOURCES = parallel_sync_unit.C
   parallel_unit_dbg_SOURCES = parallel_unit.C
+  dispatch_to_packed_unit_dbg_SOURCES = dispatch_to_packed_unit.C
   message_tag_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
   packed_range_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
   parallel_sync_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
   parallel_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
+  dispatch_to_packed_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
 
   TESTS += message_tag_unit-dbg
   TESTS += packed_range_unit-dbg
   TESTS += parallel_sync_unit-dbg
   TESTS += parallel_unit-dbg
+  TESTS += dispatch_to_packed_unit-dbg
 endif
 
 if BUILD_DEVEL_MODE
@@ -31,15 +34,18 @@ if BUILD_DEVEL_MODE
   packed_range_unit_devel_SOURCES = packed_range_unit.C
   parallel_sync_unit_devel_SOURCES = parallel_sync_unit.C
   parallel_unit_devel_SOURCES = parallel_unit.C
+  dispatch_to_packed_unit_devel_SOURCES = dispatch_to_packed_unit.C
   message_tag_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
   packed_range_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
   parallel_sync_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
   parallel_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
+  dispatch_to_packed_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
 
   TESTS += message_tag_unit-devel
   TESTS += packed_range_unit-devel
   TESTS += parallel_sync_unit-devel
   TESTS += parallel_unit-devel
+  TESTS += dispatch_to_packed_unit-devel
 endif
 
 if BUILD_OPT_MODE
@@ -47,15 +53,18 @@ if BUILD_OPT_MODE
   packed_range_unit_opt_SOURCES = packed_range_unit.C
   parallel_sync_unit_opt_SOURCES = parallel_sync_unit.C
   parallel_unit_opt_SOURCES = parallel_unit.C
+  dispatch_to_packed_unit_opt_SOURCES = dispatch_to_packed_unit.C
   message_tag_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
   packed_range_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
   parallel_sync_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
   parallel_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
+  dispatch_to_packed_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
 
   TESTS += message_tag_unit-opt
   TESTS += packed_range_unit-opt
   TESTS += parallel_sync_unit-opt
   TESTS += parallel_unit-opt
+  TESTS += dispatch_to_packed_unit-opt
 endif
 
 check_PROGRAMS = $(TESTS)

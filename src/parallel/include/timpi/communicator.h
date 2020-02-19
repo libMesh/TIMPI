@@ -20,32 +20,25 @@
 #define TIMPI_COMMUNICATOR_H
 
 // TIMPI includes
-#include "timpi/data_type.h"
+#include "timpi/standard_type.h"
 #include "timpi/message_tag.h"
 #include "timpi/timpi_config.h"
 #include "timpi/request.h"
 #include "timpi/status.h"
+#include "timpi/packing_forward.h"
 
 // C++ includes
 #include <map>
 #include <memory> // shared_ptr
 #include <string>
 #include <vector>
+#include <type_traits>
 
 // C++ includes needed for parallel_communicator_specializations
 //
 // These could be forward declarations if only that wasn't illegal
 #include <complex> // for specializations
 #include <set>
-
-// FIXME: This *should* be in TIMPI namespace but we have libMesh
-// users which already partially specialized it
-namespace libMesh {
-namespace Parallel {
-template <typename T>
-class Packing;
-}
-}
 
 namespace TIMPI
 {
@@ -827,9 +820,22 @@ public:
 
   /**
    * Take a vector of length \p this->size(), and fill in
-   * \p recv[processor_id] = the value of \p send on that processor
+   * \p recv[processor_id] = the value of \p send on that processor. This
+   * overload works on fixed size types
    */
-  template <typename T, typename A>
+  template <typename T, typename A, typename std::enable_if<StandardType<T>::is_fixed_type,
+                                                            int>::type = 0>
+  inline void allgather(const T & send,
+                        std::vector<T,A> & recv) const;
+
+  /**
+   * Take a vector of length \p this->size(), and fill in
+   * \p recv[processor_id] = the value of \p send on that processor. This
+   * overload works on potentially dynamically sized types, and dispatches
+   * to \p allgather_packed_range
+   */
+  template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type,
+                                                            int>::type = 0>
   inline void allgather(const T & send,
                         std::vector<T,A> & recv) const;
 
