@@ -26,6 +26,25 @@ std::vector<std::string> pt_number;
   }
 
 
+  void testSum()
+  {
+    std::map<int, int> data;
+
+    int N = TestCommWorld->size();
+
+    for (int p=0; p<N; ++p)
+      data[p] = TestCommWorld->rank();
+
+    TestCommWorld->sum(data);
+
+    // Each map entry should now contain the sum:
+    // 0 + 1 + ... + N-1 = N*(N-1)/2
+    for (int p=0; p<N; ++p)
+      TIMPI_UNIT_ASSERT( data[p] == N*(N-1)/2 );
+  }
+
+
+
   void testGather()
   {
     std::vector<processor_id_type> vals;
@@ -672,6 +691,7 @@ int main(int argc, const char * const * argv)
 
   setUp();
 
+  testSum();
   testGather();
   testAllGather();
   testGatherString();
