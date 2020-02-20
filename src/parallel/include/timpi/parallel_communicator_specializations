@@ -82,6 +82,10 @@
     inline
     void sum(std::vector<std::complex<T>,A> &r) const;
 
+    template <typename K, typename V, typename C, typename A>
+    inline
+    void sum(std::map<K,V,C,A> &r) const;
+
     template <typename T, typename C, typename A>
     inline
     void set_union(std::set<T,C,A> &data,

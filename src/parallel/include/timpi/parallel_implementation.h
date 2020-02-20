@@ -2510,6 +2510,28 @@ inline void Communicator::sum(std::vector<std::complex<T>,A> & r) const
 
 
 
+template <typename K, typename V, typename C, typename A>
+inline void Communicator::sum(std::map<K,V,C,A> & data) const
+{
+  if (this->size() > 1)
+    {
+      TIMPI_LOG_SCOPE("sum(map)", "Parallel");
+
+      // There may be different keys on different processors, so we
+      // first gather all the (key, value) pairs and then insert
+      // them, summing repeated keys, back into the map.
+      std::vector<std::pair<K,V>> vecdata(data.begin(), data.end());
+
+      this->allgather(vecdata, /*identical_buffer_sizes=*/false);
+
+      data.clear();
+      for (const auto & pr : vecdata)
+        data[pr.first] += pr.second;
+    }
+}
+
+
+
 template <typename T, typename C, typename A>
 inline void Communicator::set_union(std::set<T,C,A> & data,
                                     const unsigned int root_id) const
