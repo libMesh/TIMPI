@@ -19,13 +19,17 @@ AUX_DIST        += build-aux/ltmain.sh
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = timpi.pc
 
+# Support for timpi-config in $(exec_prefix)/bin
+timpi_configdir      = $(exec_prefix)/bin
+timpi_config_SCRIPTS = bin/timpi-config
+
 # Support 'make install prefix=/other/path' with pkgconfig
 install-data-hook:
 	@if (test "x$(prefix)" != "x@prefix@"); then \
 	  oldprefix="@prefix@" ; \
 	  newprefix="$(prefix)" ; \
 	  cd $(DESTDIR)$(libdir)/pkgconfig ; \
-	  for genfile in $(pkgconfig_DATA); do \
+	  for genfile in $(pkgconfig_DATA) $(DESTDIR)$(prefix)/bin/timpi-config; do \
 	  echo " " ; \
 	    echo " *** replacing $$oldprefix" ; \
 	    echo " ***      with $$newprefix" ; \
@@ -35,6 +39,8 @@ install-data-hook:
 	    cd $(DESTDIR)$(prefix) && mv $$genfile.replaced $$genfile ; \
           done ; \
 	fi
+	cat $(DESTDIR)$(timpi_configdir)/timpi-config | $(SED) "s/has_been_installed=no/has_been_installed=yes/g" > $(DESTDIR)$(timpi_configdir)/timpi-config.installed
+	mv $(DESTDIR)$(timpi_configdir)/timpi-config.installed $(DESTDIR)$(timpi_configdir)/timpi-config && chmod +x $(DESTDIR)$(timpi_configdir)/timpi-config
 
 # Additional files to be deleted by 'make distclean'
 DISTCLEANFILES  = _configs.sed
