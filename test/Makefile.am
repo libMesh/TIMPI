@@ -7,8 +7,9 @@ AM_CPPFLAGS += -I$(top_builddir)/src/utilities/include #timpi_version.h
 
 LIBS         = $(timpi_optional_LIBS)
 
-#Define tests to actually be run
-TESTS  =
+#Script to run underlying tests
+TESTS = run_unit_tests.sh
+check_PROGRAMS =
 
 if BUILD_DBG_MODE
   message_tag_unit_dbg_SOURCES = message_tag_unit.C
@@ -36,11 +37,11 @@ if BUILD_DBG_MODE
   dispatch_to_packed_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
   dispatch_to_packed_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)
 
-  TESTS += message_tag_unit-dbg
-  TESTS += packed_range_unit-dbg
-  TESTS += parallel_sync_unit-dbg
-  TESTS += parallel_unit-dbg
-  TESTS += dispatch_to_packed_unit-dbg
+  check_PROGRAMS += message_tag_unit-dbg
+  check_PROGRAMS += packed_range_unit-dbg
+  check_PROGRAMS += parallel_sync_unit-dbg
+  check_PROGRAMS += parallel_unit-dbg
+  check_PROGRAMS += dispatch_to_packed_unit-dbg
 endif
 
 if BUILD_DEVEL_MODE
@@ -69,11 +70,11 @@ if BUILD_DEVEL_MODE
   dispatch_to_packed_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
   dispatch_to_packed_unit_devel_CXXFLAGS = $(CXXFLAGS_DEVEL)
 
-  TESTS += message_tag_unit-devel
-  TESTS += packed_range_unit-devel
-  TESTS += parallel_sync_unit-devel
-  TESTS += parallel_unit-devel
-  TESTS += dispatch_to_packed_unit-devel
+  check_PROGRAMS += message_tag_unit-devel
+  check_PROGRAMS += packed_range_unit-devel
+  check_PROGRAMS += parallel_sync_unit-devel
+  check_PROGRAMS += parallel_unit-devel
+  check_PROGRAMS += dispatch_to_packed_unit-devel
 endif
 
 if BUILD_OPT_MODE
@@ -102,14 +103,12 @@ if BUILD_OPT_MODE
   dispatch_to_packed_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
   dispatch_to_packed_unit_opt_CXXFLAGS = $(CXXFLAGS_OPT)
 
-  TESTS += message_tag_unit-opt
-  TESTS += packed_range_unit-opt
-  TESTS += parallel_sync_unit-opt
-  TESTS += parallel_unit-opt
-  TESTS += dispatch_to_packed_unit-opt
+  check_PROGRAMS += message_tag_unit-opt
+  check_PROGRAMS += packed_range_unit-opt
+  check_PROGRAMS += parallel_sync_unit-opt
+  check_PROGRAMS += parallel_unit-opt
+  check_PROGRAMS += dispatch_to_packed_unit-opt
 endif
-
-check_PROGRAMS = $(TESTS)
 
 # Required for AX_AM_MACROS
 ###@INC_AMINCLUDE@

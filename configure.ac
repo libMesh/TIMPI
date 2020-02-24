@@ -137,6 +137,7 @@ AC_CONFIG_FILES([
   ])
 
 AC_CONFIG_FILES(bin/timpi-config, [chmod +x bin/timpi-config])
+AC_CONFIG_FILES(test/run_unit_tests.sh, [chmod +x test/run_unit_tests.sh])
 
 # Must still call AC_OUTPUT() after generating all the files
 AC_OUTPUT()
