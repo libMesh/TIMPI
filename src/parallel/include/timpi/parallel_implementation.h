@@ -1736,9 +1736,9 @@ inline void Communicator::broadcast (std::set<T,C,A> & data,
 
 
 
-template <typename T1, typename T2, typename C, typename A>
-inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
-                                    const unsigned int root_id) const
+template <typename Map>
+inline void Communicator::map_broadcast(Map & data,
+                                        const unsigned int root_id) const
 {
   if (this->size() == 1)
     {
@@ -1749,12 +1749,13 @@ inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
 
   timpi_assert_less (root_id, this->size());
 
-  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
+  TIMPI_LOG_SCOPE("broadcast(map)", "Parallel");
 
   std::size_t data_size=data.size();
   this->broadcast(data_size, root_id);
 
-  std::vector<std::pair<T1,T2>> comm_data;
+  std::vector<std::pair<typename Map::key_type,
+                        typename Map::mapped_type>> comm_data;
 
   if (root_id == this->rank())
     comm_data.assign(data.begin(), data.end());
@@ -1768,6 +1769,13 @@ inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
       data.clear();
       data.insert(comm_data.begin(), comm_data.end());
     }
+}
+
+template <typename T1, typename T2, typename C, typename A>
+inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
+                                    const unsigned int root_id) const
+{
+  this->map_broadcast(data, root_id);
 }
 
 
