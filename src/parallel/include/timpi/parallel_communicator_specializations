@@ -338,6 +338,11 @@
     void broadcast(std::map<T1,T2,C,A> &data,
                    const unsigned int root_id=0) const;
 
+    template <typename K, typename V, typename H, typename E, typename A>
+    inline
+    void broadcast(std::unordered_map<K,V,H,E,A> &data,
+                   const unsigned int root_id=0) const;
+
     // In new overloaded function template entries we have to
     // re-specify the default arguments
     template <typename T1, typename T2, typename A1, typename A2>

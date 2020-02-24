@@ -1780,6 +1780,15 @@ inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
 
 
 
+template <typename K, typename V, typename H, typename E, typename A>
+inline void Communicator::broadcast(std::unordered_map<K,V,H,E,A> & data,
+                                    const unsigned int root_id) const
+{
+  this->map_broadcast(data, root_id);
+}
+
+
+
 template <typename Context, typename OutputContext,
           typename Iter, typename OutputIter>
 inline void Communicator::broadcast_packed_range(const Context * context1,
