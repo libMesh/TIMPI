@@ -133,19 +133,36 @@ std::vector<std::string> pt_number;
 
   void testBroadcast()
   {
-    std::vector<unsigned int> src(3), dest(3);
+    {
+      std::vector<unsigned int> src(3), dest(3);
 
-    src[0]=0;
-    src[1]=1;
-    src[2]=2;
+      src[0]=0;
+      src[1]=1;
+      src[2]=2;
 
-    if (TestCommWorld->rank() == 0)
-      dest = src;
+      if (TestCommWorld->rank() == 0)
+        dest = src;
 
-    TestCommWorld->broadcast(dest);
+      TestCommWorld->broadcast(dest);
 
-    for (std::size_t i=0; i<src.size(); i++)
-      TIMPI_UNIT_ASSERT( src[i]  == dest[i] );
+      for (std::size_t i=0; i<src.size(); i++)
+        TIMPI_UNIT_ASSERT( src[i]  == dest[i] );
+    }
+
+    {
+      std::map<int, int> src, dest;
+      src[0]=0;
+      src[1]=1;
+      src[2]=2;
+
+      if (TestCommWorld->rank() == 0)
+        dest = src;
+
+      TestCommWorld->broadcast(dest);
+
+      for (std::size_t i=0; i<src.size(); i++)
+        TIMPI_UNIT_ASSERT( src[i] == dest[i] );
+    }
   }
 
 
