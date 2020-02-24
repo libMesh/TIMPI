@@ -2510,8 +2510,9 @@ inline void Communicator::sum(std::vector<std::complex<T>,A> & r) const
 
 
 
-template <typename K, typename V, typename C, typename A>
-inline void Communicator::sum(std::map<K,V,C,A> & data) const
+// Helper function for summing std::map and std::unordered_map
+template <typename Map>
+inline void Communicator::map_sum(Map & data) const
 {
   if (this->size() > 1)
     {
@@ -2520,7 +2521,12 @@ inline void Communicator::sum(std::map<K,V,C,A> & data) const
       // There may be different keys on different processors, so we
       // first gather all the (key, value) pairs and then insert
       // them, summing repeated keys, back into the map.
-      std::vector<std::pair<K,V>> vecdata(data.begin(), data.end());
+      //
+      // Note: We don't simply use Map::value_type here because the
+      // key type is const in that case and we don't have the proper
+      // StandardType overloads for communicating const types.
+      std::vector<std::pair<typename Map::key_type, typename Map::mapped_type>>
+        vecdata(data.begin(), data.end());
 
       this->allgather(vecdata, /*identical_buffer_sizes=*/false);
 
@@ -2532,24 +2538,18 @@ inline void Communicator::sum(std::map<K,V,C,A> & data) const
 
 
 
+template <typename K, typename V, typename C, typename A>
+inline void Communicator::sum(std::map<K,V,C,A> & data) const
+{
+  return this->map_sum(data);
+}
+
+
+
 template <typename K, typename V, typename H, typename E, typename A>
 inline void Communicator::sum(std::unordered_map<K,V,H,E,A> & data) const
 {
-  if (this->size() > 1)
-    {
-      TIMPI_LOG_SCOPE("sum(unordered_map)", "Parallel");
-
-      // There may be different keys on different processors, so we
-      // first gather all the (key, value) pairs and then insert
-      // them, summing repeated keys, back into the map.
-      std::vector<std::pair<K,V>> vecdata(data.begin(), data.end());
-
-      this->allgather(vecdata, /*identical_buffer_sizes=*/false);
-
-      data.clear();
-      for (const auto & pr : vecdata)
-        data[pr.first] += pr.second;
-    }
+  return this->map_sum(data);
 }
 
 

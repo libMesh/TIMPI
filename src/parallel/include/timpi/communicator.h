@@ -230,6 +230,13 @@ private:
   // Keep track of duplicate/split operations so we know when to free
   bool _I_duped_it;
 
+  /**
+   * Private implementation function called by the map-based sum()
+   * specializations.
+   */
+  template <typename Map>
+  void map_sum(Map & data) const;
+
   // Communication operations:
 public:
 
