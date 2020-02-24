@@ -136,6 +136,8 @@ AC_CONFIG_FILES([
   test/Makefile
   ])
 
+AC_CONFIG_FILES(bin/timpi-config, [chmod +x bin/timpi-config])
+
 # Must still call AC_OUTPUT() after generating all the files
 AC_OUTPUT()
 
