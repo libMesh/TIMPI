@@ -86,6 +86,10 @@
     inline
     void sum(std::map<K,V,C,A> &r) const;
 
+    template <typename K, typename V, typename H, typename E, typename A>
+    inline
+    void sum(std::unordered_map<K,V,H,E,A> &r) const;
+
     template <typename T, typename C, typename A>
     inline
     void set_union(std::set<T,C,A> &data,

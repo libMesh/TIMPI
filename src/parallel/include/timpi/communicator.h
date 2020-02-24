@@ -39,6 +39,7 @@
 // These could be forward declarations if only that wasn't illegal
 #include <complex> // for specializations
 #include <set>
+#include <unordered_map>
 
 namespace TIMPI
 {
