@@ -1754,33 +1754,19 @@ inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
   std::size_t data_size=data.size();
   this->broadcast(data_size, root_id);
 
-  std::vector<T1> pair_first; pair_first.reserve(data_size);
-  std::vector<T2> pair_second; pair_first.reserve(data_size);
+  std::vector<std::pair<T1,T2>> comm_data;
 
   if (root_id == this->rank())
-    {
-      for (const auto & pr : data)
-        {
-          pair_first.push_back(pr.first);
-          pair_second.push_back(pr.second);
-        }
-    }
+    comm_data.assign(data.begin(), data.end());
   else
-    {
-      pair_first.resize(data_size);
-      pair_second.resize(data_size);
-    }
+    comm_data.resize(data_size);
 
-  this->broadcast(pair_first, root_id);
-  this->broadcast(pair_second, root_id);
-
-  timpi_assert(pair_first.size() == pair_first.size());
+  this->broadcast(comm_data, root_id);
 
   if (this->rank() != root_id)
     {
       data.clear();
-      for (std::size_t i=0; i<pair_first.size(); ++i)
-        data[pair_first[i]] = pair_second[i];
+      data.insert(comm_data.begin(), comm_data.end());
     }
 }
 
