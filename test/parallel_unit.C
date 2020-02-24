@@ -131,38 +131,19 @@ std::vector<std::string> pt_number;
 
 
 
-  void testBroadcast()
+  template <class Container>
+  void testBroadcast(Container && src)
   {
-    {
-      std::vector<unsigned int> src(3), dest(3);
+    Container dest = src;
 
-      src[0]=0;
-      src[1]=1;
-      src[2]=2;
+    // Clear dest on non-root ranks
+    if (TestCommWorld->rank() != 0)
+      dest.clear();
 
-      if (TestCommWorld->rank() == 0)
-        dest = src;
+    TestCommWorld->broadcast(dest);
 
-      TestCommWorld->broadcast(dest);
-
-      for (std::size_t i=0; i<src.size(); i++)
-        TIMPI_UNIT_ASSERT( src[i]  == dest[i] );
-    }
-
-    {
-      std::map<int, int> src, dest;
-      src[0]=0;
-      src[1]=1;
-      src[2]=2;
-
-      if (TestCommWorld->rank() == 0)
-        dest = src;
-
-      TestCommWorld->broadcast(dest);
-
-      for (std::size_t i=0; i<src.size(); i++)
-        TIMPI_UNIT_ASSERT( src[i] == dest[i] );
-    }
+    for (std::size_t i=0; i<src.size(); i++)
+      TIMPI_UNIT_ASSERT( src[i]  == dest[i] );
   }
 
 
@@ -716,7 +697,8 @@ int main(int argc, const char * const * argv)
   testAllGatherVectorString();
   testAllGatherEmptyVectorString();
   testAllGatherHalfEmptyVectorString();
-  testBroadcast();
+  testBroadcast<std::vector<unsigned int>>({0,1,2});
+  testBroadcast<std::map<int, int>>({{0,0}, {1,1}, {2,2}});
   testBroadcastNestedType();
   testScatter();
   testBarrier();
