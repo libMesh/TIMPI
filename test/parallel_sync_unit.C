@@ -258,7 +258,7 @@ Communicator *TestCommWorld;
     // Test the received results, for each processor id p we're in
     // charge of.
     std::vector<std::size_t> checked_sizes(size, 0);
-    for (int p=rank; p != M; p += size)
+    for (int p=rank; p < M; p += size)
       for (int srcp=0; srcp != size; ++srcp)
         {
           int diffsize = std::abs(srcp-p);
@@ -396,7 +396,7 @@ Communicator *TestCommWorld;
     // Test the received results, for each processor id p we're in
     // charge of.
     std::vector<std::size_t> checked_sizes(size, 0);
-    for (int p=rank; p != M; p += size)
+    for (int p=rank; p < M; p += size)
       for (int srcp=0; srcp != size; ++srcp)
         {
           int diffsize = std::abs(srcp-p);
@@ -476,7 +476,7 @@ Communicator *TestCommWorld;
     // Test the received results, for each processor id p we're in
     // charge of.
     std::vector<std::size_t> checked_sizes(size, 0);
-    for (int p=rank; p != M; p += size)
+    for (int p=rank; p < M; p += size)
       for (int srcp=0; srcp != size; ++srcp)
         {
           int diffsize = std::abs(srcp-p);
