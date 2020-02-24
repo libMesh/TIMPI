@@ -700,6 +700,7 @@ int main(int argc, const char * const * argv)
   testAllGatherHalfEmptyVectorString();
   testBroadcast<std::vector<unsigned int>>({0,1,2});
   testBroadcast<std::map<int, int>>({{0,0}, {1,1}, {2,2}});
+  testBroadcast<std::unordered_map<int, int>>({{0,0}, {1,1}, {2,2}});
   testBroadcastNestedType();
   testScatter();
   testBarrier();

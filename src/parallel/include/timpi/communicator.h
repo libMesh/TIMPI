@@ -237,6 +237,14 @@ private:
   template <typename Map>
   void map_sum(Map & data) const;
 
+  /**
+   * Private implementation function called by the map-based broadcast()
+   * specializations.
+   */
+  template <typename Map>
+  void map_broadcast(Map & data,
+                     const unsigned int root_id) const;
+
   // Communication operations:
 public:
 
