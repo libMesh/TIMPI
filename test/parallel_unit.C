@@ -25,10 +25,10 @@ std::vector<std::string> pt_number;
     pt_number[9] = "Nine";
   }
 
-
+  template <class Map>
   void testSum()
   {
-    std::map<int, int> data;
+    Map data;
 
     int N = TestCommWorld->size();
 
@@ -691,7 +691,8 @@ int main(int argc, const char * const * argv)
 
   setUp();
 
-  testSum();
+  testSum<std::map<int,int>>();
+  testSum<std::unordered_map<int,int>>();
   testGather();
   testAllGather();
   testGatherString();
