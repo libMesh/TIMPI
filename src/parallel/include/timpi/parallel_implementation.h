@@ -1766,8 +1766,7 @@ inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
   if (this->rank() != root_id)
     {
       data.clear();
-      for (const auto & pr : comm_data)
-        data[pr.first] = pr.second;
+      data.insert(comm_data.begin(), comm_data.end());
     }
 }
 
