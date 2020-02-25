@@ -2,7 +2,7 @@ language: cpp
 script:
   - ./bootstrap
   - ./configure || cat config.log
-  - make check CXXFLAGS='-std=c++11 -Werror -Wall -Wextra -Wcast-align -Wdisabled-optimization -Wformat=2 -Wformat-nonliteral -Wformat-security -Wformat-y2k -Winvalid-pch -Wmissing-field-initializers -Wmissing-include-dirs -Wpacked -Wstack-protector -Wtrigraphs -Wunreachable-code -Wunused-label -Wunused-parameter -Wunused-value -Wvariadic-macros -Wvolatile-register-var -Wwrite-strings' || (cat test/test-suite.log && false)
+  - (make check CXXFLAGS='-std=c++11 -Werror -Wall -Wextra -Wcast-align -Wdisabled-optimization -Wformat=2 -Wformat-nonliteral -Wformat-security -Wformat-y2k -Winvalid-pch -Wmissing-field-initializers -Wmissing-include-dirs -Wpacked -Wstack-protector -Wtrigraphs -Wunreachable-code -Wunused-label -Wunused-parameter -Wunused-value -Wvariadic-macros -Wvolatile-register-var -Wwrite-strings' && cat test/run_unit_tests.sh.log) || (cat test/run_unit_tests.sh.log test/test-suite.log && false)
 matrix:
   include:
     - os: linux
@@ -13,7 +13,7 @@ matrix:
           packages:
             - g++-7 openmpi-bin openmpi-common libopenmpi-dev
       env:
-        - MATRIX_EVAL="CC=mpicc && CXX=mpicxx"
+        - MATRIX_EVAL="CC=mpicc && CXX=mpicxx && TIMPI_RUN='mpirun -np 4'"
 
     - os: linux
       addons:

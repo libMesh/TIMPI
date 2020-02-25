@@ -258,7 +258,7 @@ Communicator *TestCommWorld;
     // Test the received results, for each processor id p we're in
     // charge of.
     std::vector<std::size_t> checked_sizes(size, 0);
-    for (int p=rank; p != M; p += size)
+    for (int p=rank; p < M; p += size)
       for (int srcp=0; srcp != size; ++srcp)
         {
           int diffsize = std::abs(srcp-p);
@@ -396,7 +396,7 @@ Communicator *TestCommWorld;
     // Test the received results, for each processor id p we're in
     // charge of.
     std::vector<std::size_t> checked_sizes(size, 0);
-    for (int p=rank; p != M; p += size)
+    for (int p=rank; p < M; p += size)
       for (int srcp=0; srcp != size; ++srcp)
         {
           int diffsize = std::abs(srcp-p);
@@ -476,7 +476,7 @@ Communicator *TestCommWorld;
     // Test the received results, for each processor id p we're in
     // charge of.
     std::vector<std::size_t> checked_sizes(size, 0);
-    for (int p=rank; p != M; p += size)
+    for (int p=rank; p < M; p += size)
       for (int srcp=0; srcp != size; ++srcp)
         {
           int diffsize = std::abs(srcp-p);
@@ -557,9 +557,9 @@ int main(int argc, const char * const * argv)
   // partitioned into M parts with M > N, then subpartition p belongs
   // to processor p%N.  Let's make M > N for these tests.
   testPushOversized();
-  testPullOversized();
+  // testPullOversized();
   testPushVecVecOversized();
-  testPullVecVecOversized();
+  // testPullVecVecOversized();
   testPushMultimapOversized();
   testPushMultimapVecVecOversized();
 
