@@ -51,6 +51,17 @@ AC_DEFINE_UNQUOTED([MICRO_VERSION],$GENERIC_MICRO_VERSION,[Micro version])
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
 
+#--------------------------------------------------------------------
+# Check for whether to enable MPI and PETSc which will influence our
+# choice of compiler
+#--------------------------------------------------------------------
+COMPILER_CONTROL_ARGS
+
+#-----------------------------------------------------------------------
+# Scrape PETSc configure information for their CXX, MPI_INCLUDE, MPI_LIB
+#-----------------------------------------------------------------------
+SCRAPE_PETSC_CONFIGURE
+
 
 dnl------------------------------
 dnl Checks for compilers
@@ -85,19 +96,12 @@ timpi_optional_LIBS=""
 
 AS_IF([test "x$enablempi" = xyes],
       [
-        CONFIGURE_PETSC_MPI
-        AS_IF([test $enablepetsc = yes],
+        ACX_MPI
+        AS_IF([test "x$enablempi" = xyes],
               [
-                timpi_optional_INCLUDES="$PETSCINCLUDEDIRS $timpi_optional_INCLUDES"
-                timpi_optional_LIBS="$PETSCLINKLIBS $timpi_optional_LIBS"
-              ],
-              [
-                ACX_MPI
-                AS_IF([test "x$enablempi" = xyes],
-                      [
-                        timpi_optional_INCLUDES="-I$MPI_INCLUDES_PATH $timpi_optional_INCLUDES"
-                        timpi_optional_LIBS="-L$MPI_LIBS_PATH $LIBS $timpi_optional_LIBS"
-                      ])
+                AS_IF([test x"$MPI_INCLUDES" = x],,[timpi_optional_INCLUDES="$MPI_INCLUDES $timpi_optional_INCLUDES"])
+                AS_IF([test x"$MPI_LIBS" != x], [timpi_optional_LIBS="$MPI_LIBS $timpi_optional_LIBS"])
+                AS_IF([test x"$MPI_LDFLAGS" != x], [timpi_optional_LIBS="$MPI_LDFLAGS $timpi_optional_LIBS"])
               ])
       ])
 
