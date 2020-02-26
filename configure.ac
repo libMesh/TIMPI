@@ -85,19 +85,11 @@ timpi_optional_LIBS=""
 
 AS_IF([test "x$enablempi" = xyes],
       [
-        CONFIGURE_PETSC_MPI
-        AS_IF([test $enablepetsc = yes],
+        ACX_MPI
+        AS_IF([test "x$enablempi" = xyes],
               [
-                timpi_optional_INCLUDES="$PETSCINCLUDEDIRS $timpi_optional_INCLUDES"
-                timpi_optional_LIBS="$PETSCLINKLIBS $timpi_optional_LIBS"
-              ],
-              [
-                ACX_MPI
-                AS_IF([test "x$enablempi" = xyes],
-                      [
-                        timpi_optional_INCLUDES="-I$MPI_INCLUDES_PATH $timpi_optional_INCLUDES"
-                        timpi_optional_LIBS="-L$MPI_LIBS_PATH $LIBS $timpi_optional_LIBS"
-                      ])
+                AS_IF([test x"$MPI_INCLUDES_PATH" = x],,[timpi_optional_INCLUDES="-I$MPI_INCLUDES_PATH $timpi_optional_INCLUDES"])
+                AS_IF([test x"$MPI_LIBS_PATH" = x && test x"$MPI_LIBS" = x],,[timpi_optional_LIBS="-L$MPI_LIBS_PATH $MPI_LIBS $timpi_optional_LIBS"])
               ])
       ])
 
