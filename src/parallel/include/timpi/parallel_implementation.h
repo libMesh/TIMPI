@@ -2565,8 +2565,12 @@ inline void Communicator::sum(std::vector<std::complex<T>,A> & r) const
 
 
 
-// Helper function for summing std::map and std::unordered_map
-template <typename Map>
+// Helper function for summing std::map and std::unordered_map with
+// fixed type (key, value) pairs.
+template <typename Map,
+          typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
+                                  StandardType<typename Map::mapped_type>::is_fixed_type,
+                                  int>::type>
 inline void Communicator::map_sum(Map & data) const
 {
   if (this->size() > 1)
@@ -2588,6 +2592,46 @@ inline void Communicator::map_sum(Map & data) const
       data.clear();
       for (const auto & pr : vecdata)
         data[pr.first] += pr.second;
+    }
+}
+
+
+
+// Helper function for summing std::map and std::unordered_map with
+// non-fixed-type (key, value) pairs.
+template <typename Map,
+          typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
+                                    StandardType<typename Map::mapped_type>::is_fixed_type),
+                                  int>::type>
+inline void Communicator::map_sum(Map & data) const
+{
+  if (this->size() > 1)
+    {
+      TIMPI_LOG_SCOPE("sum(map)", "Parallel");
+
+      // There may be different keys on different processors, so we
+      // first gather all the (key, value) pairs and then insert
+      // them, summing repeated keys, back into the map.
+      std::vector<typename Map::key_type> keys;
+      std::vector<typename Map::mapped_type> vals;
+
+      auto data_size = data.size();
+      keys.reserve(data_size);
+      vals.reserve(data_size);
+
+      for (const auto & pr : data)
+        {
+          keys.push_back(pr.first);
+          vals.push_back(pr.second);
+        }
+
+      this->allgather(keys, /*identical_buffer_sizes=*/false);
+      this->allgather(vals, /*identical_buffer_sizes=*/false);
+
+      data.clear();
+
+      for (std::size_t i=0; i<keys.size(); ++i)
+        data[keys[i]] += vals[i];
     }
 }
 

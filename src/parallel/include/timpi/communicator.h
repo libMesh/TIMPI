@@ -232,9 +232,24 @@ private:
 
   /**
    * Private implementation function called by the map-based sum()
-   * specializations.
+   * specializations. This is_fixed_type variant saves a communication
+   * by broadcasting pairs
    */
-  template <typename Map>
+  template <typename Map,
+            typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
+                                    StandardType<typename Map::mapped_type>::is_fixed_type,
+                                    int>::type = 0>
+  void map_sum(Map & data) const;
+
+  /**
+   * Private implementation function called by the map-based sum()
+   * specializations. This !is_fixed_type variant calls allgather
+   * twice: once for the keys and once for the values.
+   */
+  template <typename Map,
+            typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
+                                      StandardType<typename Map::mapped_type>::is_fixed_type),
+                                    int>::type = 0>
   void map_sum(Map & data) const;
 
   /**
