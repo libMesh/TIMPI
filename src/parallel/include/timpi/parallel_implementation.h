@@ -1734,9 +1734,10 @@ inline void Communicator::broadcast (std::set<T,C,A> & data,
     }
 }
 
-
-
-template <typename Map>
+template <typename Map,
+          typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
+                                      StandardType<typename Map::mapped_type>::is_fixed_type,
+                                  int>::type>
 inline void Communicator::map_broadcast(Map & data,
                                         const unsigned int root_id) const
 {
@@ -1768,6 +1769,57 @@ inline void Communicator::map_broadcast(Map & data,
     {
       data.clear();
       data.insert(comm_data.begin(), comm_data.end());
+    }
+}
+
+template <typename Map,
+          typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
+                                    StandardType<typename Map::mapped_type>::is_fixed_type),
+                                  int>::type>
+inline void Communicator::map_broadcast(Map & data,
+                                        const unsigned int root_id) const
+{
+  if (this->size() == 1)
+    {
+      timpi_assert (!this->rank());
+      timpi_assert (!root_id);
+      return;
+    }
+
+  timpi_assert_less (root_id, this->size());
+
+  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
+
+  std::size_t data_size=data.size();
+  this->broadcast(data_size, root_id);
+
+  std::vector<typename Map::key_type> pair_first; pair_first.reserve(data_size);
+  std::vector<typename Map::mapped_type> pair_second; pair_first.reserve(data_size);
+
+  if (root_id == this->rank())
+    {
+      for (const auto & pr : data)
+        {
+          pair_first.push_back(pr.first);
+          pair_second.push_back(pr.second);
+        }
+    }
+  else
+    {
+      pair_first.resize(data_size);
+      pair_second.resize(data_size);
+    }
+
+  this->broadcast(pair_first, root_id);
+  this->broadcast(pair_second, root_id);
+
+  timpi_assert(pair_first.size() == pair_first.size());
+
+  if (this->rank() != root_id)
+    {
+      data.clear();
+      for (std::size_t i=0; i<pair_first.size(); ++i)
+        data[pair_first[i]] = pair_second[i];
     }
 }
 
