@@ -45,7 +45,27 @@ std::vector<std::string> pt_number;
 
 
 
-  void testGather()
+  template <class Map>
+  void testNonFixedTypeSum()
+  {
+    Map data;
+
+    int N = TestCommWorld->size();
+
+    for (int p=0; p<N; ++p)
+      data[std::string("key") + std::to_string(p)] = TestCommWorld->rank();
+
+    TestCommWorld->sum(data);
+
+    // Each map entry should now contain the sum:
+    // 0 + 1 + ... + N-1 = N*(N-1)/2
+    for (int p=0; p<N; ++p)
+      TIMPI_UNIT_ASSERT( data[std::string("key") + std::to_string(p)] == N*(N-1)/2 );
+  }
+
+
+
+void testGather()
   {
     std::vector<processor_id_type> vals;
     TestCommWorld->gather(0,cast_int<processor_id_type>(TestCommWorld->rank()),vals);
@@ -691,6 +711,8 @@ int main(int argc, const char * const * argv)
 
   testSum<std::map<int,int>>();
   testSum<std::unordered_map<int,int>>();
+  testNonFixedTypeSum<std::map<std::string,int>>();
+  testNonFixedTypeSum<std::unordered_map<std::string,int>>();
   testGather();
   testAllGather();
   testGatherString();
