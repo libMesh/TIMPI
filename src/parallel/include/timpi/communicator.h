@@ -243,7 +243,7 @@ private:
    */
   template <typename Map,
             typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                        StandardType<typename Map::mapped_type>::is_fixed_type,
+                                    StandardType<typename Map::mapped_type>::is_fixed_type,
                                     int>::type = 0>
   void map_broadcast(Map & data,
                      const unsigned int root_id) const;

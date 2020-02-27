@@ -1736,7 +1736,7 @@ inline void Communicator::broadcast (std::set<T,C,A> & data,
 
 template <typename Map,
           typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                      StandardType<typename Map::mapped_type>::is_fixed_type,
+                                  StandardType<typename Map::mapped_type>::is_fixed_type,
                                   int>::type>
 inline void Communicator::map_broadcast(Map & data,
                                         const unsigned int root_id) const
