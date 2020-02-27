@@ -110,5 +110,71 @@ if BUILD_OPT_MODE
   check_PROGRAMS += dispatch_to_packed_unit-opt
 endif
 
+if BUILD_OPROF_MODE
+  message_tag_unit_oprof_SOURCES = message_tag_unit.C
+  message_tag_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
+  message_tag_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
+  message_tag_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
+
+  packed_range_unit_oprof_SOURCES = packed_range_unit.C
+  packed_range_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
+  packed_range_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
+  packed_range_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
+
+  parallel_sync_unit_oprof_SOURCES = parallel_sync_unit.C
+  parallel_sync_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
+  parallel_sync_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
+  parallel_sync_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
+
+  parallel_unit_oprof_SOURCES = parallel_unit.C
+  parallel_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
+  parallel_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
+  parallel_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
+
+  dispatch_to_packed_unit_oprof_SOURCES = dispatch_to_packed_unit.C
+  dispatch_to_packed_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
+  dispatch_to_packed_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
+  dispatch_to_packed_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
+
+  check_PROGRAMS += message_tag_unit-oprof
+  check_PROGRAMS += packed_range_unit-oprof
+  check_PROGRAMS += parallel_sync_unit-oprof
+  check_PROGRAMS += parallel_unit-oprof
+  check_PROGRAMS += dispatch_to_packed_unit-oprof
+endif
+
+if BUILD_PROF_MODE
+  message_tag_unit_prof_SOURCES = message_tag_unit.C
+  message_tag_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
+  message_tag_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
+  message_tag_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
+
+  packed_range_unit_prof_SOURCES = packed_range_unit.C
+  packed_range_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
+  packed_range_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
+  packed_range_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
+
+  parallel_sync_unit_prof_SOURCES = parallel_sync_unit.C
+  parallel_sync_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
+  parallel_sync_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
+  parallel_sync_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
+
+  parallel_unit_prof_SOURCES = parallel_unit.C
+  parallel_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
+  parallel_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
+  parallel_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
+
+  dispatch_to_packed_unit_prof_SOURCES = dispatch_to_packed_unit.C
+  dispatch_to_packed_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
+  dispatch_to_packed_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
+  dispatch_to_packed_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
+
+  check_PROGRAMS += message_tag_unit-prof
+  check_PROGRAMS += packed_range_unit-prof
+  check_PROGRAMS += parallel_sync_unit-prof
+  check_PROGRAMS += parallel_unit-prof
+  check_PROGRAMS += dispatch_to_packed_unit-prof
+endif
+
 # Required for AX_AM_MACROS
 ###@INC_AMINCLUDE@
