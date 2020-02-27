@@ -239,9 +239,25 @@ private:
 
   /**
    * Private implementation function called by the map-based broadcast()
-   * specializations.
+   * specializations. This is_fixed_type variant saves a communication by broadcasting pairs
    */
-  template <typename Map>
+  template <typename Map,
+            typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
+                                        StandardType<typename Map::mapped_type>::is_fixed_type,
+                                    int>::type = 0>
+  void map_broadcast(Map & data,
+                     const unsigned int root_id) const;
+
+  /**
+   * Private implementation function called by the map-based broadcast()
+   * specializations. This !is_fixed_type variant makes two broadcasts, which is slower
+   * but gives more control over reach broadcast (e.g. we may need to specialize for either
+   * key_type or mapped_type)
+   */
+  template <typename Map,
+            typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
+                                      StandardType<typename Map::mapped_type>::is_fixed_type),
+                                    int>::type = 0>
   void map_broadcast(Map & data,
                      const unsigned int root_id) const;
 
