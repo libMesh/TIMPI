@@ -1486,7 +1486,9 @@ inline void Communicator::allgather(const std::basic_string<T> & sendval,
 
 
 template <>
-inline void Communicator::broadcast (bool & data, const unsigned int root_id) const
+inline void Communicator::broadcast (bool & data,
+                                     const unsigned int root_id,
+                                     const bool /* identical_sizes */) const
 {
   if (this->size() == 1)
     {
@@ -1516,7 +1518,8 @@ inline void Communicator::broadcast (bool & data, const unsigned int root_id) co
 
 template <typename T>
 inline void Communicator::broadcast (std::basic_string<T> & data,
-                                     const unsigned int root_id) const
+                                     const unsigned int root_id,
+                                     const bool identical_sizes) const
 {
   if (this->size() == 1)
     {
@@ -1526,11 +1529,16 @@ inline void Communicator::broadcast (std::basic_string<T> & data,
     }
 
   timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
 
   TIMPI_LOG_SCOPE("broadcast()", "Parallel");
 
   std::size_t data_size = data.size();
-  this->broadcast(data_size, root_id);
+
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
 
   std::vector<T> data_c(data_size);
 #ifndef NDEBUG
@@ -1541,7 +1549,7 @@ inline void Communicator::broadcast (std::basic_string<T> & data,
     for (std::size_t i=0; i<data.size(); i++)
       data_c[i] = data[i];
 
-  this->broadcast (data_c, root_id);
+  this->broadcast (data_c, root_id, StandardType<T>::is_fixed_type);
 
   data.assign(data_c.begin(), data_c.end());
 
@@ -1555,7 +1563,8 @@ inline void Communicator::broadcast (std::basic_string<T> & data,
 
 template <typename T, typename A>
 inline void Communicator::broadcast (std::vector<T,A> & data,
-                                     const unsigned int root_id) const
+                                     const unsigned int root_id,
+                                     const bool identical_sizes) const
 {
   if (this->size() == 1)
     {
@@ -1565,8 +1574,18 @@ inline void Communicator::broadcast (std::vector<T,A> & data,
     }
 
   timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
 
   TIMPI_LOG_SCOPE("broadcast()", "Parallel");
+
+  std::size_t data_size = data.size();
+
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
+
+  data.resize(data_size);
 
   // and get the data from the remote processors.
   // Pass nullptr if our vector is empty.
@@ -1583,7 +1602,8 @@ inline void Communicator::broadcast (std::vector<T,A> & data,
 
 template <typename T, typename A>
 inline void Communicator::broadcast (std::vector<std::basic_string<T>,A> & data,
-                                     const unsigned int root_id) const
+                                     const unsigned int root_id,
+                                     const bool identical_sizes) const
 {
   if (this->size() == 1)
     {
@@ -1593,16 +1613,21 @@ inline void Communicator::broadcast (std::vector<std::basic_string<T>,A> & data,
     }
 
   timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
 
   TIMPI_LOG_SCOPE("broadcast()", "Parallel");
 
   std::size_t bufsize=0;
-  if (root_id == this->rank())
+  if (root_id == this->rank() || identical_sizes)
     {
       for (std::size_t i=0; i<data.size(); ++i)
         bufsize += data[i].size() + 1;  // Add one for the string length word
     }
-  this->broadcast(bufsize, root_id);
+
+  if (identical_sizes)
+    timpi_assert(this->verify(bufsize));
+  else
+    this->broadcast(bufsize, root_id);
 
   // Here we use unsigned int to store up to 32-bit characters
   std::vector<unsigned int> temp; temp.reserve(bufsize);
@@ -1624,7 +1649,7 @@ inline void Communicator::broadcast (std::vector<std::basic_string<T>,A> & data,
     temp.resize(bufsize);
 
   // broad cast the packed strings
-  this->broadcast(temp, root_id);
+  this->broadcast(temp, root_id, true);
 
   // Unpack the strings
   if (root_id != this->rank())
@@ -1644,7 +1669,8 @@ inline void Communicator::broadcast (std::vector<std::basic_string<T>,A> & data,
 
 template <typename T, typename A1, typename A2>
 inline void Communicator::broadcast (std::vector<std::vector<T,A1>,A2> & data,
-                                     const unsigned int root_id) const
+                                     const unsigned int root_id,
+                                     const bool identical_sizes) const
 {
   if (this->size() == 1)
     {
@@ -1654,18 +1680,25 @@ inline void Communicator::broadcast (std::vector<std::vector<T,A1>,A2> & data,
     }
 
   timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
 
   TIMPI_LOG_SCOPE("broadcast()", "Parallel");
 
   std::size_t size_sizes = data.size();
-  this->broadcast(size_sizes, root_id);
+  if (identical_sizes)
+    timpi_assert(this->verify(size_sizes));
+  else
+    this->broadcast(size_sizes, root_id);
   std::vector<std::size_t> sizes(size_sizes);
 
-  if (root_id == this->rank())
+  if (root_id == this->rank() || identical_sizes)
     for (std::size_t i=0; i<size_sizes; ++i)
       sizes[i] = data[i].size();
 
-  this->broadcast(sizes, root_id);
+  if (identical_sizes)
+    timpi_assert(this->verify(sizes));
+  else
+    this->broadcast(sizes, root_id);
 
   std::size_t bufsize = 0;
   for (std::size_t i=0; i<size_sizes; ++i)
@@ -1683,7 +1716,7 @@ inline void Communicator::broadcast (std::vector<std::vector<T,A1>,A2> & data,
     temp.resize(bufsize);
 
   // broad cast the packed data
-  this->broadcast(temp, root_id);
+  this->broadcast(temp, root_id, StandardType<T>::is_fixed_type);
 
   // Unpack the data
   if (root_id != this->rank())
@@ -1704,7 +1737,8 @@ inline void Communicator::broadcast (std::vector<std::vector<T,A1>,A2> & data,
 
 template <typename T, typename C, typename A>
 inline void Communicator::broadcast (std::set<T,C,A> & data,
-                                     const unsigned int root_id) const
+                                     const unsigned int root_id,
+                                     const bool identical_sizes) const
 {
   if (this->size() == 1)
     {
@@ -1714,6 +1748,7 @@ inline void Communicator::broadcast (std::set<T,C,A> & data,
     }
 
   timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
 
   TIMPI_LOG_SCOPE("broadcast()", "Parallel");
 
@@ -1722,11 +1757,14 @@ inline void Communicator::broadcast (std::set<T,C,A> & data,
     vecdata.assign(data.begin(), data.end());
 
   std::size_t vecsize = vecdata.size();
-  this->broadcast(vecsize, root_id);
+  if (identical_sizes)
+    timpi_assert(this->verify(vecsize));
+  else
+    this->broadcast(vecsize, root_id);
   if (this->rank() != root_id)
     vecdata.resize(vecsize);
 
-  this->broadcast(vecdata, root_id);
+  this->broadcast(vecdata, root_id, StandardType<T>::is_fixed_type);
   if (this->rank() != root_id)
     {
       data.clear();
@@ -1739,7 +1777,8 @@ template <typename Map,
                                   StandardType<typename Map::mapped_type>::is_fixed_type,
                                   int>::type>
 inline void Communicator::map_broadcast(Map & data,
-                                        const unsigned int root_id) const
+                                        const unsigned int root_id,
+                                        const bool identical_sizes) const
 {
   if (this->size() == 1)
     {
@@ -1749,11 +1788,15 @@ inline void Communicator::map_broadcast(Map & data,
     }
 
   timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
 
   TIMPI_LOG_SCOPE("broadcast(map)", "Parallel");
 
   std::size_t data_size=data.size();
-  this->broadcast(data_size, root_id);
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
 
   std::vector<std::pair<typename Map::key_type,
                         typename Map::mapped_type>> comm_data;
@@ -1763,7 +1806,7 @@ inline void Communicator::map_broadcast(Map & data,
   else
     comm_data.resize(data_size);
 
-  this->broadcast(comm_data, root_id);
+  this->broadcast(comm_data, root_id, true);
 
   if (this->rank() != root_id)
     {
@@ -1777,7 +1820,8 @@ template <typename Map,
                                     StandardType<typename Map::mapped_type>::is_fixed_type),
                                   int>::type>
 inline void Communicator::map_broadcast(Map & data,
-                                        const unsigned int root_id) const
+                                        const unsigned int root_id,
+                                        const bool identical_sizes) const
 {
   if (this->size() == 1)
     {
@@ -1787,11 +1831,15 @@ inline void Communicator::map_broadcast(Map & data,
     }
 
   timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
 
   TIMPI_LOG_SCOPE("broadcast()", "Parallel");
 
   std::size_t data_size=data.size();
-  this->broadcast(data_size, root_id);
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
 
   std::vector<typename Map::key_type> pair_first; pair_first.reserve(data_size);
   std::vector<typename Map::mapped_type> pair_second; pair_first.reserve(data_size);
@@ -1810,8 +1858,12 @@ inline void Communicator::map_broadcast(Map & data,
       pair_second.resize(data_size);
     }
 
-  this->broadcast(pair_first, root_id);
-  this->broadcast(pair_second, root_id);
+  this->broadcast
+    (pair_first, root_id,
+     StandardType<typename Map::key_type>::is_fixed_type);
+  this->broadcast
+    (pair_second, root_id,
+     StandardType<typename Map::mapped_type>::is_fixed_type);
 
   timpi_assert(pair_first.size() == pair_first.size());
 
@@ -1825,18 +1877,20 @@ inline void Communicator::map_broadcast(Map & data,
 
 template <typename T1, typename T2, typename C, typename A>
 inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
-                                    const unsigned int root_id) const
+                                    const unsigned int root_id,
+                                    const bool identical_sizes) const
 {
-  this->map_broadcast(data, root_id);
+  this->map_broadcast(data, root_id, identical_sizes);
 }
 
 
 
 template <typename K, typename V, typename H, typename E, typename A>
 inline void Communicator::broadcast(std::unordered_map<K,V,H,E,A> & data,
-                                    const unsigned int root_id) const
+                                    const unsigned int root_id,
+                                    const bool identical_sizes) const
 {
-  this->map_broadcast(data, root_id);
+  this->map_broadcast(data, root_id, identical_sizes);
 }
 
 
@@ -3257,7 +3311,9 @@ inline void Communicator::alltoall(std::vector<T,A> & buf) const
 
 
 template <typename T>
-inline void Communicator::broadcast (T & timpi_mpi_var(data), const unsigned int root_id) const
+inline void Communicator::broadcast (T & timpi_mpi_var(data),
+                                     const unsigned int root_id,
+                                     const bool /* identical_sizes */) const
 {
   ignore(root_id); // Only needed for MPI and/or dbg/devel
   if (this->size() == 1)

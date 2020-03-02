@@ -311,37 +311,44 @@
     template <typename T>
     inline
     void broadcast(std::basic_string<T> &data,
-                   const unsigned int root_id=0) const;
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
 
     template <typename T, typename A>
     inline
     void broadcast(std::vector<T,A> &data,
-                   const unsigned int root_id=0) const;
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
 
     template <typename T, typename A>
     inline
     void broadcast(std::vector<std::basic_string<T>,A> &data,
-                   const unsigned int root_id=0) const;
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
 
     template <typename T, typename A1, typename A2>
     inline
     void broadcast(std::vector<std::vector<T,A1>,A2> &data,
-                   const unsigned int root_id=0) const;
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
 
     template <typename T, typename C, typename A>
     inline
     void broadcast(std::set<T,C,A> &data,
-                   const unsigned int root_id=0) const;
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
 
     template <typename T1, typename T2, typename C, typename A>
     inline
     void broadcast(std::map<T1,T2,C,A> &data,
-                   const unsigned int root_id=0) const;
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
 
     template <typename K, typename V, typename H, typename E, typename A>
     inline
     void broadcast(std::unordered_map<K,V,H,E,A> &data,
-                   const unsigned int root_id=0) const;
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
 
     // In new overloaded function template entries we have to
     // re-specify the default arguments
