@@ -330,6 +330,48 @@ void testGather()
 
 
 
+  template <class Map>
+  void testMapMax ()
+  {
+    Map data;
+
+    int rank = TestCommWorld->rank();
+    int N = TestCommWorld->size();
+
+    // On each proc, the map has the single entry (rank, rank)
+    data[rank] = rank;
+
+    // Compute the max
+    TestCommWorld->max(data);
+
+    // After calling max, there should be an entry for each rank
+    for (int p=0; p<N; ++p)
+      TIMPI_UNIT_ASSERT (data[p] == p);
+  }
+
+
+
+  template <class Map>
+  void testNonFixedTypeMapMax ()
+  {
+    Map data;
+
+    int rank = TestCommWorld->rank();
+    int N = TestCommWorld->size();
+
+    // On each proc, the map has a single entry, e.g. ("key0", 0)
+    data[std::string("key") + std::to_string(rank)] = rank;
+
+    // Compute the max
+    TestCommWorld->max(data);
+
+    // After calling max, there should be an entry for each rank
+    for (int p=0; p<N; ++p)
+      TIMPI_UNIT_ASSERT (data[std::string("key") + std::to_string(p)] == p);
+  }
+
+
+
   void testMinloc ()
   {
     int min = (TestCommWorld->rank() + 1) % TestCommWorld->size();
@@ -730,6 +772,10 @@ int main(int argc, const char * const * argv)
   testBarrier();
   testMin();
   testMax();
+  testMapMax<std::map<int, int>>();
+  testMapMax<std::unordered_map<int, int>>();
+  testNonFixedTypeMapMax<std::map<std::string,int>>();
+  testNonFixedTypeMapMax<std::unordered_map<std::string,int>>();
   testMinloc();
   testMaxloc();
   testMinlocDouble();
