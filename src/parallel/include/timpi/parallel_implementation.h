@@ -2447,6 +2447,122 @@ inline void Communicator::max(std::vector<bool,A> & r) const
 }
 
 
+
+template <typename Map,
+          typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
+                                  StandardType<typename Map::mapped_type>::is_fixed_type,
+                                  int>::type>
+void Communicator::map_max(Map & data) const
+{
+  if (this->size() > 1)
+    {
+      TIMPI_LOG_SCOPE("max(map)", "Parallel");
+
+      // Since the input map may have different keys on different
+      // processors, we first gather all the keys and values, then for
+      // each key we choose the max value over all procs. We
+      // initialize the max with the first value we encounter rather
+      // than some "global" minimum, since the latter is difficult to
+      // do generically.
+      std::vector<std::pair<typename Map::key_type, typename Map::mapped_type>>
+        vecdata(data.begin(), data.end());
+
+      this->allgather(vecdata, /*identical_buffer_sizes=*/false);
+
+      data.clear();
+
+      for (const auto & pr : vecdata)
+        {
+          // Attempt to insert this value. If it works, then the value didn't
+          // already exist and we can go on. If it fails, compute the std::max
+          // between the current and existing values.
+          auto result = data.insert(pr);
+
+          bool inserted = result.second;
+
+          if (!inserted)
+            {
+              auto it = result.first;
+              it->second = std::max(it->second, pr.second);
+            }
+        }
+    }
+}
+
+
+
+template <typename Map,
+          typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
+                                    StandardType<typename Map::mapped_type>::is_fixed_type),
+                                  int>::type>
+void Communicator::map_max(Map & data) const
+{
+  if (this->size() > 1)
+    {
+      TIMPI_LOG_SCOPE("max(map)", "Parallel");
+
+      // Since the input map may have different keys on different
+      // processors, we first gather all the keys and values, then for
+      // each key we choose the max value over all procs. We
+      // initialize the max with the first value we encounter rather
+      // than some "global" minimum, since the latter is difficult to
+      // do generically.
+      std::vector<typename Map::key_type> keys;
+      std::vector<typename Map::mapped_type> vals;
+
+      auto data_size = data.size();
+      keys.reserve(data_size);
+      vals.reserve(data_size);
+
+      for (const auto & pr : data)
+        {
+          keys.push_back(pr.first);
+          vals.push_back(pr.second);
+        }
+
+      this->allgather(keys, /*identical_buffer_sizes=*/false);
+      this->allgather(vals, /*identical_buffer_sizes=*/false);
+
+      data.clear();
+
+      for (std::size_t i=0; i<keys.size(); ++i)
+        {
+          // Attempt to emplace this value. If it works, then the value didn't
+          // already exist and we can go on. If it fails, compute the std::max
+          // between the current and existing values.
+          auto pr = data.emplace(keys[i], vals[i]);
+
+          bool emplaced = pr.second;
+
+          if (!emplaced)
+            {
+              auto it = pr.first;
+              it->second = std::max(it->second, vals[i]);
+            }
+        }
+    }
+}
+
+
+
+template <typename K, typename V, typename C, typename A>
+inline
+void Communicator::max(std::map<K,V,C,A> & data) const
+{
+  this->map_max(data);
+}
+
+
+
+template <typename K, typename V, typename H, typename E, typename A>
+inline
+void Communicator::max(std::unordered_map<K,V,H,E,A> & data) const
+{
+  this->map_max(data);
+}
+
+
+
 template <typename T>
 inline void Communicator::maxloc(T & r,
                                  unsigned int & max_id) const
