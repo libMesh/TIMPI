@@ -13,7 +13,7 @@ matrix:
           packages:
             - g++-7 openmpi-bin openmpi-common libopenmpi-dev
       env:
-        - MATRIX_EVAL="CC=mpicc && CXX=mpicxx && TIMPI_RUN='mpirun -np 4'"
+        - MATRIX_EVAL="CC=mpicc && CXX=mpicxx && export TIMPI_RUN='mpirun -np 4'"
 
     - os: linux
       addons:
