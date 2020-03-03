@@ -129,20 +129,6 @@ void push_parallel_packed_range(const Communicator & comm,
 /*
  * A specialization for types that are harder to non-blocking receive.
  */
-template <template <typename, typename, typename ...> class MapType,
-          typename KeyType,
-          typename ValueType,
-          typename A1,
-          typename A2,
-          typename ... ExtraTypes,
-          typename ActionFunctor>
-void push_parallel_vector_data(const Communicator & comm,
-                               const MapType<processor_id_type, std::vector<std::vector<ValueType,A1>,A2>, ExtraTypes...> & data,
-                               const ActionFunctor & act_on_data);
-
-/*
- * A specialization for types that are harder to non-blocking receive.
- */
 template <typename datum,
           typename A,
           typename MapToVectors,
@@ -475,99 +461,6 @@ void push_parallel_packed_range(const Communicator & comm,
 
   // Reset the send mode
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
-}
-
-
-template <template <typename, typename, typename ...> class MapType,
-          typename ValueType,
-          typename A1,
-          typename A2,
-          typename ... ExtraTypes,
-          typename ActionFunctor>
-void push_parallel_vector_data(const Communicator & comm,
-                               const MapType<processor_id_type, std::vector<std::vector<ValueType,A1>,A2>, ExtraTypes...> & data,
-                               const ActionFunctor & act_on_data)
-{
-  // This function must be run on all processors at once
-  timpi_parallel_only(comm);
-
-  processor_id_type num_procs = comm.size();
-
-  // Number of vectors to send to each procesor
-  std::vector<std::size_t> will_send_to(num_procs, 0);
-  for (auto & datapair : data)
-    {
-      // In the case of data partitioned into more processors than we
-      // have ranks, we "wrap around"
-      processor_id_type destid = datapair.first % num_procs;
-
-      // Don't give us empty vectors to send
-      timpi_assert_greater(datapair.second.size(), 0);
-
-      will_send_to[destid]++;
-    }
-
-  // Tell everyone about where everyone will send to
-  comm.alltoall(will_send_to);
-
-  // will_send_to now represents how many vectors we'll receive from
-  // each processor; give it a better name.
-  auto & will_receive_from = will_send_to;
-
-  processor_id_type n_receives = 0;
-  for (processor_id_type proc_id = 0; proc_id < num_procs; proc_id++)
-    n_receives += will_receive_from[proc_id];
-
-  // We'll construct a datatype once for repeated use
-  StandardType<ValueType> datatype;
-
-  // We'll grab a tag so we can overlap request sends and receives
-  // without confusing one for the other
-  MessageTag tag = comm.get_unique_tag();
-
-  // The send requests
-  std::list<Request> reqs;
-
-  // Post all of the sends, non-blocking
-  for (auto & datapair : data)
-    {
-      processor_id_type destid = datapair.first % num_procs;
-      auto & datum = datapair.second;
-
-      // Just act on data if the user requested a send-to-self
-      if (destid == comm.rank())
-        {
-          act_on_data(destid, datum);
-          n_receives--;
-        }
-      else
-        {
-          Request sendreq;
-          comm.send(destid, datum, datatype, sendreq, tag);
-          reqs.push_back(sendreq);
-        }
-    }
-
-  // Post all of the receives.
-  //
-  // Use blocking API here since we can't use the pre-sized
-  // non-blocking APIs with this data type.
-  //
-  // FIXME - implement Derek's API from #1684, switch to that!
-  for (processor_id_type i = 0; i != n_receives; ++i)
-    {
-      Status stat(comm.probe(any_source, tag));
-      const processor_id_type
-        proc_id = cast_int<processor_id_type>(stat.source());
-
-      std::vector<std::vector<ValueType,A1>,A2> received_data;
-      comm.receive(proc_id, received_data, datatype, tag);
-      act_on_data(proc_id, received_data);
-    }
-
-  // Wat on all the sends to complete
-  for (auto & req : reqs)
-    req.wait();
 }
 
 
