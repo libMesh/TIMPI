@@ -124,14 +124,14 @@
     void send (const unsigned int dest_processor_id,
                const std::basic_string<T> & buf,
                const MessageTag &tag=no_tag) const;
- 
+
     template<typename T>
     inline
     void send (const unsigned int dest_processor_id,
                const std::basic_string<T> & buf,
                Request &req,
                const MessageTag &tag=no_tag) const;
- 
+
     template <typename T, typename C, typename A>
     inline
     void send (const unsigned int dest_processor_id,
@@ -256,7 +256,7 @@
                   const DataType &type,
                   Request &req,
                   const MessageTag &tag=any_tag) const;
- 
+
     template <typename T, typename A>
     inline
     Status receive (const unsigned int src_processor_id,
