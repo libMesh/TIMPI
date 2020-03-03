@@ -551,19 +551,34 @@ public:
    *
    * Otherwise - if there is no message to receive it returns false
    *
-   * Note: The buf does NOT need to properly sized before this call
+   * Note: The buf does NOT need to be properly sized before this call
    * this will resize the buffer automatically
    *
-   * If \p T is a container, container-of-containers, etc., then
-   * \p type should be the DataType of the underlying fixed-size
-   * entries in the container(s).
+   * @param src_processor_id The pid to receive from or "any".
+   * will be set to the actual src being received from
+   * @param buf The buffer to receive into
+   * @param req The request to use
+   * @param tag The tag to use
+   */
+  template <typename T, typename A>
+  inline
+  bool possibly_receive (unsigned int & src_processor_id,
+                         std::vector<T,A> & buf,
+                         Request & req,
+                         const MessageTag & tag) const;
+
+  /**
+   * Nonblocking-receive from one processor with user-defined type.
+   *
+   * As above, but with manually-specified data type.
    *
    * @param src_processor_id The pid to receive from or "any".
-   * will be set to the actual src being receieved from
+   * will be set to the actual src being received from
    * @param buf The buffer to receive into
    * @param type The intrinsic datatype to receive
    * @param req The request to use
    * @param tag The tag to use
+
    */
   template <typename T, typename A>
   inline

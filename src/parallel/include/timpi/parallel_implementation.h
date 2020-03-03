@@ -3522,6 +3522,19 @@ inline void Communicator::allgather_packed_range(Context * context,
 template <typename T, typename A>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
+                                            Request & req,
+                                            const MessageTag & tag) const
+{
+  T * dataptr = buf.empty() ? nullptr : buf.data();
+
+  return this->possibly_receive(src_processor_id, buf, StandardType<T>(dataptr), req, tag);
+}
+
+
+
+template <typename T, typename A>
+inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
+                                            std::vector<T,A> & buf,
                                             const DataType & type,
                                             Request & req,
                                             const MessageTag & tag) const
