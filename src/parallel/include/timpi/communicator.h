@@ -261,7 +261,8 @@ private:
                                     StandardType<typename Map::mapped_type>::is_fixed_type,
                                     int>::type = 0>
   void map_broadcast(Map & data,
-                     const unsigned int root_id) const;
+                     const unsigned int root_id,
+                     const bool identical_sizes) const;
 
   /**
    * Private implementation function called by the map-based broadcast()
@@ -274,7 +275,8 @@ private:
                                       StandardType<typename Map::mapped_type>::is_fixed_type),
                                     int>::type = 0>
   void map_broadcast(Map & data,
-                     const unsigned int root_id) const;
+                     const unsigned int root_id,
+                     const bool identical_sizes) const;
 
   // Communication operations:
 public:
@@ -1009,12 +1011,14 @@ public:
    * Take a local value and broadcast it to all processors.
    * Optionally takes the \p root_id processor, which specifies
    * the processor initiating the broadcast.
-   * If \p data is a vector, the user is responsible for resizing it
-   * on all processors, except in the case when \p data is a vector
-   * of strings.
+   *
+   * If \p data is a container, it will be resized on target
+   * processors.  When using pre-sized target containers, specify
+   * \p identical_sizes=true on all processors for an optimization.
    */
   template <typename T>
-  inline void broadcast(T & data, const unsigned int root_id=0) const;
+  inline void broadcast(T & data, const unsigned int root_id=0,
+                        const bool identical_sizes=false) const;
 
   /**
    * Blocking-broadcast range-of-pointers to one processor.  This
