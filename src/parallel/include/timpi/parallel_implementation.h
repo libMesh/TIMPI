@@ -206,6 +206,49 @@ dataplusint_type_acquire()
 }
 
 
+
+template <typename T, typename A1, typename A2>
+int Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
+                                 const DataType & type) const
+{
+  // figure out how many bytes we need to pack all the data
+  int packedsize=0;
+
+  // The outer buffer size
+  timpi_call_mpi
+    (MPI_Pack_size (1,
+                    StandardType<unsigned int>(),
+                    this->get(),
+                    &packedsize));
+
+  int sendsize = packedsize;
+
+  const std::size_t n_vecs = buf.size();
+
+  for (std::size_t i = 0; i != n_vecs; ++i)
+    {
+      // The size of the ith inner buffer
+      timpi_call_mpi
+        (MPI_Pack_size (1,
+                        StandardType<unsigned int>(),
+                        this->get(),
+                        &packedsize));
+
+      sendsize += packedsize;
+
+      // The data for each inner buffer
+      timpi_call_mpi
+        (MPI_Pack_size (cast_int<int>(buf[i].size()), type,
+                        this->get(), &packedsize));
+
+      sendsize += packedsize;
+    }
+
+  timpi_assert (sendsize /* should at least be 1! */);
+  return sendsize;
+}
+
+
 template<typename T>
 inline Status Communicator::packed_range_probe (const unsigned int src_processor_id,
                                                 const MessageTag & tag,
