@@ -33,10 +33,13 @@ template <typename Container>
 struct PostWaitUnpackNestedBuffer : public PostWaitWork {
   PostWaitUnpackNestedBuffer(const std::vector<char> & buffer,
                              Container & out,
-                             const DataType & T_type,
+                             const DataType & timpi_mpi_var(T_type),
                              const Communicator & comm_in) :
     recvbuf(buffer), recv(out), comm(comm_in) {
       timpi_call_mpi(MPI_Type_dup(T_type, &(type.operator data_type &())));
+#ifndef TIMPI_HAVE_MPI
+      timpi_not_implemented(); // This makes no sense without MPI_Unpack
+#endif
     }
 
   ~PostWaitUnpackNestedBuffer() {
@@ -47,6 +50,7 @@ struct PostWaitUnpackNestedBuffer : public PostWaitWork {
   }
 
   virtual void run() override {
+#ifdef TIMPI_HAVE_MPI
   // We should at least have one header datum, for outer vector size
   timpi_assert (!recvbuf.empty());
 
@@ -81,6 +85,7 @@ struct PostWaitUnpackNestedBuffer : public PostWaitWork {
           (MPI_Unpack (recvbuf.data(), bufsize, &pos, recv[i].data(),
                        subvec_size, type, comm.get()));
     }
+#endif //TIMPI_HAVE_MPI
   }
 
 private:
