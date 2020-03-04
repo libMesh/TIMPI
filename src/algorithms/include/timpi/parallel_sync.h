@@ -203,6 +203,10 @@ void push_parallel_vector_data(const Communicator & comm,
         }
     }
 
+  // In serial we've now acted on all our data.
+  if (comm.size() == 1)
+    return;
+
   bool sends_complete = reqs.empty();
   bool started_barrier = false;
   Request barrier_request;

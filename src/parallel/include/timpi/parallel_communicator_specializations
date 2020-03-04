@@ -116,6 +116,13 @@
     inline
     void set_union(std::map<T1,T2,C,A> &data) const;
 
+    template <typename T, typename A1, typename A2>
+    inline
+    bool possibly_receive (unsigned int & src_processor_id,
+                           std::vector<std::vector<T,A1>,A2> & buf,
+                           Request & req,
+                           const MessageTag & tag) const;
+
 // We only need to bother with many of these specializations if we're
 // actually in parallel.
 #ifdef TIMPI_HAVE_MPI
@@ -304,13 +311,6 @@
                     std::vector<std::vector<T,A1>,A2> &buf,
                     const DataType &type,
                     const MessageTag &tag=any_tag) const;
-
-    template <typename T, typename A1, typename A2>
-    inline
-    bool possibly_receive (unsigned int & src_processor_id,
-                           std::vector<std::vector<T,A1>,A2> & buf,
-                           Request & req,
-                           const MessageTag & tag) const;
 
     template <typename T, typename A1, typename A2>
     inline
