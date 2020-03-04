@@ -559,50 +559,18 @@ inline void Communicator::send (const unsigned int dest_processor_id,
                                 Request & req,
                                 const MessageTag & tag) const
 {
+  // figure out how many bytes we need to pack all the data
+  const int sendsize = this->packed_size_of(send_vecs, type);
+
   // temporary buffer - this will be sized in bytes
   // and manipulated with MPI_Pack
-  std::vector<char> * sendbuf = new std::vector<char>();
-
-  // figure out how many bytes we need to pack all the data
-  int packedsize=0;
-
-  // The outer buffer size
-  timpi_call_mpi
-    (MPI_Pack_size (1,
-                    StandardType<unsigned int>(),
-                    this->get(),
-                    &packedsize));
-
-  int sendsize = packedsize;
-
-  const std::size_t n_vecs = send_vecs.size();
-
-  for (std::size_t i = 0; i != n_vecs; ++i)
-    {
-      // The size of the ith inner buffer
-      timpi_call_mpi
-        (MPI_Pack_size (1,
-                        StandardType<unsigned int>(),
-                        this->get(),
-                        &packedsize));
-
-      sendsize += packedsize;
-
-      // The data for each inner buffer
-      timpi_call_mpi
-        (MPI_Pack_size (cast_int<int>(send_vecs[i].size()), type,
-                        this->get(), &packedsize));
-
-      sendsize += packedsize;
-    }
-
-  timpi_assert (sendsize /* should at least be 1! */);
-  sendbuf->resize (sendsize);
+  std::vector<char> * sendbuf = new std::vector<char>(sendsize);
 
   // Pack the send buffer
   int pos=0;
 
   // ... the size of the outer buffer
+  const std::size_t n_vecs = send_vecs.size();
   const int mpi_n_vecs = cast_int<int>(n_vecs);
 
   timpi_call_mpi
