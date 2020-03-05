@@ -51,6 +51,7 @@ AS_ECHO(["Optional Packages for Testing:"])
 AS_IF([test "x$enablempi" = "xyes"],
       [
         AS_ECHO(["  MPI......................... : yes"])
+        AS_ECHO(["  MPI_IMPL.................... : $MPI_IMPL"])
       ],
       [
         AS_ECHO(["  MPI......................... : no"])
