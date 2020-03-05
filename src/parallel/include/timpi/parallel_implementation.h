@@ -34,6 +34,7 @@
 #include "timpi/post_wait_dereference_tag.h"
 #include "timpi/post_wait_free_buffer.h"
 #include "timpi/post_wait_unpack_buffer.h"
+#include "timpi/post_wait_unpack_nested_buffer.h"
 #include "timpi/post_wait_work.h"
 #include "timpi/request.h"
 #include "timpi/status.h"
@@ -203,6 +204,49 @@ dataplusint_type_acquire()
       return_val.first = *return_val.second;
     }
   return return_val;
+}
+
+
+
+template <typename T, typename A1, typename A2>
+int Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
+                                 const DataType & type) const
+{
+  // figure out how many bytes we need to pack all the data
+  int packedsize=0;
+
+  // The outer buffer size
+  timpi_call_mpi
+    (MPI_Pack_size (1,
+                    StandardType<unsigned int>(),
+                    this->get(),
+                    &packedsize));
+
+  int sendsize = packedsize;
+
+  const std::size_t n_vecs = buf.size();
+
+  for (std::size_t i = 0; i != n_vecs; ++i)
+    {
+      // The size of the ith inner buffer
+      timpi_call_mpi
+        (MPI_Pack_size (1,
+                        StandardType<unsigned int>(),
+                        this->get(),
+                        &packedsize));
+
+      sendsize += packedsize;
+
+      // The data for each inner buffer
+      timpi_call_mpi
+        (MPI_Pack_size (cast_int<int>(buf[i].size()), type,
+                        this->get(), &packedsize));
+
+      sendsize += packedsize;
+    }
+
+  timpi_assert (sendsize /* should at least be 1! */);
+  return sendsize;
 }
 
 
@@ -516,50 +560,18 @@ inline void Communicator::send (const unsigned int dest_processor_id,
                                 Request & req,
                                 const MessageTag & tag) const
 {
+  // figure out how many bytes we need to pack all the data
+  const int sendsize = this->packed_size_of(send_vecs, type);
+
   // temporary buffer - this will be sized in bytes
   // and manipulated with MPI_Pack
-  std::vector<char> * sendbuf = new std::vector<char>();
-
-  // figure out how many bytes we need to pack all the data
-  int packedsize=0;
-
-  // The outer buffer size
-  timpi_call_mpi
-    (MPI_Pack_size (1,
-                    StandardType<unsigned int>(),
-                    this->get(),
-                    &packedsize));
-
-  int sendsize = packedsize;
-
-  const std::size_t n_vecs = send_vecs.size();
-
-  for (std::size_t i = 0; i != n_vecs; ++i)
-    {
-      // The size of the ith inner buffer
-      timpi_call_mpi
-        (MPI_Pack_size (1,
-                        StandardType<unsigned int>(),
-                        this->get(),
-                        &packedsize));
-
-      sendsize += packedsize;
-
-      // The data for each inner buffer
-      timpi_call_mpi
-        (MPI_Pack_size (cast_int<int>(send_vecs[i].size()), type,
-                        this->get(), &packedsize));
-
-      sendsize += packedsize;
-    }
-
-  timpi_assert (sendsize /* should at least be 1! */);
-  sendbuf->resize (sendsize);
+  std::vector<char> * sendbuf = new std::vector<char>(sendsize);
 
   // Pack the send buffer
   int pos=0;
 
   // ... the size of the outer buffer
+  const std::size_t n_vecs = send_vecs.size();
   const int mpi_n_vecs = cast_int<int>(n_vecs);
 
   timpi_call_mpi
@@ -1090,8 +1102,6 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
 
 
 
-// FIXME - non-blocking receive of vector-of-vectors is currently unimplemented
-/*
 template <typename T, typename A1, typename A2>
 inline void Communicator::receive (const unsigned int src_processor_id,
                                    std::vector<std::vector<T,A1>,A2> & buf,
@@ -1099,8 +1109,30 @@ inline void Communicator::receive (const unsigned int src_processor_id,
                                    Request & req,
                                    const MessageTag & tag) const
 {
+  // figure out how many bytes we need to receive all the data into
+  // our properly pre-sized buf
+  const int sendsize = this->packed_size_of(buf, type);
+
+  // temporary buffer - this will be sized in bytes
+  // and manipulated with MPI_Unpack
+  std::vector<char> * recvbuf = new std::vector<char>(sendsize);
+
+  // Get ready to receive the temporary buffer
+  this->receive (src_processor_id, *recvbuf, MPI_PACKED, req, tag);
+
+  // When we wait on the receive, we'll unpack the temporary buffer
+  req.add_post_wait_work
+    (new PostWaitUnpackNestedBuffer<std::vector<std::vector<T,A1>,A2>>
+       (*recvbuf, buf, type, *this));
+
+  // And then we'll free the temporary buffer
+  req.add_post_wait_work
+    (new PostWaitDeleteBuffer<std::vector<char>>(recvbuf));
+
+  // The MessageTag should stay registered for the Request lifetime
+  req.add_post_wait_work
+    (new PostWaitDereferenceTag(tag));
 }
-*/
 
 
 template <typename Context, typename OutputIter, typename T>
@@ -1974,6 +2006,104 @@ inline void Communicator::nonblocking_receive_packed_range (const unsigned int s
 }
 
 
+
+template <typename T, typename A>
+inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
+                                            std::vector<T,A> & buf,
+                                            const DataType & type,
+                                            Request & req,
+                                            const MessageTag & tag) const
+{
+  TIMPI_LOG_SCOPE("possibly_receive()", "Parallel");
+
+  Status stat(type);
+
+  int int_flag = 0;
+
+  timpi_assert(src_processor_id < this->size() ||
+                  src_processor_id == any_source);
+
+  timpi_call_mpi(MPI_Iprobe(src_processor_id,
+                               tag.value(),
+                               this->get(),
+                               &int_flag,
+                               stat.get()));
+
+  if (int_flag)
+  {
+    buf.resize(stat.size());
+
+    src_processor_id = stat.source();
+
+    timpi_call_mpi
+      (MPI_Irecv (buf.data(),
+                  cast_int<int>(buf.size()),
+                  type,
+                  src_processor_id,
+                  tag.value(),
+                  this->get(),
+                  req.get()));
+
+    // The MessageTag should stay registered for the Request lifetime
+    req.add_post_wait_work
+      (new PostWaitDereferenceTag(tag));
+  }
+
+  return int_flag;
+}
+
+
+
+template <typename T, typename A1, typename A2>
+inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
+                                            std::vector<std::vector<T,A1>,A2> & buf,
+                                            const DataType & type,
+                                            Request & req,
+                                            const MessageTag & tag) const
+{
+  TIMPI_LOG_SCOPE("possibly_receive()", "Parallel");
+
+  Status stat(type);
+
+  int int_flag = 0;
+
+  timpi_assert(src_processor_id < this->size() ||
+                  src_processor_id == any_source);
+
+  timpi_call_mpi(MPI_Iprobe(src_processor_id,
+                            tag.value(),
+                            this->get(),
+                            &int_flag,
+                            stat.get()));
+
+  if (int_flag)
+  {
+    src_processor_id = stat.source();
+
+    std::vector<char> * recvbuf =
+      new std::vector<char>(stat.size(StandardType<char>()));
+
+    this->receive(src_processor_id, *recvbuf, MPI_PACKED, req, tag);
+
+    // When we wait on the receive, we'll unpack the temporary buffer
+    req.add_post_wait_work
+      (new PostWaitUnpackNestedBuffer<std::vector<std::vector<T,A1>,A2>>
+         (*recvbuf, buf, type, *this));
+
+    // And then we'll free the temporary buffer
+    req.add_post_wait_work
+      (new PostWaitDeleteBuffer<std::vector<char>>(recvbuf));
+
+    // The MessageTag should stay registered for the Request lifetime
+    req.add_post_wait_work
+      (new PostWaitDereferenceTag(tag));
+  }
+
+  return int_flag;
+}
+
+
+
 #else // TIMPI_HAVE_MPI
 
 /**
@@ -2134,6 +2264,21 @@ Communicator::send_receive_packed_range
         (buffer, context2, out_iter, output_type);
     }
 }
+
+
+
+template <typename T, typename A>
+inline bool Communicator::possibly_receive (unsigned int &,
+                                            std::vector<T,A> &,
+                                            const DataType &,
+                                            Request &,
+                                            const MessageTag &) const
+{
+  // Non-blocking I/O from self to self?
+  timpi_not_implemented();
+}
+
+
 
 #endif // TIMPI_HAVE_MPI
 
@@ -3522,46 +3667,25 @@ inline void Communicator::allgather_packed_range(Context * context,
 template <typename T, typename A>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
-                                            const DataType & type,
                                             Request & req,
                                             const MessageTag & tag) const
 {
-  TIMPI_LOG_SCOPE("possibly_receive()", "Parallel");
+  T * dataptr = buf.empty() ? nullptr : buf.data();
 
-  Status stat(type);
+  return this->possibly_receive(src_processor_id, buf, StandardType<T>(dataptr), req, tag);
+}
 
-  int int_flag = 0;
 
-  timpi_assert(src_processor_id < this->size() ||
-                  src_processor_id == any_source);
 
-  timpi_call_mpi(MPI_Iprobe(src_processor_id,
-                               tag.value(),
-                               this->get(),
-                               &int_flag,
-                               stat.get()));
+template <typename T, typename A1, typename A2>
+inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
+                                            std::vector<std::vector<T,A1>,A2> & buf,
+                                            Request & req,
+                                            const MessageTag & tag) const
+{
+  T * dataptr = buf.empty() ? nullptr : (buf[0].empty() ? nullptr : buf[0].data());
 
-  if (int_flag)
-  {
-    buf.resize(stat.size());
-
-    src_processor_id = stat.source();
-
-    timpi_call_mpi
-      (MPI_Irecv (buf.data(),
-                  cast_int<int>(buf.size()),
-                  type,
-                  src_processor_id,
-                  tag.value(),
-                  this->get(),
-                  req.get()));
-
-    // The MessageTag should stay registered for the Request lifetime
-    req.add_post_wait_work
-      (new PostWaitDereferenceTag(tag));
-  }
-
-  return int_flag;
+  return this->possibly_receive(src_processor_id, buf, StandardType<T>(dataptr), req, tag);
 }
 
 

@@ -116,6 +116,13 @@
     inline
     void set_union(std::map<T1,T2,C,A> &data) const;
 
+    template <typename T, typename A1, typename A2>
+    inline
+    bool possibly_receive (unsigned int & src_processor_id,
+                           std::vector<std::vector<T,A1>,A2> & buf,
+                           Request & req,
+                           const MessageTag & tag) const;
+
 // We only need to bother with many of these specializations if we're
 // actually in parallel.
 #ifdef TIMPI_HAVE_MPI
@@ -124,14 +131,14 @@
     void send (const unsigned int dest_processor_id,
                const std::basic_string<T> & buf,
                const MessageTag &tag=no_tag) const;
- 
+
     template<typename T>
     inline
     void send (const unsigned int dest_processor_id,
                const std::basic_string<T> & buf,
                Request &req,
                const MessageTag &tag=no_tag) const;
- 
+
     template <typename T, typename C, typename A>
     inline
     void send (const unsigned int dest_processor_id,
@@ -256,7 +263,7 @@
                   const DataType &type,
                   Request &req,
                   const MessageTag &tag=any_tag) const;
- 
+
     template <typename T, typename A>
     inline
     Status receive (const unsigned int src_processor_id,
@@ -305,8 +312,14 @@
                     const DataType &type,
                     const MessageTag &tag=any_tag) const;
 
-// FIXME - non-blocking receive of vector-of-vectors is currently unimplemented
-/*
+    template <typename T, typename A1, typename A2>
+    inline
+    bool possibly_receive (unsigned int & src_processor_id,
+                           std::vector<std::vector<T,A1>,A2> & buf,
+                           const DataType & type,
+                           Request & req,
+                           const MessageTag & tag) const;
+
     template <typename T, typename A1, typename A2>
     inline
     void receive (const unsigned int src_processor_id,
@@ -314,7 +327,6 @@
                   const DataType &type,
                   Request &req,
                   const MessageTag &tag=any_tag) const;
-*/
 
     template <typename T>
     inline

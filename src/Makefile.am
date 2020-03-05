@@ -87,6 +87,7 @@ include_HEADERS += parallel/include/timpi/post_wait_dereference_shared_ptr.h
 include_HEADERS += parallel/include/timpi/post_wait_dereference_tag.h
 include_HEADERS += parallel/include/timpi/post_wait_free_buffer.h
 include_HEADERS += parallel/include/timpi/post_wait_unpack_buffer.h
+include_HEADERS += parallel/include/timpi/post_wait_unpack_nested_buffer.h
 include_HEADERS += parallel/include/timpi/post_wait_work.h
 include_HEADERS += parallel/include/timpi/request.h
 include_HEADERS += parallel/include/timpi/standard_type.h
