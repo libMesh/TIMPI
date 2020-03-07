@@ -52,6 +52,7 @@ if BUILD_PROF_MODE
   libtimpi_prof_la_SOURCES  = $(timpi_SOURCES)
   libtimpi_prof_la_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
   libtimpi_prof_la_CXXFLAGS = $(CXXFLAGS_PROF)
+  bin_PROGRAMS                += timpi_version-prof
 endif
 
 if BUILD_OPROF_MODE
@@ -59,6 +60,7 @@ if BUILD_OPROF_MODE
   libtimpi_oprof_la_SOURCES  = $(timpi_SOURCES)
   libtimpi_oprof_la_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
   libtimpi_oprof_la_CXXFLAGS = $(CXXFLAGS_OPROF)
+  bin_PROGRAMS                 += timpi_version-oprof
 endif
 
 
@@ -109,6 +111,12 @@ include_HEADERS += $(top_builddir)/src/utilities/include/timpi/timpi_config.h
 timpi_version_opt_SOURCES = apps/version.C
 timpi_version_opt_LDADD = libtimpi_opt.la
 
+timpi_version_oprof_SOURCES = apps/version.C
+timpi_version_oprof_LDADD = libtimpi_oprof.la
+
+timpi_version_prof_SOURCES = apps/version.C
+timpi_version_prof_LDADD = libtimpi_prof.la
+
 timpi_version_devel_SOURCES = apps/version.C
 timpi_version_devel_LDADD = libtimpi_devel.la
 
@@ -122,6 +130,6 @@ AM_CPPFLAGS  = $(timpi_optional_INCLUDES)
 AM_CPPFLAGS += -I$(top_srcdir)/src/algorithms/include
 AM_CPPFLAGS += -I$(top_srcdir)/src/parallel/include
 AM_CPPFLAGS += -I$(top_srcdir)/src/utilities/include
-AM_CPPFLAGS += -I$(top_builddir)/src/utilities/include #timpi_version.h
+AM_CPPFLAGS += -I$(top_builddir)/src/utilities/include #timpi_version.h, timpi_config.h
 
 LIBS         = $(timpi_optional_LIBS)

@@ -3,7 +3,7 @@ AM_CPPFLAGS  = $(timpi_optional_INCLUDES)
 AM_CPPFLAGS += -I$(top_srcdir)/src/algorithms/include
 AM_CPPFLAGS += -I$(top_srcdir)/src/parallel/include
 AM_CPPFLAGS += -I$(top_srcdir)/src/utilities/include
-AM_CPPFLAGS += -I$(top_builddir)/src/utilities/include #timpi_version.h
+AM_CPPFLAGS += -I$(top_builddir)/src/utilities/include #timpi_version.h, timpi_config.h
 
 LIBS         = $(timpi_optional_LIBS)
 
