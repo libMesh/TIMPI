@@ -3,3 +3,24 @@
 
 0.1.0
   * Split TIMPI into a separate repository
+
+1.0.0
+  * automake fixups
+  * Nonblocking vec<vec> receives + syncs
+  * MPI detection round 2
+  * Add Communicator::max(map)
+  * export TIMPI_RUN in Travis MATRIX_EVAL
+  * Add identical_sizes argument to broadcast
+  * Make sure that we can test OPROF and PROF methods
+  * Add map_sum() specialization for non*fixed types
+  * Add back old map broadcast method
+  * Parallel testing
+  * Add Communicator::broadcast(unordered_map) specialization
+  * Communicator::broadcast(map): Save one communication
+  * Add Communicator::sum(std::unordered_map)
+  * Add support for a timpi*config
+  * Add Communicator::sum(std::map)
+  * Unit test, compilation fixes
+  * Dispatch to allgather_packed_range from allgather for dynamic size types
+  * Remove configure output, temp file
+  * Added .travis.yml CI tests
