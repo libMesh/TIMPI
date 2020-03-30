@@ -112,6 +112,39 @@ Communicator *TestCommWorld;
     }
   }
 
+  void testContainerBroadcast()
+  {
+    std::vector<std::set<unsigned int>> vals;
+    const unsigned int my_rank = TestCommWorld->rank();
+    const std::size_t comm_size = TestCommWorld->size();
+
+    if (my_rank == 0)
+    {
+      vals.resize(comm_size + 1);
+      unsigned int counter = 1;
+      for (auto & val : vals)
+      {
+        for (unsigned int number = 0; number < counter; ++number)
+          val.insert(number);
+        ++counter;
+      }
+    }
+    TestCommWorld->broadcast(vals);
+
+    const std::size_t vec_size = vals.size();
+    TIMPI_UNIT_ASSERT((comm_size + 1) == vec_size);
+
+    std::size_t counter = 1;
+    for (const auto & current_set : vals)
+    {
+      TIMPI_UNIT_ASSERT(current_set.size() == counter);
+      unsigned int number = 0;
+      for (auto elem : current_set)
+        TIMPI_UNIT_ASSERT(elem == number++);
+      ++counter;
+    }
+  }
+
 
 int main(int argc, const char * const * argv)
 {
@@ -119,6 +152,7 @@ int main(int argc, const char * const * argv)
   TestCommWorld = &init.comm();
 
   testContainerAllGather();
+  testContainerBroadcast();
 
   return 0;
 }

@@ -334,7 +334,15 @@
                    const unsigned int root_id=0,
                    const bool identical_sizes=false) const;
 
-    template <typename T, typename A>
+    template <typename T, typename A,
+              typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+    inline
+    void broadcast(std::vector<T,A> &data,
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
+
+    template <typename T, typename A,
+              typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
     inline
     void broadcast(std::vector<T,A> &data,
                    const unsigned int root_id=0,
