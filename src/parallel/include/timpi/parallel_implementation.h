@@ -1593,7 +1593,8 @@ inline void Communicator::broadcast (std::basic_string<T> & data,
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
 inline void Communicator::broadcast (std::vector<T,A> & data,
                                      const unsigned int root_id,
                                      const bool identical_sizes) const
@@ -1628,6 +1629,38 @@ inline void Communicator::broadcast (std::vector<T,A> & data,
   timpi_call_mpi
     (MPI_Bcast (data_ptr, cast_int<int>(data.size()),
                 StandardType<T>(data_ptr), root_id, this->get()));
+}
+
+template <typename T, typename A,
+          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+inline void Communicator::broadcast (std::vector<T,A> & data,
+                                     const unsigned int root_id,
+                                     const bool identical_sizes) const
+{
+  if (this->size() == 1)
+    {
+      timpi_assert (!this->rank());
+      timpi_assert (!root_id);
+      return;
+    }
+
+  timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
+
+  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
+
+  std::size_t data_size = data.size();
+
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
+
+  data.resize(data_size);
+
+  timpi_assert_less(root_id, this->size());
+
+  this->broadcast_packed_range((void *)(NULL), data.begin(), data.end(), (void *)(NULL), data.begin(), root_id);
 }
 
 
