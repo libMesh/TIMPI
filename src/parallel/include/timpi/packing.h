@@ -27,6 +27,8 @@
 #include <cstddef>
 #include <iterator>
 #include <vector>
+#include <utility>
+#include <cstring>
 
 
 // FIXME: This *should* be in TIMPI namespace but we have libMesh
@@ -76,6 +78,210 @@ public:
   static T unpack(BufferIter in, Context * ctx);
 };
 
+// Idiom taken from https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Member_Detector
+template <typename T>
+class Has_buffer_type
+{
+  using Yes = char[2];
+  using No = char[1];
+
+  struct Fallback {
+    struct buffer_type {};
+  };
+  struct Derived : T, Fallback {};
+
+  template <typename U> static Yes &test(U *);
+
+  // this template must be more specialized in general than the Yes version because it involves a
+  // type-dependent expression...?
+  template <typename U> static No &test(typename U::buffer_type *);
+
+public:
+  static constexpr bool value = sizeof(test<Derived>(nullptr)) == sizeof(Yes);
+};
+
+template <typename T1, bool T1_has_buffer_type, typename T2, bool T2_has_buffer_type>
+struct PairBufferTypeHelper {};
+
+template <typename T1, typename T2>
+struct PairBufferTypeHelper<T1, true, T2, true>
+{
+  static_assert(std::is_same<typename Packing<T1>::buffer_type, typename Packing<T2>::buffer_type>::value,
+                "For ease of use we cannot pack two types that use two different buffer types");
+
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+template <typename T1, typename T2>
+struct PairBufferTypeHelper<T1, true, T2, false>
+{
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+template <typename T1, typename T2>
+struct PairBufferTypeHelper<T1, false, T2, true>
+{
+  typedef typename Packing<T2>::buffer_type buffer_type;
+};
+
+
+// specialization for std::pair
+template <typename T1, typename T2>
+class Packing<std::pair<T1, T2>,
+              typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>
+{
+public:
+  typedef typename PairBufferTypeHelper<T1,
+                                        Has_buffer_type<Packing<T1>>::value,
+                                        T2,
+                                        Has_buffer_type<Packing<T2>>::value>::buffer_type buffer_type;
+
+  template <typename OutputIter, typename Context>
+  static void pack(const std::pair<T1, T2> & pr, OutputIter data_out, const Context * context);
+
+  template <typename Context>
+  static unsigned int packable_size(const std::pair<T1, T2> & pr, const Context * context);
+
+  template <typename BufferIter>
+  static unsigned int packed_size(BufferIter iter);
+
+  template <typename BufferIter, typename Context>
+  static std::pair<T1, T2> unpack(BufferIter in, Context * ctx);
+
+private:
+  template <typename T3>
+  struct IsFixed
+  {
+    static const bool value = TIMPI::StandardType<T3>::is_fixed_type;
+  };
+  template <typename T3>
+  struct BufferTypesPer
+  {
+    static const unsigned int value = (sizeof(T3) + sizeof(buffer_type) - 1) / sizeof(buffer_type);
+  };
+
+  template <typename T3,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static unsigned int packable_size_comp(const T3 &, const Context *)
+  {
+    return BufferTypesPer<T3>::value;
+  }
+
+  template <typename T3,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static unsigned int packable_size_comp(const T3 & comp, const Context * ctx)
+  {
+    return Packing<T3>::packable_size(comp, ctx);
+  }
+
+  template <typename T3,
+            typename OutputIter,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static void pack_comp(const T3 & comp, OutputIter data_out, const Context *)
+  {
+    buffer_type T3_as_buffer_types[BufferTypesPer<T3>::value];
+    std::memcpy(T3_as_buffer_types, &comp, sizeof(T3));
+    for (unsigned int i = 0; i != BufferTypesPer<T3>::value; ++i)
+      *data_out++ = T3_as_buffer_types[i];
+  }
+
+  template <typename T3,
+            typename OutputIter,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static void pack_comp(const T3 & comp, OutputIter data_out, const Context * ctx)
+  {
+    Packing<T3>::pack(comp, data_out, ctx);
+  }
+
+  template <typename T3,
+            typename BufferIter,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static void unpack_comp(T3 & comp, BufferIter in, Context *)
+  {
+    std::memcpy(&comp, &(*in), sizeof(T3));
+  }
+
+  template <typename T3,
+            typename BufferIter,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static void unpack_comp(T3 & comp, BufferIter in, Context * ctx)
+  {
+    comp = Packing<T3>::unpack(in, ctx);
+  }
+};
+
+template <typename T1, typename T2>
+template <typename Context>
+unsigned int
+Packing<std::pair<T1, T2>,
+        typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
+    packable_size(const std::pair<T1, T2> & pr, const Context * ctx)
+{
+  return 1 + packable_size_comp(pr.first, ctx) + packable_size_comp(pr.second, ctx);
+}
+
+template <typename T1, typename T2>
+template <typename BufferIter>
+unsigned int
+Packing<std::pair<T1, T2>,
+        typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
+    packed_size(BufferIter iter)
+{
+  // We recorded the size in the first buffer entry
+  return *iter;
+}
+
+template <typename T1, typename T2>
+template <typename OutputIter, typename Context>
+void
+Packing<std::pair<T1, T2>,
+        typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
+    pack(const std::pair<T1, T2> & pr, OutputIter data_out, const Context * ctx)
+{
+  unsigned int size = packable_size(pr, ctx);
+
+  // First write out info about the buffer size
+  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+
+  // Now pack the data
+  pack_comp(pr.first, data_out, ctx);
+
+  // TIMPI uses a back_inserter for `pack_range` so we don't (and can't)
+  // actually increment the iterator with operator+=. operator++ is a no-op
+  //
+  // data_out += packable_size_comp(pr.first, ctx);
+
+  pack_comp(pr.second, data_out, ctx);
+}
+
+template <typename T1, typename T2>
+template <typename BufferIter, typename Context>
+std::pair<T1, T2>
+Packing<std::pair<T1, T2>,
+        typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
+    unpack(BufferIter in, Context * ctx)
+{
+  std::pair<T1, T2> pr;
+
+  // We don't care about the size
+  in++;
+
+  // Unpack the data
+  unpack_comp(pr.first, in, ctx);
+
+  // Make sure we increment the iterator
+  in += packable_size_comp(pr.first, ctx);
+
+  unpack_comp(pr.second, in, ctx);
+
+  return pr;
+}
 
 } // namespace Parallel
 
