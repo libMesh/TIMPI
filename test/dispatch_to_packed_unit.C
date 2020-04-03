@@ -112,6 +112,31 @@ Communicator *TestCommWorld;
     }
   }
 
+  void testPairContainerAllGather()
+  {
+    std::vector<std::pair<std::set<unsigned int>, unsigned int>> vals;
+    const unsigned int my_rank = TestCommWorld->rank();
+
+    std::vector<int> data_vec(my_rank + 1);
+    std::iota(data_vec.begin(), data_vec.end(), 0);
+    TestCommWorld->allgather(std::make_pair(
+                               std::set<unsigned int>(data_vec.begin(), data_vec.end()),
+                               my_rank), vals);
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = vals.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    for (std::size_t i = 0; i < vec_size; ++i)
+    {
+      const auto & current_set = vals[i].first;
+      unsigned int value = 0;
+      for (auto number : current_set)
+        TIMPI_UNIT_ASSERT(number == value++);
+      TIMPI_UNIT_ASSERT(vals[i].second == i);
+    }
+  }
+
   void testContainerBroadcast()
   {
     std::vector<std::set<unsigned int>> vals;
@@ -153,6 +178,7 @@ int main(int argc, const char * const * argv)
 
   testContainerAllGather();
   testContainerBroadcast();
+  testPairContainerAllGather();
 
   return 0;
 }

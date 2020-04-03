@@ -154,7 +154,10 @@ TIMPI_STANDARD_TYPE(long double,MPI_LONG_DOUBLE);
 #endif
 
 template<typename T1, typename T2>
-class StandardType<std::pair<T1, T2>> : public DataType
+class StandardType<std::pair<T1, T2>,
+                   typename std::enable_if<
+                     StandardType<T1>::is_fixed_type &&
+                     StandardType<T2>::is_fixed_type>::type> : public DataType
 {
 public:
   explicit
@@ -217,8 +220,7 @@ public:
 
   ~StandardType() { this->free(); }
 
-  static const bool is_fixed_type = StandardType<T1>::is_fixed_type
-    && StandardType<T2>::is_fixed_type;
+  static const bool is_fixed_type = true;
 };
 
 
