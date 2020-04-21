@@ -24,3 +24,8 @@
   * Dispatch to allgather_packed_range from allgather for dynamic size types
   * Remove configure output, temp file
   * Added .travis.yml CI tests
+
+1.1.0
+  * broadcast now autodispatches to packed_range when necessary
+  * Recursive specializations for Packing<std::pair>
+  * configure bugfix for when environment sets LIBS, CPPFLAGS
