@@ -22,6 +22,7 @@
 // TIMPI Includes
 #include "timpi/timpi_assert.h"
 #include "timpi/packing_forward.h"
+#include "timpi/standard_type.h"
 
 // C++ includes
 #include <cstddef>
