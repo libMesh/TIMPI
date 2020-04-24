@@ -55,12 +55,12 @@ AC_DEFINE_UNQUOTED([MICRO_VERSION],$GENERIC_MICRO_VERSION,[Micro version])
 # Check for whether to enable MPI and PETSc which will influence our
 # choice of compiler
 #--------------------------------------------------------------------
-COMPILER_CONTROL_ARGS
+ACSM_COMPILER_CONTROL_ARGS
 
 #-----------------------------------------------------------------------
 # Scrape PETSc configure information for their CXX, MPI_INCLUDE, MPI_LIB
 #-----------------------------------------------------------------------
-SCRAPE_PETSC_CONFIGURE
+ACSM_SCRAPE_PETSC_CONFIGURE
 
 
 dnl------------------------------
@@ -96,7 +96,7 @@ timpi_optional_LIBS=""
 
 AS_IF([test "x$enablempi" = xyes],
       [
-        ACX_MPI
+        ACSM_MPI
         AS_IF([test "x$enablempi" = xyes],
               [
                 AS_IF([test x"$MPI_INCLUDES" = x],,[timpi_optional_INCLUDES="$MPI_INCLUDES $timpi_optional_INCLUDES"])
@@ -123,7 +123,7 @@ LT_INIT([disable-static])
 dnl---------------------------------
 dnl Query configuration environment
 dnl---------------------------------
-AX_SUMMARIZE_ENV
+ACSM_SUMMARIZE_ENV
 
 dnl-----------------------------------------------
 dnl Generate header files
@@ -149,6 +149,4 @@ AC_OUTPUT()
 dnl------------------------------
 dnl Final summary
 dnl------------------------------
-AX_SUMMARIZE_ENV
-
 AX_SUMMARIZE_CONFIG
