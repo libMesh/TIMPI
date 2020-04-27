@@ -1,7 +1,7 @@
 
 # AUTOMAKE_OPTIONS = foreign # Conflicts with libMesh options
 AUTOMAKE_OPTIONS = gnu
-ACLOCAL_AMFLAGS  = -I m4
+ACLOCAL_AMFLAGS  = -I m4 -I m4/autoconf-submodule
 
 SUBDIRS          = src test
 EXTRA_DIST       = COPYING
