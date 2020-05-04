@@ -29,3 +29,6 @@
   * broadcast now autodispatches to packed_range when necessary
   * Recursive specializations for Packing<std::pair>
   * configure bugfix for when environment sets LIBS, CPPFLAGS
+
+1.1.1
+  * Fix for push_parallel_packed_range
