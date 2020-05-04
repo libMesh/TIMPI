@@ -31,4 +31,7 @@
   * configure bugfix for when environment sets LIBS, CPPFLAGS
 
 1.1.1
+  * autoconf m4 refactoring
+
+1.1.2
   * Fix for push_parallel_packed_range
