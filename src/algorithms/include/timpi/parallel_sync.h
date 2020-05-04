@@ -116,10 +116,10 @@ void pull_parallel_vector_data(const Communicator & comm,
 */
 template <typename MapToVectors,
           typename ActionFunctor,
-          typename ReceiveContext>
+          typename Context>
 void push_parallel_packed_range(const Communicator & comm,
                                 const MapToVectors & data,
-                                ReceiveContext * receive_context,
+                                Context * context,
                                 const ActionFunctor & act_on_data);
 
 //------------------------------------------------------------------------
@@ -308,10 +308,10 @@ void push_parallel_vector_data(const Communicator & comm,
 
 template <typename MapToVectors,
           typename ActionFunctor,
-          typename ReceiveContext>
+          typename Context>
 void push_parallel_packed_range(const Communicator & comm,
                                 const MapToVectors & data,
-                                ReceiveContext * receive_context,
+                                Context * context,
                                 const ActionFunctor & act_on_data)
 {
   // This function must be run on all processors at once
@@ -357,7 +357,7 @@ void push_parallel_packed_range(const Communicator & comm,
       else
         {
           Request sendreq;
-          comm.nonblocking_send_packed_range(destid, &datum, datum.begin(), datum.end(), sendreq, tag);
+          comm.nonblocking_send_packed_range(destid, context, datum.begin(), datum.end(), sendreq, tag);
           reqs.push_back(sendreq);
         }
     }
@@ -387,7 +387,7 @@ void push_parallel_packed_range(const Communicator & comm,
 
     // Check if there is a message and start receiving it
     if (comm.possibly_receive_packed_range(current_src_proc,
-                                           receive_context,
+                                           context,
                                            std::back_inserter(*current_incoming_data),
                                            output_type,
                                            *current_request,
