@@ -169,8 +169,6 @@ void push_parallel_vector_data(const Communicator & comm,
   // without confusing one for the other
   auto tag = comm.get_unique_tag();
 
-  MapToVectors received_data;
-
   // Post all of the sends, non-blocking and synchronous
 
   // Save off the old send_mode so we can restore it after this
@@ -328,8 +326,6 @@ void push_parallel_packed_range(const Communicator & comm,
   // without confusing one for the other
   auto tag = comm.get_unique_tag();
 
-  MapToVectors received_data;
-
   // Post all of the sends, non-blocking and synchronous
 
   // Save off the old send_mode so we can restore it after this
@@ -481,7 +477,7 @@ void pull_parallel_vector_data(const Communicator & comm,
   typedef typename MapToVectors::mapped_type query_type;
 
   std::multimap<processor_id_type, std::vector<datum> >
-    response_data, received_data;
+    response_data;
 
 #ifndef NDEBUG
   processor_id_type max_pid = 0;
