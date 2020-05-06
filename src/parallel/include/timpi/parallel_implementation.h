@@ -257,8 +257,6 @@ inline Status Communicator::packed_range_probe (const unsigned int src_processor
 {
   TIMPI_LOG_SCOPE("packed_range_probe()", "Parallel");
 
-  timpi_experimental();
-
   Status stat((StandardType<typename Packing<T>::buffer_type>()));
 
   int int_flag;
@@ -737,8 +735,6 @@ inline void Communicator::nonblocking_send_packed_range (const unsigned int dest
                                                          Request & req,
                                                          const MessageTag & tag) const
 {
-  timpi_experimental();
-
   // Allocate a buffer on the heap so we don't have to free it until
   // after the Request::wait()
   typedef typename std::iterator_traits<Iter>::value_type T;
@@ -1201,8 +1197,6 @@ inline void Communicator::nonblocking_receive_packed_range (const unsigned int s
                                                             Status & stat,
                                                             const MessageTag & tag) const
 {
-  timpi_experimental();
-
   typedef typename Packing<T>::buffer_type buffer_t;
 
   // Receive serialized variable size objects as a sequence of
@@ -1421,8 +1415,6 @@ inline void Communicator::nonblocking_send_packed_range (const unsigned int dest
                                                          std::shared_ptr<std::vector<typename Packing<typename std::iterator_traits<Iter>::value_type>::buffer_type>> & buffer,
                                                          const MessageTag & tag) const
 {
-  timpi_experimental();
-
   // Allocate a buffer on the heap so we don't have to free it until
   // after the Request::wait()
   typedef typename std::iterator_traits<Iter>::value_type T;
@@ -2014,8 +2006,6 @@ inline void Communicator::nonblocking_receive_packed_range (const unsigned int s
                                                             std::shared_ptr<std::vector<typename Packing<T>::buffer_type>> & buffer,
                                                             const MessageTag & tag) const
 {
-  timpi_experimental();
-
   // If they didn't pass in a buffer - let's make one
   if (buffer == nullptr)
     buffer = std::make_shared<std::vector<typename Packing<T>::buffer_type>>();
