@@ -371,7 +371,7 @@ void push_parallel_packed_range(const Communicator & comm,
   std::multimap<processor_id_type, std::shared_ptr<std::vector<nonconst_nonref_type>>> incoming_data;
   auto current_incoming_data = std::make_shared<std::vector<nonconst_nonref_type>>();
 
-  nonconst_nonref_type * output_type;
+  nonconst_nonref_type * output_type = nullptr;
 
   unsigned int current_src_proc = 0;
 
