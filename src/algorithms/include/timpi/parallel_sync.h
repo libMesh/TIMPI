@@ -169,8 +169,6 @@ void push_parallel_vector_data(const Communicator & comm,
   // without confusing one for the other
   auto tag = comm.get_unique_tag();
 
-  MapToVectors received_data;
-
   // Post all of the sends, non-blocking and synchronous
 
   // Save off the old send_mode so we can restore it after this
@@ -306,11 +304,11 @@ void push_parallel_vector_data(const Communicator & comm,
 }
 
 
-template <typename MapToVectors,
+template <typename MapToContainers,
           typename ActionFunctor,
           typename Context>
 void push_parallel_packed_range(const Communicator & comm,
-                                const MapToVectors & data,
+                                const MapToContainers & data,
                                 Context * context,
                                 const ActionFunctor & act_on_data)
 {
@@ -320,15 +318,14 @@ void push_parallel_packed_range(const Communicator & comm,
   // This function implements the "NBX" algorithm from
   // https://htor.inf.ethz.ch/publications/img/hoefler-dsde-protocols.pdf
 
-  typedef decltype(data.begin()->second.front()) ref_type;
-  typedef typename std::remove_reference<ref_type>::type nonref_type;
+  typedef typename MapToContainers::value_type map_pair_type;
+  typedef typename map_pair_type::second_type container_type;
+  typedef typename container_type::value_type nonref_type;
   typedef typename std::remove_const<nonref_type>::type nonconst_nonref_type;
 
   // We'll grab a tag so we can overlap request sends and receives
   // without confusing one for the other
   auto tag = comm.get_unique_tag();
-
-  MapToVectors received_data;
 
   // Post all of the sends, non-blocking and synchronous
 
@@ -372,10 +369,10 @@ void push_parallel_packed_range(const Communicator & comm,
   std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_reqs;
   auto current_request = std::make_shared<Request>();
 
-  std::multimap<processor_id_type, std::shared_ptr<std::vector<nonconst_nonref_type>>> incoming_data;
-  auto current_incoming_data = std::make_shared<std::vector<nonconst_nonref_type>>();
+  std::multimap<processor_id_type, std::shared_ptr<container_type>> incoming_data;
+  auto current_incoming_data = std::make_shared<container_type>();
 
-  nonconst_nonref_type * output_type;
+  nonconst_nonref_type * output_type = nullptr;
 
   unsigned int current_src_proc = 0;
 
@@ -386,19 +383,18 @@ void push_parallel_packed_range(const Communicator & comm,
     current_src_proc = TIMPI::any_source;
 
     // Check if there is a message and start receiving it
-    if (comm.possibly_receive_packed_range(current_src_proc,
-                                           context,
-                                           std::back_inserter(*current_incoming_data),
-                                           output_type,
-                                           *current_request,
-                                           tag))
+    if (comm.possibly_receive_packed_range
+          (current_src_proc, context,
+           std::inserter(*current_incoming_data,
+                         current_incoming_data->end()),
+           output_type, *current_request, tag))
     {
       receive_reqs.emplace_back(current_src_proc, current_request);
       current_request = std::make_shared<Request>();
 
       // current_src_proc will now hold the src pid for this receive
       incoming_data.emplace(current_src_proc, current_incoming_data);
-      current_incoming_data = std::make_shared<std::vector<nonconst_nonref_type>>();
+      current_incoming_data = std::make_shared<container_type>();
     }
 
     // Clean up outstanding receive requests
@@ -481,7 +477,7 @@ void pull_parallel_vector_data(const Communicator & comm,
   typedef typename MapToVectors::mapped_type query_type;
 
   std::multimap<processor_id_type, std::vector<datum> >
-    response_data, received_data;
+    response_data;
 
 #ifndef NDEBUG
   processor_id_type max_pid = 0;

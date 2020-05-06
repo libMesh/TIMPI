@@ -1,6 +1,10 @@
+#include <timpi/parallel_sync.h>
 #include <timpi/timpi.h>
 
 #include <iterator>
+#include <map>
+#include <set>
+#include <string>
 #include <vector>
 
 #define TIMPI_UNIT_ASSERT(expr) \
@@ -197,6 +201,92 @@ Communicator *TestCommWorld;
     TIMPI_UNIT_ASSERT(recv[0] == check);
   }
 
+  void testPushPackedImpl(int M)
+  {
+    const int size = TestCommWorld->size(),
+              rank = TestCommWorld->rank();
+
+    std::map<processor_id_type, std::multiset<std::string>>
+      data, received_data;
+
+    auto stringy_number = [] (int number)
+      {
+        std::string digit_strings [10] = {"zero", "one", "two",
+            "three", "four", "five", "six", "seven", "eight", "nine"};
+
+        std::string returnval = "done";
+        while (number)
+          {
+            returnval = digit_strings[number%10]+" "+returnval;
+            number = number/10;
+          };
+
+        return returnval;
+      };
+
+    for (int d=0; d != M; ++d)
+      {
+        int diffsize = std::abs(d-rank);
+        int diffsqrt = std::sqrt(diffsize);
+        if (diffsqrt*diffsqrt == diffsize)
+          for (int i=-1; i != diffsqrt; ++i)
+            data[d].insert(stringy_number(d));
+      }
+
+    auto collect_data =
+      [&received_data]
+      (processor_id_type pid,
+       const typename std::multiset<std::string> & data)
+      {
+        auto & received = received_data[pid];
+        received.insert(data.begin(), data.end());
+      };
+
+    void * context = nullptr;
+    TIMPI::push_parallel_packed_range(*TestCommWorld, data, context, collect_data);
+
+    // Test the received results, for each processor id p we're in
+    // charge of.
+    std::vector<std::size_t> checked_sizes(size, 0);
+    for (int p=rank; p < M; p += size)
+      for (int srcp=0; srcp != size; ++srcp)
+        {
+          int diffsize = std::abs(srcp-p);
+          int diffsqrt = std::sqrt(diffsize);
+          if (diffsqrt*diffsqrt != diffsize)
+            {
+              if (received_data.count(srcp))
+                {
+                  const std::multiset<std::string> & datum = received_data[srcp];
+                  TIMPI_UNIT_ASSERT
+                    (std::count(datum.begin(), datum.end(),
+                                stringy_number(p)) == std::ptrdiff_t(0));
+                }
+              continue;
+            }
+
+          TIMPI_UNIT_ASSERT(received_data.count(srcp) == std::size_t(1));
+          const std::multiset<std::string> & datum = received_data[srcp];
+          TIMPI_UNIT_ASSERT
+            (std::count(datum.begin(), datum.end(), stringy_number(p)) ==
+             std::ptrdiff_t(diffsqrt+1));
+          checked_sizes[srcp] += diffsqrt+1;
+        }
+
+    for (int srcp=0; srcp != size; ++srcp)
+      TIMPI_UNIT_ASSERT(checked_sizes[srcp] == received_data[srcp].size());
+
+  }
+
+  void testPushPacked()
+  {
+    testPushPackedImpl(TestCommWorld->size());
+  }
+
+  void testPushPackedOversized()
+  {
+    testPushPackedImpl((TestCommWorld->size() + 4) * 2);
+  }
 
 int main(int argc, const char * const * argv)
 {
@@ -207,6 +297,8 @@ int main(int argc, const char * const * argv)
   testNullSendReceive();
   testContainerAllGather();
   testContainerSendReceive();
+  testPushPacked();
+  testPushPackedOversized();
 
   return 0;
 }
