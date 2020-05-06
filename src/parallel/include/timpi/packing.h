@@ -25,11 +25,11 @@
 #include "timpi/standard_type.h"
 
 // C++ includes
-#include <cstddef>
+#include <cstring>     // memcpy
 #include <iterator>
+#include <type_traits> // enable_if, is_same
+#include <utility>     // pair
 #include <vector>
-#include <utility>
-#include <cstring>
 
 
 // FIXME: This *should* be in TIMPI namespace but we have libMesh
