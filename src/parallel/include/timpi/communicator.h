@@ -569,12 +569,30 @@ public:
    * @param req The request to use
    * @param tag The tag to use
    */
-  template <typename T, typename A>
+  template <typename T, typename A,
+            typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,
                          Request & req,
                          const MessageTag & tag) const;
+
+  /**
+   * dispatches to \p possibly_receive_packed_range
+   * @param src_processor_id The pid to receive from or "any".
+   * will be set to the actual src being received from
+   * @param buf The buffer to receive into
+   * @param req The request to use
+   * @param tag The tag to use
+   */
+  template <typename T, typename A,
+            typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
+  inline
+  bool possibly_receive (unsigned int & src_processor_id,
+                         std::vector<T,A> & buf,
+                         Request & req,
+                         const MessageTag & tag) const;
+
 
   /**
    * Nonblocking-receive from one processor with user-defined type.
@@ -616,8 +634,7 @@ public:
   * @param context Context pointer that will be passed into
   * the unpack functions
   * @param out The output iterator
-  * @param buf The buffer to receive into
-  * @param type The intrinsic datatype to receive
+  * @param output_type The intrinsic datatype to receive
   * @param req The request to use
   * @param tag The tag to use
   */
@@ -960,7 +977,7 @@ public:
                         const bool identical_buffer_sizes=false) const;
 
   /**
-   * Take a vector of local variables and expand it to include
+   * Take a vector of fixed size local variables and expand it to include
    * values from all processors. By default, each processor is
    * allowed to have its own unique input buffer length. If
    * it is known that all processors have the same input sizes
@@ -983,7 +1000,37 @@ public:
    * on each processor. This function is collective and therefore
    * must be called by all processors in the Communicator.
    */
-  template <typename T, typename A>
+  template <typename T, typename A,
+            typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+  inline void allgather(std::vector<T,A> & r,
+                        const bool identical_buffer_sizes = false) const;
+
+  /**
+   * Take a vector of possibly dynamically sized local variables and expand it
+   * to include values from all processors. By default, each processor is
+   * allowed to have its own unique input buffer length. If it is known that all
+   * processors have the same input sizes additional communication can be
+   * avoided.
+   *
+   * Specifically, this function transforms this:
+   * \verbatim
+   * Processor 0: [ ... N_0 ]
+   * Processor 1: [ ....... N_1 ]
+   * ...
+   * Processor M: [ .. N_M]
+   * \endverbatim
+   *
+   * into this:
+   *
+   * \verbatim
+   * [ [ ... N_0 ] [ ....... N_1 ] ... [ .. N_M] ]
+   * \endverbatim
+   *
+   * on each processor. This function is collective and therefore
+   * must be called by all processors in the Communicator.
+   */
+  template <typename T, typename A,
+            typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
   inline void allgather(std::vector<T,A> & r,
                         const bool identical_buffer_sizes = false) const;
 
@@ -1100,8 +1147,27 @@ public:
    * If \p data is a container, it will be resized on target
    * processors.  When using pre-sized target containers, specify
    * \p identical_sizes=true on all processors for an optimization.
+   *
+   * Fixed variant
    */
-  template <typename T>
+  template <typename T,
+            typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+  inline void broadcast(T & data, const unsigned int root_id=0,
+                        const bool identical_sizes=false) const;
+
+  /**
+   * Take a possibly dynamically-sized local value and broadcast it to all
+   * processors.  Optionally takes the \p root_id processor, which specifies the
+   * processor initiating the broadcast.
+   *
+   * If \p data is a container, it will be resized on target
+   * processors.  When using pre-sized target containers, specify
+   * \p identical_sizes=true on all processors for an optimization.
+   *
+   * Dynamic variant
+   */
+  template <typename T,
+            typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
   inline void broadcast(T & data, const unsigned int root_id=0,
                         const bool identical_sizes=false) const;
 

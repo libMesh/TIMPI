@@ -429,7 +429,8 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
 inline void Communicator::send (const unsigned int dest_processor_id,
                                 const std::vector<T,A> & buf,
                                 Request & req,
@@ -439,6 +440,20 @@ inline void Communicator::send (const unsigned int dest_processor_id,
              StandardType<T>(buf.empty() ? nullptr : &buf.front()), req, tag);
 }
 
+template <typename T, typename A,
+          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+inline void Communicator::send (const unsigned int dest_processor_id,
+                                const std::vector<T,A> & buf,
+                                Request & req,
+                                const MessageTag & tag) const
+{
+  this->send_packed_range(dest_processor_id,
+                          (void *)(nullptr),
+                          buf.begin(),
+                          buf.end(),
+                          req,
+                          tag);
+}
 
 
 template <typename T, typename A>
@@ -1632,7 +1647,7 @@ inline void Communicator::broadcast (std::vector<T,A> & data,
 
   timpi_assert_less(root_id, this->size());
 
-  this->broadcast_packed_range((void *)(NULL), data.begin(), data.end(), (void *)(NULL), data.begin(), root_id);
+  this->broadcast_packed_range((void *)(nullptr), data.begin(), data.end(), (void *)(nullptr), data.begin(), root_id);
 }
 
 
@@ -3040,15 +3055,15 @@ inline void Communicator::allgather(const T & sendval,
     {
       std::vector<T> range = {sendval};
 
-      allgather_packed_range((void *)(NULL), range.begin(), range.end(), recv.begin(),
+      allgather_packed_range((void *)(nullptr), range.begin(), range.end(), recv.begin(),
                              approx_each_buffer_size);
     }
   else if (comm_size > 0)
     recv[0] = sendval;
 }
 
-
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
 inline void Communicator::allgather(std::vector<T,A> & r,
                                     const bool identical_buffer_sizes) const
 {
@@ -3110,7 +3125,58 @@ inline void Communicator::allgather(std::vector<T,A> & r,
                      displacements.data(), send_type, this->get()));
 }
 
+template <typename T, typename A,
+          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+inline void Communicator::allgather(std::vector<T,A> & r,
+                                    const bool identical_buffer_sizes) const
+{
+  if (this->size() < 2)
+    return;
 
+  TIMPI_LOG_SCOPE("allgather()", "Parallel");
+
+  if (identical_buffer_sizes)
+    {
+      if (r.empty())
+        return;
+
+      timpi_assert(this->verify(r.size()));
+
+      std::vector<T,A> r_src(r.size()*this->size());
+      r_src.swap(r);
+
+      this->allgather_packed_range((void *)(nullptr),
+                                   r_src.begin(),
+                                   r_src.end(),
+                                   r.begin());
+      return;
+    }
+
+  std::vector<int>
+    sendlengths  (this->size(), 0),
+    displacements(this->size(), 0);
+
+  const int mysize = static_cast<int>(r.size());
+  this->allgather(mysize, sendlengths);
+
+  // Find the total size of the final array
+  unsigned int globalsize = 0;
+  for (unsigned int i=0; i != this->size(); ++i)
+      globalsize += sendlengths[i];
+
+  // Check for quick return
+  if (globalsize == 0)
+    return;
+
+  // copy the input buffer
+  std::vector<T,A> r_src(globalsize);
+  r_src.swap(r);
+
+  this->allgather_packed_range((void *)(nullptr),
+                               r_src.begin(),
+                               r_src.end(),
+                               r.begin());
+}
 
 template <typename T, typename A>
 inline void Communicator::allgather(std::vector<std::basic_string<T>,A> & r,
@@ -3404,7 +3470,8 @@ inline void Communicator::alltoall(std::vector<T,A> & buf) const
 
 
 
-template <typename T>
+template <typename T,
+          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
 inline void Communicator::broadcast (T & timpi_mpi_var(data),
                                      const unsigned int root_id,
                                      const bool /* identical_sizes */) const
@@ -3425,6 +3492,34 @@ inline void Communicator::broadcast (T & timpi_mpi_var(data),
   timpi_call_mpi
     (MPI_Bcast (&data, 1, StandardType<T>(&data), root_id,
                 this->get()));
+}
+
+template <typename T,
+          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+inline void Communicator::broadcast (T & data,
+                                     const unsigned int root_id,
+                                     const bool /* identical_sizes */) const
+{
+  ignore(root_id); // Only needed for MPI and/or dbg/devel
+  if (this->size() == 1)
+    {
+      timpi_assert (!this->rank());
+      timpi_assert (!root_id);
+      return;
+    }
+
+  timpi_assert_less (root_id, this->size());
+
+  std::vector<T> range = {data};
+
+  this->broadcast_packed_range((void *)(nullptr),
+                               range.begin(),
+                               range.end(),
+                               (void *)(nullptr),
+                               range.begin(),
+                               root_id);
+
+  data = range[0];
 }
 
 
@@ -3528,7 +3623,8 @@ inline Status Communicator::packed_range_probe (const unsigned int src_processor
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
                                             Request & req,
@@ -3537,6 +3633,21 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
   T * dataptr = buf.empty() ? nullptr : buf.data();
 
   return this->possibly_receive(src_processor_id, buf, StandardType<T>(dataptr), req, tag);
+}
+
+template <typename T, typename A,
+          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
+                                            std::vector<T,A> & buf,
+                                            Request & req,
+                                            const MessageTag & tag) const
+{
+  return this->possibly_receive_packed_range(src_processor_id,
+                                             (void *)(nullptr),
+                                             buf.begin(),
+                                             (T *)(nullptr),
+                                             req,
+                                             tag);
 }
 
 

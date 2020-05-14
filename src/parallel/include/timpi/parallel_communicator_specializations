@@ -173,7 +173,16 @@
                const std::vector<T,A> & buf,
                const MessageTag &tag=no_tag) const;
 
-    template <typename T, typename A>
+    template <typename T, typename A,
+              typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+    inline
+    void send (const unsigned int dest_processor_id,
+               const std::vector<T,A> & buf,
+               Request &req,
+               const MessageTag &tag=no_tag) const;
+
+    template <typename T, typename A,
+              typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
     inline
     void send (const unsigned int dest_processor_id,
                const std::vector<T,A> & buf,
