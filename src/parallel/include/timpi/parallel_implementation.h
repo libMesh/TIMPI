@@ -251,32 +251,6 @@ int Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
 
 
 template<typename T>
-inline Status Communicator::packed_range_probe (const unsigned int src_processor_id,
-                                                const MessageTag & tag,
-                                                bool & flag) const
-{
-  TIMPI_LOG_SCOPE("packed_range_probe()", "Parallel");
-
-  Status stat((StandardType<typename Packing<T>::buffer_type>()));
-
-  int int_flag;
-
-  timpi_assert(src_processor_id < this->size() ||
-                  src_processor_id == any_source);
-
-  timpi_call_mpi(MPI_Iprobe(src_processor_id,
-                               tag.value(),
-                               this->get(),
-                               &int_flag,
-                               stat.get()));
-
-  flag = int_flag;
-
-  return stat;
-}
-
-
-template<typename T>
 inline void Communicator::send (const unsigned int dest_processor_id,
                                 const std::basic_string<T> & buf,
                                 const MessageTag & tag) const
@@ -3683,6 +3657,38 @@ inline void Communicator::allgather_packed_range(Context * context,
       nonempty_range = (range_begin != range_end);
       this->max(nonempty_range);
     }
+}
+
+
+
+template<typename T>
+inline Status Communicator::packed_range_probe (const unsigned int src_processor_id,
+                                                const MessageTag & tag,
+                                                bool & flag) const
+{
+  TIMPI_LOG_SCOPE("packed_range_probe()", "Parallel");
+
+#ifndef TIMPI_HAVE_MPI
+  timpi_not_implemented();
+  ignore(src_processor_id, tag, flag);
+#endif
+
+  Status stat((StandardType<typename Packing<T>::buffer_type>()));
+
+  int int_flag;
+
+  timpi_assert(src_processor_id < this->size() ||
+               src_processor_id == any_source);
+
+  timpi_call_mpi(MPI_Iprobe(src_processor_id,
+                            tag.value(),
+                            this->get(),
+                            &int_flag,
+                            stat.get()));
+
+  flag = int_flag;
+
+  return stat;
 }
 
 
