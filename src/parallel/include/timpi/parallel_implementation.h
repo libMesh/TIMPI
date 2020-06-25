@@ -3031,12 +3031,17 @@ inline void Communicator::allgather(const T & sendval,
   timpi_assert(this->size());
   recv.resize(this->size());
 
+  static const std::size_t approx_total_buffer_size = 1e8;
+  const std::size_t approx_each_buffer_size =
+    approx_total_buffer_size / this->size();
+
   unsigned int comm_size = this->size();
   if (comm_size > 1)
     {
       std::vector<T> range = {sendval};
 
-      allgather_packed_range((void *)(NULL), range.begin(), range.end(), recv.begin());
+      allgather_packed_range((void *)(NULL), range.begin(), range.end(), recv.begin(),
+                             approx_each_buffer_size);
     }
   else if (comm_size > 0)
     recv[0] = sendval;
