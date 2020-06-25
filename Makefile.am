@@ -22,6 +22,11 @@ pkgconfig_DATA = timpi.pc
 # Support for timpi-config in $(exec_prefix)/bin
 timpi_configdir      = $(exec_prefix)/bin
 timpi_config_SCRIPTS = bin/timpi-config
+#
+# support top-level 'make test_headers'
+test_headers:
+	@cd $(top_builddir)/src && $(MAKE) test_headers
+
 
 # Support 'make install prefix=/other/path' with pkgconfig
 install-data-hook:

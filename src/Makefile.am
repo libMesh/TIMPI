@@ -133,3 +133,28 @@ AM_CPPFLAGS += -I$(top_srcdir)/src/utilities/include
 AM_CPPFLAGS += -I$(top_builddir)/src/utilities/include #timpi_version.h, timpi_config.h
 
 LIBS         = $(timpi_optional_LIBS)
+
+
+# Note that for "make test_headers" this DEFAULT_HEADERS_TO_TEST business allows us
+# to selectively choose individual HEADERS_TO_TEST in the test_headers.sh script,
+# e.g.
+# $ make HEADERS_TO_TEST="numerics/parsed_function.h  base/auto_ptr.h" test_headers
+test_headers:
+	@echo " "
+	@echo "Checking for standalone headers in source tree $(top_builddir)/include in OPT mode ..."
+	@echo " "
+	@CXX="$(CXX)" DEFAULT_HEADERS_TO_TEST="$(include_HEADERS)" \
+          test_CXXFLAGS="$(AM_CPPFLAGS) $(CPPFLAGS_OPT) $(CXXFLAGS_OPT) -I$(top_builddir)/include" \
+	  $(top_srcdir)/bin/test_headers.sh
+	@echo " "
+	@echo "Checking for standalone headers in source tree $(top_builddir)/include in DEVEL mode ..."
+	@echo " "
+	@CXX="$(CXX)" DEFAULT_HEADERS_TO_TEST="$(include_HEADERS)" \
+          test_CXXFLAGS="$(AM_CPPFLAGS) $(CPPFLAGS_DEVEL) $(CXXFLAGS_DEVEL) -I$(top_builddir)/include" \
+	  $(top_srcdir)/bin/test_headers.sh
+	@echo " "
+	@echo "Checking for standalone headers in source tree $(top_builddir)/include in DBG mode ..."
+	@echo " "
+	@CXX="$(CXX)" DEFAULT_HEADERS_TO_TEST="$(include_HEADERS)" \
+          test_CXXFLAGS="$(AM_CPPFLAGS) $(CPPFLAGS_DBG) $(CXXFLAGS_DBG) -I$(top_builddir)/include" \
+	  $(top_srcdir)/bin/test_headers.sh
