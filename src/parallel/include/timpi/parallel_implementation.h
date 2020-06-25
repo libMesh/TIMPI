@@ -40,6 +40,10 @@
 #include "timpi/status.h"
 #include "timpi/standard_type.h"
 
+#ifndef TIMPI_HAVE_MPI
+#include "timpi/serial_implementation.h"
+#endif
+
 // Disable libMesh logging until we decide how to port it best
 // #include "libmesh/libmesh_logging.h"
 #define TIMPI_LOG_SCOPE(f,c)
@@ -247,32 +251,6 @@ int Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
 
   timpi_assert (sendsize /* should at least be 1! */);
   return sendsize;
-}
-
-
-template<typename T>
-inline Status Communicator::packed_range_probe (const unsigned int src_processor_id,
-                                                const MessageTag & tag,
-                                                bool & flag) const
-{
-  TIMPI_LOG_SCOPE("packed_range_probe()", "Parallel");
-
-  Status stat((StandardType<typename Packing<T>::buffer_type>()));
-
-  int int_flag;
-
-  timpi_assert(src_processor_id < this->size() ||
-                  src_processor_id == any_source);
-
-  timpi_call_mpi(MPI_Iprobe(src_processor_id,
-                               tag.value(),
-                               this->get(),
-                               &int_flag,
-                               stat.get()));
-
-  flag = int_flag;
-
-  return stat;
 }
 
 
@@ -2126,184 +2104,8 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
 }
 
 
-
-#else // TIMPI_HAVE_MPI
-
-/**
- * We do not currently support sends on one processor without MPI.
- */
-template <typename T>
-inline void Communicator::send (const unsigned int,
-                                const T &,
-                                const MessageTag &) const
-{ timpi_not_implemented(); }
-
-template <typename T>
-inline void Communicator::send (const unsigned int,
-                                const T &,
-                                Request &,
-                                const MessageTag &) const
-{ timpi_not_implemented(); }
-
-template <typename T>
-inline void Communicator::send (const unsigned int,
-                                const T &,
-                                const DataType &,
-                                const MessageTag &) const
-{ timpi_not_implemented(); }
-
-template <typename T>
-inline void Communicator::send (const unsigned int,
-                                const T &,
-                                const DataType &,
-                                Request &,
-                                const MessageTag &) const
-{ timpi_not_implemented(); }
-
-template <typename Context, typename Iter>
-inline void Communicator::send_packed_range(const unsigned int,
-                                            const Context *,
-                                            Iter,
-                                            const Iter,
-                                            const MessageTag &) const
-{ timpi_not_implemented(); }
-
-template <typename Context, typename Iter>
-inline void Communicator::send_packed_range (const unsigned int,
-                                             const Context *,
-                                             Iter,
-                                             const Iter,
-                                             Request &,
-                                             const MessageTag &) const
-{ timpi_not_implemented(); }
-
-/**
- * We do not currently support receives on one processor without MPI.
- */
-template <typename T>
-inline Status Communicator::receive (const unsigned int,
-                                     T &,
-                                     const MessageTag &) const
-{ timpi_not_implemented(); return Status(); }
-
-template <typename T>
-inline void Communicator::receive(const unsigned int,
-                                  T &,
-                                  Request &,
-                                  const MessageTag &) const
-{ timpi_not_implemented(); }
-
-template <typename T>
-inline Status Communicator::receive(const unsigned int,
-                                    T &,
-                                    const DataType &,
-                                    const MessageTag &) const
-{ timpi_not_implemented(); return Status(); }
-
-template <typename T>
-inline void Communicator::receive(const unsigned int,
-                                  T &,
-                                  const DataType &,
-                                  Request &,
-                                  const MessageTag &) const
-{ timpi_not_implemented(); }
-
-template <typename Context, typename OutputIter, typename T>
-inline void
-Communicator::receive_packed_range(const unsigned int,
-                                   Context *,
-                                   OutputIter,
-                                   const T *,
-                                   const MessageTag &) const
-{ timpi_not_implemented(); }
-
-// template <typename Context, typename OutputIter>
-// inline void Communicator::receive_packed_range(const unsigned int, Context *, OutputIter, Request &, const MessageTag &) const
-// { timpi_not_implemented(); }
-
-/**
- * Send-receive data from one processor.
- */
-template <typename T1, typename T2>
-inline void Communicator::send_receive (const unsigned int timpi_dbg_var(send_tgt),
-                                        const T1 & send_val,
-                                        const unsigned int timpi_dbg_var(recv_source),
-                                        T2 & recv_val,
-                                        const MessageTag &,
-                                        const MessageTag &) const
-{
-  timpi_assert_equal_to (send_tgt, 0);
-  timpi_assert_equal_to (recv_source, 0);
-  recv_val = send_val;
-}
-
-/**
- * Send-receive range-of-pointers from one processor.
- *
- * If you call this without MPI you might be making a mistake, but
- * we'll support it.
- */
-template <typename Context1, typename RangeIter,
-          typename Context2, typename OutputIter, typename T>
-inline void
-Communicator::send_receive_packed_range
-  (const unsigned int timpi_dbg_var(dest_processor_id),
-   const Context1 * context1,
-   RangeIter send_begin,
-   const RangeIter send_end,
-   const unsigned int timpi_dbg_var(source_processor_id),
-   Context2 * context2,
-   OutputIter out_iter,
-   const T * output_type,
-   const MessageTag &,
-   const MessageTag &) const
-{
-  // This makes no sense on one processor unless we're deliberately
-  // sending to ourself.
-  timpi_assert_equal_to(dest_processor_id, 0);
-  timpi_assert_equal_to(source_processor_id, 0);
-
-  // On one processor, we just need to pack the range and then unpack
-  // it again.
-  typedef typename std::iterator_traits<RangeIter>::value_type T1;
-  typedef typename Packing<T1>::buffer_type buffer_t;
-
-  while (send_begin != send_end)
-    {
-      timpi_assert_greater (std::distance(send_begin, send_end), 0);
-
-      // We will serialize variable size objects from *range_begin to
-      // *range_end as a sequence of ints in this buffer
-      std::vector<buffer_t> buffer;
-
-      const RangeIter next_send_begin = pack_range
-        (context1, send_begin, send_end, buffer);
-
-      timpi_assert_greater (std::distance(send_begin, next_send_begin), 0);
-
-      send_begin = next_send_begin;
-
-      unpack_range
-        (buffer, context2, out_iter, output_type);
-    }
-}
-
-
-
-template <typename T, typename A>
-inline bool Communicator::possibly_receive (unsigned int &,
-                                            std::vector<T,A> &,
-                                            const DataType &,
-                                            Request &,
-                                            const MessageTag &) const
-{
-  // Non-blocking I/O from self to self?
-  timpi_not_implemented();
-}
-
-
-
 #endif // TIMPI_HAVE_MPI
+
 
 // Some of our methods are implemented indirectly via other
 // MPI-encapsulated methods and the implementation works with or
@@ -3683,6 +3485,35 @@ inline void Communicator::allgather_packed_range(Context * context,
       nonempty_range = (range_begin != range_end);
       this->max(nonempty_range);
     }
+}
+
+
+
+template<typename T>
+inline Status Communicator::packed_range_probe (const unsigned int src_processor_id,
+                                                const MessageTag & tag,
+                                                bool & flag) const
+{
+  TIMPI_LOG_SCOPE("packed_range_probe()", "Parallel");
+
+  ignore(src_processor_id, tag); // unused in opt mode w/o MPI
+
+  Status stat((StandardType<typename Packing<T>::buffer_type>()));
+
+  int int_flag = 0;
+
+  timpi_assert(src_processor_id < this->size() ||
+               src_processor_id == any_source);
+
+  timpi_call_mpi(MPI_Iprobe(src_processor_id,
+                            tag.value(),
+                            this->get(),
+                            &int_flag,
+                            stat.get()));
+
+  flag = int_flag;
+
+  return stat;
 }
 
 
