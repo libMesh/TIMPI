@@ -638,6 +638,12 @@ public:
    * unsigned int TIMPI::packable_size(const T *, const Context *) is
    * used to allow data vectors to reserve memory, and for additional
    * error checking
+   *
+   * The approximate maximum size (in *entries*; number of bytes will
+   * likely be 4x or 8x larger) to use in a single data vector buffer
+   * can be specified for performance or memory usage reasons; if the
+   * range cannot be packed into a single buffer of this size then
+   * multiple buffers and messages will be used.
    */
   template <typename Context, typename Iter>
   inline
@@ -645,7 +651,8 @@ public:
                           const Context * context,
                           Iter range_begin,
                           const Iter range_end,
-                          const MessageTag & tag=no_tag) const;
+                          const MessageTag & tag=no_tag,
+                          std::size_t approx_buffer_size = 1000000) const;
 
   /**
    * Nonblocking-send range-of-pointers to one processor.  This
@@ -659,6 +666,12 @@ public:
    * unsigned int TIMPI::packable_size(const T *, const Context *) is
    * used to allow data vectors to reserve memory, and for additional
    * error checking
+   *
+   * The approximate maximum size (in *entries*; number of bytes will
+   * likely be 4x or 8x larger) to use in a single data vector buffer
+   * can be specified for performance or memory usage reasons; if the
+   * range cannot be packed into a single buffer of this size then
+   * multiple buffers and messages will be used.
    */
   template <typename Context, typename Iter>
   inline
@@ -667,7 +680,8 @@ public:
                           Iter range_begin,
                           const Iter range_end,
                           Request & req,
-                          const MessageTag & tag=no_tag) const;
+                          const MessageTag & tag=no_tag,
+                          std::size_t approx_buffer_size = 1000000) const;
 
   /**
    * Similar to the above Nonblocking send_packed_range with a few important differences:
@@ -846,7 +860,8 @@ public:
                                  OutputIter out,
                                  const T * output_type, // used only to infer T
                                  const MessageTag & send_tag = no_tag,
-                                 const MessageTag & recv_tag = any_tag) const;
+                                 const MessageTag & recv_tag = any_tag,
+                                 std::size_t approx_buffer_size = 1000000) const;
 
   /**
    * Send data \p send to one processor while simultaneously receiving
@@ -1024,23 +1039,47 @@ public:
   /**
    * Take a range of local variables, combine it with ranges from all
    * processors, and write the output to the output iterator on rank root.
+   *
+   * The approximate maximum size (in *entries*; number of bytes will
+   * likely be 4x or 8x larger) to use in a single data vector buffer
+   * to send can be specified for performance or memory usage reasons;
+   * if the range cannot be packed into a single buffer of this size
+   * then multiple buffers and messages will be used.
+   *
+   * Note that the received data vector sizes will be the *sum* of the
+   * sent vector sizes; a smaller-than-default size may be useful for
+   * users on many processors, in cases where all-to-one communication
+   * cannot be avoided entirely.
    */
   template <typename Context, typename Iter, typename OutputIter>
   inline void gather_packed_range (const unsigned int root_id,
                                    Context * context,
                                    Iter range_begin,
                                    const Iter range_end,
-                                   OutputIter out) const;
+                                   OutputIter out,
+                                   std::size_t approx_buffer_size = 1000000) const;
 
   /**
    * Take a range of local variables, combine it with ranges from all
    * processors, and write the output to the output iterator.
+   *
+   * The approximate maximum size (in *entries*; number of bytes will
+   * likely be 4x or 8x larger) to use in a single data vector buffer
+   * to send can be specified for performance or memory usage reasons;
+   * if the range cannot be packed into a single buffer of this size
+   * then multiple buffers and messages will be used.
+   *
+   * Note that the received data vector sizes will be the *sum* of the
+   * sent vector sizes; a smaller-than-default size may be useful for
+   * users on many processors, in cases where all-to-one communication
+   * cannot be avoided entirely.
    */
   template <typename Context, typename Iter, typename OutputIter>
   inline void allgather_packed_range (Context * context,
                                       Iter range_begin,
                                       const Iter range_end,
-                                      OutputIter out) const;
+                                      OutputIter out,
+                                      std::size_t approx_buffer_size = 1000000) const;
 
   /**
    * Effectively transposes the input vector across all processors.
@@ -1079,6 +1118,12 @@ public:
    * unsigned int TIMPI::packed_size(const T *,
    *                                    vector<int>::const_iterator)
    * is used to advance to the beginning of the next object's data.
+   *
+   * The approximate maximum size (in *entries*; number of bytes will
+   * likely be 4x or 8x larger) to use in a single data vector buffer
+   * can be specified for performance or memory usage reasons; if the
+   * range cannot be packed into a single buffer of this size then
+   * multiple buffers and messages will be used.
    */
   template <typename Context, typename OutputContext, typename Iter, typename OutputIter>
   inline void broadcast_packed_range (const Context * context1,
@@ -1086,7 +1131,8 @@ public:
                                       const Iter range_end,
                                       OutputContext * context2,
                                       OutputIter out,
-                                      const unsigned int root_id = 0) const;
+                                      const unsigned int root_id = 0,
+                                      std::size_t approx_buffer_size = 1000000) const;
 
   /**
    * C++ doesn't let us partially specialize functions (we're really
