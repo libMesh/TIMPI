@@ -3496,14 +3496,11 @@ inline Status Communicator::packed_range_probe (const unsigned int src_processor
 {
   TIMPI_LOG_SCOPE("packed_range_probe()", "Parallel");
 
-#ifndef TIMPI_HAVE_MPI
-  timpi_not_implemented();
-  ignore(src_processor_id, tag, flag);
-#endif
+  ignore(src_processor_id, tag); // unused in opt mode w/o MPI
 
   Status stat((StandardType<typename Packing<T>::buffer_type>()));
 
-  int int_flag;
+  int int_flag = 0;
 
   timpi_assert(src_processor_id < this->size() ||
                src_processor_id == any_source);
