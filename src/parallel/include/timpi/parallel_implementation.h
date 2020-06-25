@@ -2151,6 +2151,25 @@ inline void Communicator::send_packed_range (const unsigned int,
                                              const MessageTag &) const
 { timpi_not_implemented(); }
 
+template <typename Context, typename Iter>
+inline void Communicator::nonblocking_send_packed_range (const unsigned int,
+                                                         const Context *,
+                                                         Iter,
+                                                         const Iter,
+                                                         Request &,
+                                                         const MessageTag &) const
+{ timpi_not_implemented(); }
+
+template <typename Context, typename OutputIter, typename T>
+inline void Communicator::nonblocking_receive_packed_range (const unsigned int,
+                                                            Context *,
+                                                            OutputIter,
+                                                            const T *,
+                                                            Request &,
+                                                            Status &,
+                                                            const MessageTag &) const
+{ timpi_not_implemented(); }
+
 /**
  * We do not currently support receives on one processor without MPI.
  */
