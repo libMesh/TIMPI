@@ -586,7 +586,8 @@ inline void Communicator::send_packed_range (const unsigned int dest_processor_i
                                              const Context * context,
                                              Iter range_begin,
                                              const Iter range_end,
-                                             const MessageTag & tag) const
+                                             const MessageTag & tag,
+                                             std::size_t approx_buffer_size) const
 {
   // We will serialize variable size objects from *range_begin to
   // *range_end as a sequence of plain data (e.g. ints) in this buffer
@@ -608,7 +609,7 @@ inline void Communicator::send_packed_range (const unsigned int dest_processor_i
       std::vector<typename Packing<T>::buffer_type> buffer;
 
       const Iter next_range_begin = pack_range
-        (context, range_begin, range_end, buffer);
+        (context, range_begin, range_end, buffer, approx_buffer_size);
 
       timpi_assert_greater (std::distance(range_begin, next_range_begin), 0);
 
@@ -634,7 +635,8 @@ inline void Communicator::send_packed_range (const unsigned int dest_processor_i
                                              Iter range_begin,
                                              const Iter range_end,
                                              Request & req,
-                                             const MessageTag & tag) const
+                                             const MessageTag & tag,
+                                             std::size_t approx_buffer_size) const
 {
   // Allocate a buffer on the heap so we don't have to free it until
   // after the Request::wait()
@@ -670,9 +672,8 @@ inline void Communicator::send_packed_range (const unsigned int dest_processor_i
 
       std::vector<buffer_t> * buffer = new std::vector<buffer_t>();
 
-      const Iter next_range_begin =
-        pack_range(context, range_begin, range_end,
-                             *buffer);
+      const Iter next_range_begin = pack_range
+        (context, range_begin, range_end, *buffer, approx_buffer_size);
 
       timpi_assert_greater (std::distance(range_begin, next_range_begin), 0);
 
@@ -1367,14 +1368,15 @@ Communicator::send_receive_packed_range (const unsigned int dest_processor_id,
                                          OutputIter out_iter,
                                          const T * output_type,
                                          const MessageTag & send_tag,
-                                         const MessageTag & recv_tag) const
+                                         const MessageTag & recv_tag,
+                                         std::size_t approx_buffer_size) const
 {
   TIMPI_LOG_SCOPE("send_receive()", "Parallel");
 
   Request req;
 
   this->send_packed_range (dest_processor_id, context1, send_begin, send_end,
-                           req, send_tag);
+                           req, send_tag, approx_buffer_size);
 
   this->receive_packed_range (source_processor_id, context2, out_iter,
                               output_type, recv_tag);
@@ -1937,7 +1939,8 @@ inline void Communicator::broadcast_packed_range(const Context * context1,
                                                  const Iter range_end,
                                                  OutputContext * context2,
                                                  OutputIter out_iter,
-                                                 const unsigned int root_id) const
+                                                 const unsigned int root_id,
+                                                 std::size_t approx_buffer_size) const
 {
   typedef typename std::iterator_traits<Iter>::value_type T;
   typedef typename Packing<T>::buffer_type buffer_t;
@@ -1950,7 +1953,7 @@ inline void Communicator::broadcast_packed_range(const Context * context1,
 
       if (this->rank() == root_id)
         range_begin = pack_range
-          (context1, range_begin, range_end, buffer);
+          (context1, range_begin, range_end, buffer, approx_buffer_size);
 
       // this->broadcast(vector) requires the receiving vectors to
       // already be the appropriate size
@@ -3028,12 +3031,17 @@ inline void Communicator::allgather(const T & sendval,
   timpi_assert(this->size());
   recv.resize(this->size());
 
+  static const std::size_t approx_total_buffer_size = 1e8;
+  const std::size_t approx_each_buffer_size =
+    approx_total_buffer_size / this->size();
+
   unsigned int comm_size = this->size();
   if (comm_size > 1)
     {
       std::vector<T> range = {sendval};
 
-      allgather_packed_range((void *)(NULL), range.begin(), range.end(), recv.begin());
+      allgather_packed_range((void *)(NULL), range.begin(), range.end(), recv.begin(),
+                             approx_each_buffer_size);
     }
   else if (comm_size > 0)
     recv[0] = sendval;
@@ -3426,7 +3434,8 @@ inline void Communicator::gather_packed_range(const unsigned int root_id,
                                               Context * context,
                                               Iter range_begin,
                                               const Iter range_end,
-                                              OutputIter out_iter) const
+                                              OutputIter out_iter,
+                                              std::size_t approx_buffer_size) const
 {
   typedef typename std::iterator_traits<Iter>::value_type T;
   typedef typename Packing<T>::buffer_type buffer_t;
@@ -3441,7 +3450,7 @@ inline void Communicator::gather_packed_range(const unsigned int root_id,
       std::vector<buffer_t> buffer;
 
       range_begin = pack_range
-        (context, range_begin, range_end, buffer);
+        (context, range_begin, range_end, buffer, approx_buffer_size);
 
       this->gather(root_id, buffer);
 
@@ -3458,7 +3467,8 @@ template <typename Context, typename Iter, typename OutputIter>
 inline void Communicator::allgather_packed_range(Context * context,
                                                  Iter range_begin,
                                                  const Iter range_end,
-                                                 OutputIter out_iter) const
+                                                 OutputIter out_iter,
+                                                 std::size_t approx_buffer_size) const
 {
   typedef typename std::iterator_traits<Iter>::value_type T;
   typedef typename Packing<T>::buffer_type buffer_t;
@@ -3473,7 +3483,7 @@ inline void Communicator::allgather_packed_range(Context * context,
       std::vector<buffer_t> buffer;
 
       range_begin = pack_range
-        (context, range_begin, range_end, buffer);
+        (context, range_begin, range_end, buffer, approx_buffer_size);
 
       this->allgather(buffer, false);
 

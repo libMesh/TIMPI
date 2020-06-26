@@ -94,7 +94,8 @@ inline void Communicator::send_packed_range(const unsigned int,
                                             const Context *,
                                             Iter,
                                             const Iter,
-                                            const MessageTag &) const
+                                            const MessageTag &,
+                                            std::size_t) const
 { timpi_not_implemented(); }
 
 template <typename Context, typename Iter>
@@ -103,7 +104,8 @@ inline void Communicator::send_packed_range (const unsigned int,
                                              Iter,
                                              const Iter,
                                              Request &,
-                                             const MessageTag &) const
+                                             const MessageTag &,
+                                             std::size_t) const
 { timpi_not_implemented(); }
 
 template <typename Context, typename Iter>
@@ -204,7 +206,8 @@ Communicator::send_receive_packed_range
    OutputIter out_iter,
    const T * output_type,
    const MessageTag &,
-   const MessageTag &) const
+   const MessageTag &,
+   std::size_t) const
 {
   // This makes no sense on one processor unless we're deliberately
   // sending to ourself.
