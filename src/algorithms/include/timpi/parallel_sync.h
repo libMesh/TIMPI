@@ -169,6 +169,9 @@ void push_parallel_vector_data(const Communicator & comm,
   // without confusing one for the other
   auto tag = comm.get_unique_tag();
 
+  // We'll construct the StandardType once rather than inside a loop
+  auto type = build_standard_type(&data.begin()->second);
+
   // Post all of the sends, non-blocking and synchronous
 
   // Save off the old send_mode so we can restore it after this
@@ -196,7 +199,7 @@ void push_parallel_vector_data(const Communicator & comm,
       else
         {
           Request sendreq;
-          comm.send(destid, datum, sendreq, tag);
+          comm.send(destid, datum, type, sendreq, tag);
           reqs.push_back(sendreq);
         }
     }
@@ -227,7 +230,9 @@ void push_parallel_vector_data(const Communicator & comm,
     current_src_proc = any_source;
 
     // Check if there is a message and start receiving it
-    if (comm.possibly_receive(current_src_proc, *current_incoming_data, *current_request, tag))
+    if (comm.possibly_receive(current_src_proc,
+                              *current_incoming_data, type,
+                              *current_request, tag))
     {
       receive_reqs.emplace_back(current_src_proc, current_request);
       current_request = std::make_shared<Request>();
