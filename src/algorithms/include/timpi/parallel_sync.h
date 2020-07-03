@@ -169,8 +169,11 @@ void push_parallel_vector_data(const Communicator & comm,
   // without confusing one for the other
   auto tag = comm.get_unique_tag();
 
-  // We'll construct the StandardType once rather than inside a loop
-  auto type = build_standard_type(&data.begin()->second);
+  // We'll construct the StandardType once rather than inside a loop.
+  // We can't pass in example data here, because we might have
+  // data.empty() on some ranks, so we'll need StandardType to be able
+  // to construct the user's data type without an example.
+  auto type = build_standard_type(static_cast<nonconst_nonref_type*>(nullptr));
 
   // Post all of the sends, non-blocking and synchronous
 
