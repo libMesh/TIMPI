@@ -1,5 +1,11 @@
 #! /bin/sh
 
+if [ ! -f m4/autoconf-submodule/acsm_mpi.m4 ]; then
+  echo "autoconf-submodule is needed to bootstrap!"
+  echo "Try 'git submodule update --init --recursive'"
+  exit 1
+fi
+
 cmd="autoreconf -v -f -i"
 echo "Bootstrapping using $cmd ..."
 
