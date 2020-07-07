@@ -73,6 +73,49 @@ private:
 };
 
 
+/*
+ * Template metaprogramming to make build_standard_type work nicely
+ * with nested containers
+ */
+template <typename T>
+struct InnermostType
+{
+  typedef T type;
+};
+
+
+template <typename T>
+struct InnermostType<std::vector<T>>
+{
+  typedef typename InnermostType<T>::type type;
+};
+
+
+/*
+ * Returns a StandardType suitable for use with the example data.
+ */
+template <typename T>
+StandardType<T> build_standard_type(const T * example = nullptr)
+{
+  StandardType<T> returnval(example);
+  return returnval;
+}
+
+
+
+/*
+ * Returns a StandardType suitable for use with the data in the
+ * example container.
+ */
+template <typename T>
+StandardType<typename InnermostType<T>::type>
+build_standard_type(const std::vector<T> * example = nullptr)
+{
+  const T * inner_example = (example && !example->empty()) ? &(*example)[0] : nullptr;
+  return build_standard_type(inner_example);
+}
+
+
 
 // ------------------------------------------------------------
 // Declare StandardType specializations for C++ built-in types
