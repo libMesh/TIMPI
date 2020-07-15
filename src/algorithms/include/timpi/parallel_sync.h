@@ -24,10 +24,14 @@
 #include "timpi/parallel_implementation.h"
 
 // C++ includes
-#include <map>
-#include <type_traits>
-#include <vector>
+#include <algorithm>   // max
+#include <iterator>    // inserter
 #include <list>
+#include <map>         // map, multimap, pair
+#include <memory>      // shared_ptr, make_shared
+#include <type_traits> // remove_reference, remove_const
+#include <utility>     // move
+#include <vector>
 
 
 namespace TIMPI {
