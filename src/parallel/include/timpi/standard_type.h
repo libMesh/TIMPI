@@ -172,14 +172,12 @@ TIMPI_STANDARD_TYPE(long double,MPI_LONG_DOUBLE);
   {
   public:
     explicit
-      StandardType(const Real * = nullptr) {
+      StandardType(const Real * = nullptr) : DataType() {
         timpi_call_mpi(MPI_Type_contiguous(2, MPI_DOUBLE, &_datatype));
         this->commit();
       }
 
-    StandardType(const StandardType<Real> & t)
-      : DataType()
-    {
+    StandardType(const StandardType<Real> & t) : DataType() {
       timpi_call_mpi (MPI_Type_dup (t._datatype, &_datatype));
     }
 
@@ -204,7 +202,9 @@ class StandardType<std::pair<T1, T2>,
 {
 public:
   explicit
-  StandardType(const std::pair<T1, T2> * example = nullptr) {
+  StandardType(const std::pair<T1, T2> * example = nullptr)
+    : DataType()
+  {
     // We need an example for MPI_Address to use
     static const std::pair<T1, T2> p;
     if (!example)
@@ -256,6 +256,7 @@ public:
   }
 
   StandardType(const StandardType<std::pair<T1, T2>> & timpi_mpi_var(t))
+    : DataType()
   {
     timpi_call_mpi
       (MPI_Type_dup (t._datatype, &_datatype));
