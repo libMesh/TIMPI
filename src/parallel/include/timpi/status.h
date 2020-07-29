@@ -64,14 +64,17 @@ class Status
 public:
   Status ();
 
+  Status (const Status &) = default;
+  Status (Status &&) = default;
+  Status & operator=(const Status &) = default;
+  Status & operator=(Status &&) = default;
+
   explicit Status (const data_type & type);
 
   explicit Status (const status & status);
 
   Status (const status    & status,
           const data_type & type);
-
-  Status (const Status & status);
 
   Status (const Status    & status,
           const data_type & type);
@@ -120,11 +123,6 @@ inline Status::Status (const status & stat,
                        const data_type & type) :
   _status(stat),
   _datatype(type)
-{}
-
-inline Status::Status (const Status & stat) :
-  _status(stat._status),
-  _datatype(stat._datatype)
 {}
 
 inline Status::Status (const Status    & stat,
