@@ -62,8 +62,8 @@ struct status       { /* unsigned int s; */ };
 class Status
 {
 public:
-  Status ();
-
+  Status () = default;
+  ~Status () = default;
   Status (const Status &) = default;
   Status (Status &&) = default;
   Status & operator=(const Status &) = default;
@@ -103,11 +103,6 @@ private:
 
 // ------------------------------------------------------------
 // Status member functions
-
-inline Status::Status () :
-  _status(),
-  _datatype()
-{}
 
 inline Status::Status (const data_type & type) :
   _status(),
