@@ -50,11 +50,9 @@ struct data_type    { /* unsigned int t; */ };
 class DataType
 {
 public:
-  DataType () : _datatype() {}
-
-  DataType (const DataType & other) :
-    _datatype(other._datatype)
-  {}
+  DataType () = default;
+  DataType (const DataType & other) = default;
+  DataType (DataType && other) = default;
 
   DataType (const data_type & type) :
     _datatype(type)
@@ -69,8 +67,10 @@ public:
     this->commit();
   }
 
-  DataType & operator = (const DataType & other)
-  { _datatype = other._datatype; return *this; }
+  ~DataType () = default;
+
+  DataType & operator = (const DataType & other) = default;
+  DataType & operator = (DataType && other) = default;
 
   DataType & operator = (const data_type & type)
   { _datatype = type; return *this; }
