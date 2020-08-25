@@ -522,12 +522,23 @@ void pull_parallel_vector_data(const Communicator & comm,
     ]
     (processor_id_type pid, const std::vector<datum> & data)
     {
-      auto q_pid_its = queries.equal_range(pid);
-      auto query_it = q_pid_its.first;
-      timpi_assert(query_it != q_pid_its.second);
-
       // We rely on responses coming in the same order as queries
       const unsigned int nth_query = responses_acted_on[pid]++;
+
+      auto q_pid_its = queries.equal_range(pid);
+      auto query_it = q_pid_its.first;
+
+      // In an oversized pull we might not have any queries addressed
+      // to the *base* pid, but only to pid+N*num_procs for some N>1
+      // timpi_assert(query_it != q_pid_its.second);
+      while (query_it == q_pid_its.second)
+        {
+          pid += num_procs;
+          q_pid_its = queries.equal_range(pid);
+          timpi_assert_less_equal(pid, max_pid);
+          query_it = q_pid_its.first;
+        }
+
       for (unsigned int i=0; i != nth_query; ++i)
         {
           query_it++;
