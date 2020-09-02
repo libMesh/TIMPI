@@ -149,12 +149,15 @@ public:
   void split_by_type(int split_type, int key, info i, Communicator & target) const;
 
   /*
-   * Create a new duplicate of \p this communicator
+   * Make \p this a new duplicate of the Communicator \p comm -
+   * sharing the same processes but with a new communication context
+   * and without sharing unique MessageTag assignment.
    */
   void duplicate(const Communicator & comm);
 
   /*
-   * Create a new duplicate of an MPI communicator
+   * Make \p this a new duplicate of the MPI communicator \p comm -
+   * sharing the same processes but with a new communication context.
    */
   void duplicate(const communicator & comm);
 
