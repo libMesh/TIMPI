@@ -2,7 +2,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(timpi, 1.1.3, roystgnr@ices.utexas.edu)
+AC_INIT(timpi, 1.2, roystgnr@ices.utexas.edu)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_HEADER(src/utilities/include/timpi/timpi_config.h.tmp)

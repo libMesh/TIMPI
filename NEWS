@@ -44,3 +44,9 @@
   * Better buffer size control in more packed_range functions
   * Reuse derived type object in push_parallel_vector_data
   * Have bootstrap check for autoconf submodule initialization
+
+1.2
+  * Directly include header files in parallel_sync.h
+  * Use default constructor/destructor/assignment in Status, DataType
+  * Oversized pull responses bugfix
+  * Clarified Communicator::duplicate() doc comment
