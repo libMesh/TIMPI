@@ -1,8 +1,11 @@
 #include <timpi/timpi.h>
+// timpi.h doesn't pull in parallel_sync
+#include <timpi/parallel_sync.h>
 
 #include <iterator>
 #include <vector>
 #include <set>
+#include <unistd.h>
 
 #define TIMPI_UNIT_ASSERT(expr) \
   if (!(expr)) \
@@ -90,14 +93,20 @@ using namespace TIMPI;
 
 Communicator *TestCommWorld;
 
+template <typename T>
+std::set<T> createSet(std::size_t size)
+{
+  std::vector<T> temp(size);
+  std::iota(temp.begin(), temp.end(), 0);
+  return std::set<T>(temp.begin(), temp.end());
+}
+
   void testContainerAllGather()
   {
     std::vector<std::set<unsigned int>> vals;
     const unsigned int my_rank = TestCommWorld->rank();
 
-    std::vector<int> data_vec(my_rank + 1);
-    std::iota(data_vec.begin(), data_vec.end(), 0);
-    TestCommWorld->allgather(std::set<unsigned int>(data_vec.begin(), data_vec.end()), vals);
+    TestCommWorld->allgather(createSet<unsigned int>(my_rank + 1), vals);
 
     const std::size_t comm_size = TestCommWorld->size();
     const std::size_t vec_size = vals.size();
@@ -117,10 +126,8 @@ Communicator *TestCommWorld;
     std::vector<std::pair<std::set<unsigned int>, unsigned int>> vals;
     const unsigned int my_rank = TestCommWorld->rank();
 
-    std::vector<int> data_vec(my_rank + 1);
-    std::iota(data_vec.begin(), data_vec.end(), 0);
     TestCommWorld->allgather(std::make_pair(
-                               std::set<unsigned int>(data_vec.begin(), data_vec.end()),
+                               createSet<unsigned int>(my_rank + 1),
                                my_rank), vals);
 
     const std::size_t comm_size = TestCommWorld->size();
@@ -170,6 +177,79 @@ Communicator *TestCommWorld;
     }
   }
 
+  // Data to send/recieve with each processor rank.  For this test,
+  // processor p will send to destination d the integer d, in a vector
+  // with sqrt(c)+1 copies, iff c := |p-d| is a square number.
+  void fill_data
+  (std::map<processor_id_type, std::vector<std::set<unsigned int>>> & data,
+     int M)
+  {
+    const int rank = TestCommWorld->rank();
+    for (int d=0; d != M; ++d)
+      {
+        const int diffsize = std::abs(d-rank);
+        const int diffsqrt = std::sqrt(diffsize);
+        if (diffsqrt*diffsqrt == diffsize)
+          for (int i=-1; i != diffsqrt; ++i)
+            data[d].push_back(createSet<unsigned int>(d+1));
+      }
+  }
+
+  void testPush()
+  {
+    const int size = TestCommWorld->size(),
+              rank = TestCommWorld->rank();
+
+    std::map<processor_id_type, std::vector<std::set<unsigned int>>> data, received_data;
+
+    fill_data(data, size);
+
+    auto collect_data =
+      [&received_data]
+      (processor_id_type pid,
+       const typename std::vector<std::set<unsigned int>> & data)
+      {
+        auto & vec = received_data[pid];
+        vec.insert(vec.end(), data.begin(), data.end());
+      };
+
+    push_parallel_vector_data(*TestCommWorld, data, collect_data);
+
+    // Test the received results, for each processor id p we're in
+    // charge of.
+    for (int p=rank; p != size; p += size)
+      for (int srcp=0; srcp != size; ++srcp)
+        {
+          // The source processor should be a key in the map
+          TIMPI_UNIT_ASSERT(received_data.count(srcp));
+
+          const int diffsize = std::abs(srcp-p);
+          const int diffsqrt = std::sqrt(diffsize);
+          if (diffsqrt*diffsqrt != diffsize)
+            {
+              const std::vector<std::set<unsigned int>> & datum = received_data[srcp];
+
+              // There shouldn't be anyting in this container!
+              TIMPI_UNIT_ASSERT(datum.empty());
+
+              continue;
+            }
+
+          const std::vector<std::set<unsigned int>> & datum = received_data[srcp];
+          TIMPI_UNIT_ASSERT(datum.size() == static_cast<std::size_t>(diffsqrt+1));
+
+          for (const auto & set : datum)
+          {
+            TIMPI_UNIT_ASSERT(set.size() == static_cast<std::size_t>((p+1)));
+
+            unsigned int comparator = 0;
+            for (const auto element : set)
+              TIMPI_UNIT_ASSERT(element == comparator++);
+          }
+        }
+  }
+
+
 
 int main(int argc, const char * const * argv)
 {
@@ -179,6 +259,16 @@ int main(int argc, const char * const * argv)
   testContainerAllGather();
   testContainerBroadcast();
   testPairContainerAllGather();
+
+  volatile int i = 0;
+  char hostname[256];
+  gethostname(hostname, sizeof(hostname));
+  printf("PID %d on %s ready for attach\n", getpid(), hostname);
+  fflush(stdout);
+  while (0 == i)
+    sleep(5);
+
+  testPush();
 
   return 0;
 }
