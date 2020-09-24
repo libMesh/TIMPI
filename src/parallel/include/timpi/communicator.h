@@ -607,7 +607,27 @@ public:
    * @param tag The tag to use
 
    */
-  template <typename T, typename A>
+  template <typename T, typename A, typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+  inline
+  bool possibly_receive (unsigned int & src_processor_id,
+                         std::vector<T,A> & buf,
+                         const DataType & type,
+                         Request & req,
+                         const MessageTag & tag) const;
+
+  /**
+   * Nonblocking-receive from one processor with user-defined type. Dispatches to \p
+   * possibly_receive_packed_range
+   *
+   * @param src_processor_id The pid to receive from or "any".
+   * will be set to the actual src being received from
+   * @param buf The buffer to receive into
+   * @param type The intrinsic datatype to receive
+   * @param req The request to use
+   * @param tag The tag to use
+
+   */
+  template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,

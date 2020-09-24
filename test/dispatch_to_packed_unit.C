@@ -19,8 +19,9 @@ class StandardType<std::set<T>> : public DataType
 public:
   static const bool is_fixed_type = false;
 
-private:
-  StandardType(const std::set<T> * example = nullptr);
+  StandardType(const std::set<T> *) : DataType()
+    {
+    }
 };
 }
 
@@ -217,7 +218,7 @@ std::set<T> createSet(std::size_t size)
 
     // Test the received results, for each processor id p we're in
     // charge of.
-    for (int p=rank; p != size; p += size)
+    for (int p=rank; p < size; p += size)
       for (int srcp=0; srcp != size; ++srcp)
         {
           // The source processor should be a key in the map
@@ -259,14 +260,6 @@ int main(int argc, const char * const * argv)
   testContainerAllGather();
   testContainerBroadcast();
   testPairContainerAllGather();
-
-  volatile int i = 0;
-  char hostname[256];
-  gethostname(hostname, sizeof(hostname));
-  printf("PID %d on %s ready for attach\n", getpid(), hostname);
-  fflush(stdout);
-  while (0 == i)
-    sleep(5);
 
   testPush();
 

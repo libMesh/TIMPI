@@ -447,12 +447,12 @@ inline void Communicator::send (const unsigned int dest_processor_id,
                                 Request & req,
                                 const MessageTag & tag) const
 {
-  this->send_packed_range(dest_processor_id,
-                          (void *)(nullptr),
-                          buf.begin(),
-                          buf.end(),
-                          req,
-                          tag);
+  this->nonblocking_send_packed_range(dest_processor_id,
+                                      (void *)(nullptr),
+                                      buf.begin(),
+                                      buf.end(),
+                                      req,
+                                      tag);
 }
 
 
@@ -476,7 +476,7 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
 
 
-template <typename T, typename A>
+template <typename T, typename A, typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
 inline void Communicator::send (const unsigned int dest_processor_id,
                                 const std::vector<T,A> & buf,
                                 const DataType & type,
@@ -500,6 +500,25 @@ inline void Communicator::send (const unsigned int dest_processor_id,
   // The MessageTag should stay registered for the Request lifetime
   req.add_post_wait_work
     (new PostWaitDereferenceTag(tag));
+}
+
+template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+inline void Communicator::send (const unsigned int dest_processor_id,
+                                const std::vector<T,A> & buf,
+                                const DataType &,
+                                Request & req,
+                                const MessageTag & tag) const
+{
+  TIMPI_LOG_SCOPE("send()", "Parallel");
+
+  timpi_assert_less(dest_processor_id, this->size());
+
+  this->nonblocking_send_packed_range(dest_processor_id,
+                                      (void *)(nullptr),
+                                      buf.begin(),
+                                      buf.end(),
+                                      req,
+                                      tag);
 }
 
 
@@ -2026,7 +2045,7 @@ inline void Communicator::nonblocking_receive_packed_range (const unsigned int s
 
 
 
-template <typename T, typename A>
+template <typename T, typename A, typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
                                             const DataType & type,
@@ -2069,6 +2088,23 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
   }
 
   return int_flag;
+}
+
+template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
+                                            std::vector<T,A> & buf,
+                                            const DataType &,
+                                            Request & req,
+                                            const MessageTag & tag) const
+{
+  TIMPI_LOG_SCOPE("possibly_receive()", "Parallel");
+
+  return this->possibly_receive_packed_range(src_processor_id,
+                                             (void *)(nullptr),
+                                             std::inserter(buf, buf.end()),
+                                             (T *)(nullptr),
+                                             req,
+                                             tag);
 }
 
 
