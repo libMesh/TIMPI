@@ -122,6 +122,27 @@ std::set<T> createSet(std::size_t size)
     }
   }
 
+  void testVectorOfContainersAllGather()
+  {
+    std::vector<std::set<unsigned int>> vals(1);
+    const unsigned int my_rank = TestCommWorld->rank();
+    vals[0] = createSet<unsigned int>(my_rank + 1);
+
+    TestCommWorld->allgather(vals);
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = vals.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    for (std::size_t i = 0; i < vec_size; ++i)
+    {
+      const auto & current_set = vals[i];
+      unsigned int value = 0;
+      for (auto number : current_set)
+        TIMPI_UNIT_ASSERT(number == value++);
+    }
+  }
+
   void testPairContainerAllGather()
   {
     std::vector<std::pair<std::set<unsigned int>, unsigned int>> vals;
@@ -146,6 +167,20 @@ std::set<T> createSet(std::size_t size)
   }
 
   void testContainerBroadcast()
+  {
+    std::set<unsigned int> val;
+    const unsigned int my_rank = TestCommWorld->rank();
+
+    if (my_rank == 0)
+      val.insert(0);
+
+    TestCommWorld->broadcast(val);
+
+    TIMPI_UNIT_ASSERT(val.size() == 1);
+    TIMPI_UNIT_ASSERT(*val.begin() == 0);
+  }
+
+void testVectorOfContainersBroadcast()
   {
     std::vector<std::set<unsigned int>> vals;
     const unsigned int my_rank = TestCommWorld->rank();
@@ -328,7 +363,9 @@ int main(int argc, const char * const * argv)
   TestCommWorld = &init.comm();
 
   testContainerAllGather();
+  testVectorOfContainersAllGather();
   testContainerBroadcast();
+  testVectorOfContainersBroadcast();
   testPairContainerAllGather();
 
   testPush();
