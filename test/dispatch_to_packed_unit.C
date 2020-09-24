@@ -213,9 +213,9 @@ void testVectorOfContainersBroadcast()
     }
   }
 
-  // Data to send/recieve with each processor rank.  For this test,
-  // processor p will send to destination d the integer d, in a vector
-  // with sqrt(c)+1 copies, iff c := |p-d| is a square number.
+  // Data to send/recieve with each processor rank.  For this test, processor p
+  // will send to destination d a set with d+1 elements numbered from 0 to d, in
+  // a vector with sqrt(c)+1 copies, iff c := |p-d| is a square number.
   void fill_data
   (std::map<processor_id_type, std::vector<std::set<unsigned int>>> & data,
      int M)
@@ -251,38 +251,34 @@ void testVectorOfContainersBroadcast()
 
     push_parallel_vector_data(*TestCommWorld, data, collect_data);
 
-    // Test the received results, for each processor id p we're in
-    // charge of.
-    for (int p=rank; p < size; p += size)
-      for (int srcp=0; srcp != size; ++srcp)
-        {
-          // The source processor should be a key in the map
-          TIMPI_UNIT_ASSERT(received_data.count(srcp));
+    // We only need to check ourselves to see what we were sent
+    int p = rank;
+    for (int srcp=0; srcp != size; ++srcp)
+    {
+      auto map_it = received_data.find(srcp);
 
-          const int diffsize = std::abs(srcp-p);
-          const int diffsqrt = std::sqrt(diffsize);
-          if (diffsqrt*diffsqrt != diffsize)
-            {
-              const std::vector<std::set<unsigned int>> & datum = received_data[srcp];
+      const int diffsize = std::abs(srcp-p);
+      const int diffsqrt = std::sqrt(diffsize);
+      if (diffsqrt*diffsqrt != diffsize)
+      {
+        // We shouldn't have been sent anything from srcp!
+        TIMPI_UNIT_ASSERT(map_it == received_data.end() || map_it->second.empty());
+        continue;
+      }
 
-              // There shouldn't be anyting in this container!
-              TIMPI_UNIT_ASSERT(datum.empty());
+      TIMPI_UNIT_ASSERT(map_it != received_data.end());
+      const std::vector<std::set<unsigned int>> & datum = map_it->second;
+      TIMPI_UNIT_ASSERT(datum.size() == static_cast<std::size_t>(diffsqrt+1));
 
-              continue;
-            }
+      for (const auto & set : datum)
+      {
+        TIMPI_UNIT_ASSERT(set.size() == static_cast<std::size_t>((p+1)));
 
-          const std::vector<std::set<unsigned int>> & datum = received_data[srcp];
-          TIMPI_UNIT_ASSERT(datum.size() == static_cast<std::size_t>(diffsqrt+1));
-
-          for (const auto & set : datum)
-          {
-            TIMPI_UNIT_ASSERT(set.size() == static_cast<std::size_t>((p+1)));
-
-            unsigned int comparator = 0;
-            for (const auto element : set)
-              TIMPI_UNIT_ASSERT(element == comparator++);
-          }
-        }
+        unsigned int comparator = 0;
+        for (const auto element : set)
+          TIMPI_UNIT_ASSERT(element == comparator++);
+      }
+    }
   }
 
   void testPull()
