@@ -241,7 +241,20 @@ Communicator::send_receive_packed_range
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
+inline bool Communicator::possibly_receive (unsigned int &,
+                                            std::vector<T,A> &,
+                                            const DataType &,
+                                            Request &,
+                                            const MessageTag &) const
+{
+  // Non-blocking I/O from self to self?
+  timpi_not_implemented();
+}
+
+template <typename T, typename A,
+          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
 inline bool Communicator::possibly_receive (unsigned int &,
                                             std::vector<T,A> &,
                                             const DataType &,
