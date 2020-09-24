@@ -19,9 +19,14 @@ class StandardType<std::set<T>> : public DataType
 public:
   static const bool is_fixed_type = false;
 
-  StandardType(const std::set<T> *) : DataType()
+#ifdef TIMPI_HAVE_MPI
+  StandardType(const std::set<T> *) : DataType(StandardType<typename InnermostType<T>::type>{})
     {
     }
+#else
+  StandardType(const std::set<T> *) : DataType() {}
+#endif
+
 };
 }
 
