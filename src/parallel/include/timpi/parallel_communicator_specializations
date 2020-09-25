@@ -123,6 +123,40 @@
                            Request & req,
                            const MessageTag & tag) const;
 
+    template <typename T, typename A1, typename A2>
+    inline
+    bool possibly_receive (unsigned int & src_processor_id,
+                           std::vector<std::vector<T,A1>,A2> & buf,
+                           const DataType & type,
+                           Request & req,
+                           const MessageTag & tag) const;
+
+    template <typename T, typename A,
+              typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
+    inline
+    void broadcast(std::vector<T,A> &data,
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
+
+    template <typename T, typename A,
+              typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+    inline
+    void broadcast(std::vector<T,A> &data,
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
+
+    template <typename T1, typename T2, typename C, typename A>
+    inline
+    void broadcast(std::map<T1,T2,C,A> &data,
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
+
+    template <typename K, typename V, typename H, typename E, typename A>
+    inline
+    void broadcast(std::unordered_map<K,V,H,E,A> &data,
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
+
 // We only need to bother with many of these specializations if we're
 // actually in parallel.
 #ifdef TIMPI_HAVE_MPI
@@ -174,7 +208,7 @@
                const MessageTag &tag=no_tag) const;
 
     template <typename T, typename A,
-              typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+              typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
     inline
     void send (const unsigned int dest_processor_id,
                const std::vector<T,A> & buf,
@@ -182,7 +216,7 @@
                const MessageTag &tag=no_tag) const;
 
     template <typename T, typename A,
-              typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
+              typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
     inline
     void send (const unsigned int dest_processor_id,
                const std::vector<T,A> & buf,
@@ -197,7 +231,7 @@
                const MessageTag &tag=no_tag) const;
 
     template <typename T, typename A,
-              typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+              typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
     inline
     void send (const unsigned int dest_processor_id,
                const std::vector<T,A> & buf,
@@ -206,7 +240,7 @@
                const MessageTag &tag=no_tag) const;
 
     template <typename T, typename A,
-              typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
+              typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
     inline
     void send (const unsigned int dest_processor_id,
                const std::vector<T,A> & buf,
@@ -333,37 +367,20 @@
 
     template <typename T, typename A1, typename A2>
     inline
-    bool possibly_receive (unsigned int & src_processor_id,
-                           std::vector<std::vector<T,A1>,A2> & buf,
-                           const DataType & type,
-                           Request & req,
-                           const MessageTag & tag) const;
-
-    template <typename T, typename A1, typename A2>
-    inline
     void receive (const unsigned int src_processor_id,
                   std::vector<std::vector<T,A1>,A2> &buf,
                   const DataType &type,
                   Request &req,
                   const MessageTag &tag=any_tag) const;
 
+    inline
+    void broadcast(bool & data,
+                   const unsigned int root_id=0,
+                   const bool identical_sizes=false) const;
+
     template <typename T>
     inline
     void broadcast(std::basic_string<T> &data,
-                   const unsigned int root_id=0,
-                   const bool identical_sizes=false) const;
-
-    template <typename T, typename A,
-              typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
-    inline
-    void broadcast(std::vector<T,A> &data,
-                   const unsigned int root_id=0,
-                   const bool identical_sizes=false) const;
-
-    template <typename T, typename A,
-              typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
-    inline
-    void broadcast(std::vector<T,A> &data,
                    const unsigned int root_id=0,
                    const bool identical_sizes=false) const;
 
@@ -385,17 +402,6 @@
                    const unsigned int root_id=0,
                    const bool identical_sizes=false) const;
 
-    template <typename T1, typename T2, typename C, typename A>
-    inline
-    void broadcast(std::map<T1,T2,C,A> &data,
-                   const unsigned int root_id=0,
-                   const bool identical_sizes=false) const;
-
-    template <typename K, typename V, typename H, typename E, typename A>
-    inline
-    void broadcast(std::unordered_map<K,V,H,E,A> &data,
-                   const unsigned int root_id=0,
-                   const bool identical_sizes=false) const;
 
     // In new overloaded function template entries we have to
     // re-specify the default arguments

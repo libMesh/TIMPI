@@ -21,11 +21,11 @@
 
 // TIMPI includes
 #include "timpi/standard_type.h"
+#include "timpi/packing.h"
 #include "timpi/message_tag.h"
 #include "timpi/timpi_config.h"
 #include "timpi/request.h"
 #include "timpi/status.h"
-#include "timpi/packing_forward.h"
 
 // C++ includes
 #include <map>
@@ -45,6 +45,7 @@ namespace TIMPI
 {
 
 using libMesh::Parallel::Packing;
+using libMesh::Parallel::Has_buffer_type;
 
 // Define processor id storage type.
 #if TIMPI_PROCESSOR_ID_BYTES == 1
@@ -239,8 +240,8 @@ private:
    * by broadcasting pairs
    */
   template <typename Map,
-            typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type,
+            typename std::enable_if<Has_datatype<StandardType<typename Map::key_type>>::value &&
+                                    Has_datatype<StandardType<typename Map::mapped_type>>::value,
                                     int>::type = 0>
   void map_sum(Map & data) const;
 
@@ -250,8 +251,8 @@ private:
    * twice: once for the keys and once for the values.
    */
   template <typename Map,
-            typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                      StandardType<typename Map::mapped_type>::is_fixed_type),
+            typename std::enable_if<!(Has_datatype<StandardType<typename Map::key_type>>::value &&
+                                      Has_datatype<StandardType<typename Map::mapped_type>>::value),
                                     int>::type = 0>
   void map_sum(Map & data) const;
 
@@ -260,8 +261,8 @@ private:
    * specializations. This is_fixed_type variant saves a communication by broadcasting pairs
    */
   template <typename Map,
-            typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type,
+            typename std::enable_if<Has_datatype<StandardType<typename Map::key_type>>::value &&
+                                    Has_datatype<StandardType<typename Map::mapped_type>>::value,
                                     int>::type = 0>
   void map_broadcast(Map & data,
                      const unsigned int root_id,
@@ -274,8 +275,8 @@ private:
    * key_type or mapped_type)
    */
   template <typename Map,
-            typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                      StandardType<typename Map::mapped_type>::is_fixed_type),
+            typename std::enable_if<!(Has_datatype<StandardType<typename Map::key_type>>::value &&
+                                      Has_datatype<StandardType<typename Map::mapped_type>>::value),
                                     int>::type = 0>
   void map_broadcast(Map & data,
                      const unsigned int root_id,
@@ -287,8 +288,8 @@ private:
    * communication by broadcasting pairs
    */
   template <typename Map,
-            typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type,
+            typename std::enable_if<Has_datatype<StandardType<typename Map::key_type>>::value &&
+                                    Has_datatype<StandardType<typename Map::mapped_type>>::value,
                                     int>::type = 0>
   void map_max(Map & data) const;
 
@@ -298,8 +299,8 @@ private:
    * twice: once for the keys and once for the values.
    */
   template <typename Map,
-            typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                      StandardType<typename Map::mapped_type>::is_fixed_type),
+            typename std::enable_if<!(Has_datatype<StandardType<typename Map::key_type>>::value &&
+                                      Has_datatype<StandardType<typename Map::mapped_type>>::value),
                                     int>::type = 0>
   void map_max(Map & data) const;
 
@@ -570,7 +571,7 @@ public:
    * @param tag The tag to use
    */
   template <typename T, typename A,
-            typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+            typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,
@@ -586,7 +587,7 @@ public:
    * @param tag The tag to use
    */
   template <typename T, typename A,
-            typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,
@@ -607,7 +608,7 @@ public:
    * @param tag The tag to use
 
    */
-  template <typename T, typename A, typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+  template <typename T, typename A, typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,
@@ -627,7 +628,8 @@ public:
    * @param tag The tag to use
 
    */
-  template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
+  template <typename T, typename A,
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,
@@ -970,7 +972,7 @@ public:
    * \p recv[processor_id] = the value of \p send on that processor. This
    * overload works on fixed size types
    */
-  template <typename T, typename A, typename std::enable_if<StandardType<T>::is_fixed_type,
+  template <typename T, typename A, typename std::enable_if<Has_datatype<StandardType<T>>::value,
                                                             int>::type = 0>
   inline void allgather(const T & send,
                         std::vector<T,A> & recv) const;
@@ -981,7 +983,7 @@ public:
    * overload works on potentially dynamically sized types, and dispatches
    * to \p allgather_packed_range
    */
-  template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type,
+  template <typename T, typename A, typename std::enable_if<Has_buffer_type<Packing<T>>::value,
                                                             int>::type = 0>
   inline void allgather(const T & send,
                         std::vector<T,A> & recv) const;
@@ -1021,7 +1023,7 @@ public:
    * must be called by all processors in the Communicator.
    */
   template <typename T, typename A,
-            typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+            typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
   inline void allgather(std::vector<T,A> & r,
                         const bool identical_buffer_sizes = false) const;
 
@@ -1050,7 +1052,7 @@ public:
    * must be called by all processors in the Communicator.
    */
   template <typename T, typename A,
-            typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
   inline void allgather(std::vector<T,A> & r,
                         const bool identical_buffer_sizes = false) const;
 
@@ -1171,7 +1173,7 @@ public:
    * Fixed variant
    */
   template <typename T,
-            typename std::enable_if<StandardType<T>::is_fixed_type, int>::type = 0>
+            typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
   inline void broadcast(T & data, const unsigned int root_id=0,
                         const bool identical_sizes=false) const;
 
@@ -1187,7 +1189,7 @@ public:
    * Dynamic variant
    */
   template <typename T,
-            typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type = 0>
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
   inline void broadcast(T & data, const unsigned int root_id=0,
                         const bool identical_sizes=false) const;
 

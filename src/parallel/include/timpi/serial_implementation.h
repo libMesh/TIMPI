@@ -242,7 +242,7 @@ Communicator::send_receive_packed_range
 
 
 template <typename T, typename A,
-          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
+          typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
 inline bool Communicator::possibly_receive (unsigned int &,
                                             std::vector<T,A> &,
                                             const DataType &,
@@ -254,7 +254,7 @@ inline bool Communicator::possibly_receive (unsigned int &,
 }
 
 template <typename T, typename A,
-          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
 inline bool Communicator::possibly_receive (unsigned int &,
                                             std::vector<T,A> &,
                                             const NotADataType &,
@@ -265,6 +265,17 @@ inline bool Communicator::possibly_receive (unsigned int &,
   timpi_not_implemented();
 }
 
+template <typename T, typename A1, typename A2>
+inline
+bool Communicator::possibly_receive (unsigned int &,
+                                     std::vector<std::vector<T,A1>,A2> &,
+                                     const DataType &,
+                                     Request &,
+                                     const MessageTag &) const
+{
+  // Non-blocking I/O from self to self?
+  timpi_not_implemented();
+}
 
 } // namespace TIMPI
 
