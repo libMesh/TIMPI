@@ -210,7 +210,7 @@
     inline
     void send (const unsigned int dest_processor_id,
                const std::vector<T,A> & buf,
-               const DataType &type,
+               const NotADataType &type,
                Request &req,
                const MessageTag &tag=no_tag) const;
 

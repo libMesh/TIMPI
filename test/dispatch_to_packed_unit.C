@@ -14,19 +14,12 @@
 namespace TIMPI
 {
 template <typename T>
-class StandardType<std::set<T>> : public DataType
+class StandardType<std::set<T>> : public NotADataType
 {
 public:
-  static const bool is_fixed_type = false;
-
-#ifdef TIMPI_HAVE_MPI
-  StandardType(const std::set<T> *) : DataType(StandardType<typename InnermostType<T>::type>{})
+  StandardType(const std::set<T> *)
     {
     }
-#else
-  StandardType(const std::set<T> *) : DataType() {}
-#endif
-
 };
 }
 

@@ -57,11 +57,8 @@ struct standardtype_dependent_false : std::false_type
  * that we can use MPI_Address without constructing a new T.
  */
 template <typename T, typename Enable = void>
-class StandardType : public DataType
+class StandardType : public NotADataType
 {
-public:
-  static const bool is_fixed_type = false;
-
   /*
    * The unspecialized class is useless, so we make its constructor
    * private to catch mistakes at compile-time rather than link-time.

@@ -505,7 +505,7 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
 inline void Communicator::send (const unsigned int dest_processor_id,
                                 const std::vector<T,A> & buf,
-                                const DataType &,
+                                const NotADataType &,
                                 Request & req,
                                 const MessageTag & tag) const
 {
@@ -2047,7 +2047,7 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
 template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
-                                            const DataType &,
+                                            const NotADataType &,
                                             Request & req,
                                             const MessageTag & tag) const
 {

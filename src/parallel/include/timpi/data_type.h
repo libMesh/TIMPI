@@ -53,6 +53,7 @@ public:
   DataType () = default;
   DataType (const DataType & other) = default;
   DataType (DataType && other) = default;
+  static const bool is_fixed_type = true;
 
   DataType (const data_type & type) :
     _datatype(type)
@@ -102,6 +103,30 @@ public:
 protected:
 
   data_type _datatype;
+};
+
+class NotADataType
+{
+public:
+  NotADataType () = default;
+  NotADataType (const NotADataType & other) = default;
+  NotADataType (NotADataType && other) = default;
+  ~NotADataType () = default;
+  NotADataType & operator = (const NotADataType & other) = default;
+  NotADataType & operator = (NotADataType && other) = default;
+
+  static const bool is_fixed_type = false;
+};
+
+template <bool>
+struct MaybeADataType {
+  typedef DataType type;
+};
+
+template <>
+struct MaybeADataType<false>
+{
+  typedef NotADataType type;
 };
 
 } // namespace TIMPI

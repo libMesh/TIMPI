@@ -631,7 +631,7 @@ public:
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,
-                         const DataType & type,
+                         const NotADataType & type,
                          Request & req,
                          const MessageTag & tag) const;
 
