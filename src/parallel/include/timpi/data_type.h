@@ -105,26 +105,6 @@ protected:
   data_type _datatype;
 };
 
-// Idiom taken from https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Member_Detector
-template < class T >
-class Has_datatype
-{
-private:
-    using Yes = char[2];
-    using  No = char[1];
-
-    struct Fallback { struct _datatype { }; };
-    struct Derived : T, Fallback { };
-
-    template < class U >
-    static No& test ( typename U::_datatype* );
-    template < typename U >
-    static Yes& test ( U* );
-
-public:
-    static constexpr bool value = sizeof(test<Derived>(nullptr)) == sizeof(Yes);
-};
-
 class NotADataType
 {
 public:
