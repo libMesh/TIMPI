@@ -430,7 +430,7 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
 
 template <typename T, typename A,
-          typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::send (const unsigned int dest_processor_id,
                                 const std::vector<T,A> & buf,
                                 Request & req,
@@ -476,7 +476,7 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
 
 
-template <typename T, typename A, typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+template <typename T, typename A, typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::send (const unsigned int dest_processor_id,
                                 const std::vector<T,A> & buf,
                                 const DataType & type,
@@ -1802,7 +1802,7 @@ inline void Communicator::nonblocking_receive_packed_range (const unsigned int s
 
 
 
-template <typename T, typename A, typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+template <typename T, typename A, typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
                                             const DataType & type,
@@ -2230,8 +2230,8 @@ inline void Communicator::max(std::vector<bool,A> & r) const
 
 
 template <typename Map,
-          typename std::enable_if<Has_datatype<StandardType<typename Map::key_type>>::value &&
-                                  Has_datatype<StandardType<typename Map::mapped_type>>::value,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                  std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
                                   int>::type>
 void Communicator::map_max(Map & data) const
 {
@@ -2273,8 +2273,8 @@ void Communicator::map_max(Map & data) const
 
 
 template <typename Map,
-          typename std::enable_if<!(Has_datatype<StandardType<typename Map::key_type>>::value &&
-                                    Has_datatype<StandardType<typename Map::mapped_type>>::value),
+          typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
                                   int>::type>
 void Communicator::map_max(Map & data) const
 {
@@ -2519,8 +2519,8 @@ inline void Communicator::sum(std::vector<std::complex<T>,A> & r) const
 // Helper function for summing std::map and std::unordered_map with
 // fixed type (key, value) pairs.
 template <typename Map,
-          typename std::enable_if<Has_datatype<StandardType<typename Map::key_type>>::value &&
-                                  Has_datatype<StandardType<typename Map::mapped_type>>::value,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                  std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
                                   int>::type>
 inline void Communicator::map_sum(Map & data) const
 {
@@ -2551,8 +2551,8 @@ inline void Communicator::map_sum(Map & data) const
 // Helper function for summing std::map and std::unordered_map with
 // non-fixed-type (key, value) pairs.
 template <typename Map,
-          typename std::enable_if<!(Has_datatype<StandardType<typename Map::key_type>>::value &&
-                                    Has_datatype<StandardType<typename Map::mapped_type>>::value),
+          typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
                                   int>::type>
 inline void Communicator::map_sum(Map & data) const
 {
@@ -2807,7 +2807,7 @@ inline void Communicator::gather(const unsigned int root_id,
 
 
 template <typename T, typename A,
-          typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::allgather(const T & sendval,
                                     std::vector<T,A> & recv) const
 {
@@ -2856,7 +2856,7 @@ inline void Communicator::allgather(const T & sendval,
 }
 
 template <typename T, typename A,
-          typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::allgather(std::vector<T,A> & r,
                                     const bool identical_buffer_sizes) const
 {
@@ -3264,7 +3264,7 @@ inline void Communicator::alltoall(std::vector<T,A> & buf) const
 
 
 template <typename T,
-          typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::broadcast (T & timpi_mpi_var(data),
                                      const unsigned int root_id,
                                      const bool /* identical_sizes */) const
@@ -3323,7 +3323,7 @@ inline void Communicator::broadcast (T & data,
 }
 
 template <typename T, typename A,
-          typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::broadcast (std::vector<T,A> & timpi_mpi_var(data),
                                      const unsigned int root_id,
                                      const bool timpi_mpi_var(identical_sizes)) const
@@ -3402,8 +3402,8 @@ inline void Communicator::broadcast (std::vector<T,A> & data,
 }
 
 template <typename Map,
-          typename std::enable_if<Has_datatype<StandardType<typename Map::key_type>>::value &&
-                                  Has_datatype<StandardType<typename Map::mapped_type>>::value,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                  std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
                                   int>::type>
 inline void Communicator::map_broadcast(Map & timpi_mpi_var(data),
                                         const unsigned int root_id,
@@ -3448,8 +3448,8 @@ inline void Communicator::map_broadcast(Map & timpi_mpi_var(data),
 }
 
 template <typename Map,
-          typename std::enable_if<!(Has_datatype<StandardType<typename Map::key_type>>::value &&
-                                    Has_datatype<StandardType<typename Map::mapped_type>>::value),
+          typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
                                   int>::type>
 inline void Communicator::map_broadcast(Map & timpi_mpi_var(data),
                                         const unsigned int root_id,
@@ -3679,7 +3679,7 @@ inline Status Communicator::packed_range_probe (const unsigned int src_processor
 
 
 template <typename T, typename A,
-          typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
                                             Request & req,

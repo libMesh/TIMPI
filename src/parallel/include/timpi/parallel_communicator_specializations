@@ -132,7 +132,7 @@
                            const MessageTag & tag) const;
 
     template <typename T, typename A,
-              typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
+              typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
     inline
     void broadcast(std::vector<T,A> &data,
                    const unsigned int root_id=0,
@@ -208,7 +208,7 @@
                const MessageTag &tag=no_tag) const;
 
     template <typename T, typename A,
-              typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
+              typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
     inline
     void send (const unsigned int dest_processor_id,
                const std::vector<T,A> & buf,
@@ -231,7 +231,7 @@
                const MessageTag &tag=no_tag) const;
 
     template <typename T, typename A,
-              typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type = 0>
+              typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
     inline
     void send (const unsigned int dest_processor_id,
                const std::vector<T,A> & buf,

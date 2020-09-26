@@ -242,7 +242,7 @@ Communicator::send_receive_packed_range
 
 
 template <typename T, typename A,
-          typename std::enable_if<Has_datatype<StandardType<T>>::value, int>::type>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline bool Communicator::possibly_receive (unsigned int &,
                                             std::vector<T,A> &,
                                             const DataType &,
