@@ -505,6 +505,18 @@ public:
              const MessageTag & tag=no_tag) const;
 
   /**
+   * Nonblocking-send to one processor with user-defined packable type.
+   * \p Packing<T> must be defined for \p T
+   */
+  template <typename T>
+  inline
+  void send (const unsigned int dest_processor_id,
+             const T & buf,
+             const NotADataType & type,
+             Request & req,
+             const MessageTag & tag=no_tag) const;
+
+  /**
    * Blocking-receive from one processor with data-defined type.
    */
   template <typename T>

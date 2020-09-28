@@ -162,7 +162,6 @@ void push_parallel_vector_data(const Communicator & comm,
   // This function must be run on all processors at once
   timpi_parallel_only(comm);
 
-#ifdef TIMPI_HAVE_MPI
   // This function implements the "NBX" algorithm from
   // https://htor.inf.ethz.ch/publications/img/hoefler-dsde-protocols.pdf
 
@@ -191,7 +190,6 @@ void push_parallel_vector_data(const Communicator & comm,
 
   // The send requests
   std::list<Request> reqs;
-#endif
 
   processor_id_type num_procs = comm.size();
 
@@ -207,13 +205,9 @@ void push_parallel_vector_data(const Communicator & comm,
         act_on_data(destid, datum);
       else
         {
-#ifdef TIMPI_HAVE_MPI
           Request sendreq;
           comm.send(destid, datum, type, sendreq, tag);
           reqs.push_back(sendreq);
-#else
-          timpi_error_msg("We should not be trying to send data without MPI");
-#endif
         }
     }
 
@@ -221,7 +215,6 @@ void push_parallel_vector_data(const Communicator & comm,
   if (comm.size() == 1)
     return;
 
-#ifdef TIMPI_HAVE_MPI
   bool sends_complete = reqs.empty();
   bool started_barrier = false;
   Request barrier_request;
@@ -320,9 +313,6 @@ void push_parallel_vector_data(const Communicator & comm,
 
   // Reset the send mode
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
-#else
-  timpi_error_msg("We should not be trying to receive data without MPI");
-#endif
 }
 
 

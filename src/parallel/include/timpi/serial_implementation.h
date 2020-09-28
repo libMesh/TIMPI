@@ -89,6 +89,14 @@ inline void Communicator::send (const unsigned int,
                                 const MessageTag &) const
 { timpi_not_implemented(); }
 
+template <typename T>
+inline void Communicator::send (const unsigned int,
+                                const T &,
+                                const NotADataType &,
+                                Request &,
+                                const MessageTag &) const
+{ timpi_not_implemented(); }
+
 template <typename Context, typename Iter>
 inline void Communicator::send_packed_range(const unsigned int,
                                             const Context *,
