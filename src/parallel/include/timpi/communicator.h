@@ -623,7 +623,7 @@ public:
    * @param src_processor_id The pid to receive from or "any".
    * will be set to the actual src being received from
    * @param buf The buffer to receive into
-   * @param type The intrinsic datatype to receive
+   * @param type The packable type to receive
    * @param req The request to use
    * @param tag The tag to use
 

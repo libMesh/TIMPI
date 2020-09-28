@@ -2867,10 +2867,9 @@ inline void Communicator::allgather(std::vector<T,A> & r,
 
   if (identical_buffer_sizes)
     {
+      timpi_assert(this->verify(r.size()));
       if (r.empty())
         return;
-
-      timpi_assert(this->verify(r.size()));
 
       std::vector<T,A> r_src(r.size()*this->size());
       r_src.swap(r);
@@ -2930,10 +2929,10 @@ inline void Communicator::allgather(std::vector<T,A> & r,
 
   if (identical_buffer_sizes)
     {
+      timpi_assert(this->verify(r.size()));
       if (r.empty())
         return;
 
-      timpi_assert(this->verify(r.size()));
 
       std::vector<T,A> r_src(r.size()*this->size());
       r_src.swap(r);
