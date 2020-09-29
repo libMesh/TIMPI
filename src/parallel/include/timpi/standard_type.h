@@ -50,18 +50,26 @@ struct standardtype_dependent_false : std::false_type
 {};
 
 /**
- * Templated class to provide the appropriate MPI datatype
- * for use with built-in C types or simple C++ constructions.
+ * Templated class to provide the appropriate MPI datatype for use with built-in
+ * C types or simple C++ constructions. Note that the unspecialized class
+ * inherits from \p NotADataType. Users defining their own \p StandardType and
+ * defining their own MPI dataype will want to inherit from \p DataType, which
+ * includes an \p MPI_Datatype member (when we have MPI). A user <em>may
+ * also</em> want to define a \p StandardType that inherits from \p NotADataType
+ * if they are defining a \p Packing specialization for the same type \p T. This
+ * will enable them to call non-packed-range code with their dynamically sized
+ * data and have automatic dispatch to packed range methods when required. Note
+ * that a user wishing to make use of automatic dispatch to packed range methods
+ * will need to define a public constructor in order for their code to
+ * compile. Normal MPI-typeable \p StandardType specializations will obviously
+ * need to also define public constructors.
  *
  * More complicated data types may need to provide a pointer-to-T so
  * that we can use MPI_Address without constructing a new T.
  */
 template <typename T, typename Enable = void>
-class StandardType : public DataType
+class StandardType : public NotADataType
 {
-public:
-  static const bool is_fixed_type = false;
-
   /*
    * The unspecialized class is useless, so we make its constructor
    * private to catch mistakes at compile-time rather than link-time.

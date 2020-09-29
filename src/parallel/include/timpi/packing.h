@@ -389,7 +389,7 @@ inline Iter pack_range (const Context * context,
 #endif
 
       Packing<T>::pack
-        (*range_begin, back_inserter(buffer), context);
+        (*range_begin, std::back_inserter(buffer), context);
 
 #ifndef NDEBUG
       unsigned int my_packable_size =

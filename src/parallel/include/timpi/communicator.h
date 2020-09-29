@@ -21,11 +21,11 @@
 
 // TIMPI includes
 #include "timpi/standard_type.h"
+#include "timpi/packing.h"
 #include "timpi/message_tag.h"
 #include "timpi/timpi_config.h"
 #include "timpi/request.h"
 #include "timpi/status.h"
-#include "timpi/packing_forward.h"
 
 // C++ includes
 #include <map>
@@ -45,6 +45,7 @@ namespace TIMPI
 {
 
 using libMesh::Parallel::Packing;
+using libMesh::Parallel::Has_buffer_type;
 
 // Define processor id storage type.
 #if TIMPI_PROCESSOR_ID_BYTES == 1
@@ -239,8 +240,8 @@ private:
    * by broadcasting pairs
    */
   template <typename Map,
-            typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
                                     int>::type = 0>
   void map_sum(Map & data) const;
 
@@ -250,8 +251,8 @@ private:
    * twice: once for the keys and once for the values.
    */
   template <typename Map,
-            typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                      StandardType<typename Map::mapped_type>::is_fixed_type),
+            typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                      std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
                                     int>::type = 0>
   void map_sum(Map & data) const;
 
@@ -260,8 +261,8 @@ private:
    * specializations. This is_fixed_type variant saves a communication by broadcasting pairs
    */
   template <typename Map,
-            typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
                                     int>::type = 0>
   void map_broadcast(Map & data,
                      const unsigned int root_id,
@@ -274,8 +275,8 @@ private:
    * key_type or mapped_type)
    */
   template <typename Map,
-            typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                      StandardType<typename Map::mapped_type>::is_fixed_type),
+            typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                      std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
                                     int>::type = 0>
   void map_broadcast(Map & data,
                      const unsigned int root_id,
@@ -287,8 +288,8 @@ private:
    * communication by broadcasting pairs
    */
   template <typename Map,
-            typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
                                     int>::type = 0>
   void map_max(Map & data) const;
 
@@ -298,8 +299,8 @@ private:
    * twice: once for the keys and once for the values.
    */
   template <typename Map,
-            typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                      StandardType<typename Map::mapped_type>::is_fixed_type),
+            typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                      std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
                                     int>::type = 0>
   void map_max(Map & data) const;
 
@@ -504,6 +505,18 @@ public:
              const MessageTag & tag=no_tag) const;
 
   /**
+   * Nonblocking-send to one processor with user-defined packable type.
+   * \p Packing<T> must be defined for \p T
+   */
+  template <typename T>
+  inline
+  void send (const unsigned int dest_processor_id,
+             const T & buf,
+             const NotADataType & type,
+             Request & req,
+             const MessageTag & tag=no_tag) const;
+
+  /**
    * Blocking-receive from one processor with data-defined type.
    */
   template <typename T>
@@ -569,12 +582,30 @@ public:
    * @param req The request to use
    * @param tag The tag to use
    */
-  template <typename T, typename A>
+  template <typename T, typename A,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,
                          Request & req,
                          const MessageTag & tag) const;
+
+  /**
+   * dispatches to \p possibly_receive_packed_range
+   * @param src_processor_id The pid to receive from or "any".
+   * will be set to the actual src being received from
+   * @param buf The buffer to receive into
+   * @param req The request to use
+   * @param tag The tag to use
+   */
+  template <typename T, typename A,
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+  inline
+  bool possibly_receive (unsigned int & src_processor_id,
+                         std::vector<T,A> & buf,
+                         Request & req,
+                         const MessageTag & tag) const;
+
 
   /**
    * Nonblocking-receive from one processor with user-defined type.
@@ -589,11 +620,32 @@ public:
    * @param tag The tag to use
 
    */
-  template <typename T, typename A>
+  template <typename T, typename A, typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
   inline
   bool possibly_receive (unsigned int & src_processor_id,
                          std::vector<T,A> & buf,
                          const DataType & type,
+                         Request & req,
+                         const MessageTag & tag) const;
+
+  /**
+   * Nonblocking-receive from one processor with user-defined type. Dispatches to \p
+   * possibly_receive_packed_range
+   *
+   * @param src_processor_id The pid to receive from or "any".
+   * will be set to the actual src being received from
+   * @param buf The buffer to receive into
+   * @param type The packable type to receive
+   * @param req The request to use
+   * @param tag The tag to use
+
+   */
+  template <typename T, typename A,
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+  inline
+  bool possibly_receive (unsigned int & src_processor_id,
+                         std::vector<T,A> & buf,
+                         const NotADataType & type,
                          Request & req,
                          const MessageTag & tag) const;
 
@@ -616,8 +668,7 @@ public:
   * @param context Context pointer that will be passed into
   * the unpack functions
   * @param out The output iterator
-  * @param buf The buffer to receive into
-  * @param type The intrinsic datatype to receive
+  * @param output_type The intrinsic datatype to receive
   * @param req The request to use
   * @param tag The tag to use
   */
@@ -933,7 +984,7 @@ public:
    * \p recv[processor_id] = the value of \p send on that processor. This
    * overload works on fixed size types
    */
-  template <typename T, typename A, typename std::enable_if<StandardType<T>::is_fixed_type,
+  template <typename T, typename A, typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value,
                                                             int>::type = 0>
   inline void allgather(const T & send,
                         std::vector<T,A> & recv) const;
@@ -944,7 +995,7 @@ public:
    * overload works on potentially dynamically sized types, and dispatches
    * to \p allgather_packed_range
    */
-  template <typename T, typename A, typename std::enable_if<!StandardType<T>::is_fixed_type,
+  template <typename T, typename A, typename std::enable_if<Has_buffer_type<Packing<T>>::value,
                                                             int>::type = 0>
   inline void allgather(const T & send,
                         std::vector<T,A> & recv) const;
@@ -960,7 +1011,7 @@ public:
                         const bool identical_buffer_sizes=false) const;
 
   /**
-   * Take a vector of local variables and expand it to include
+   * Take a vector of fixed size local variables and expand it to include
    * values from all processors. By default, each processor is
    * allowed to have its own unique input buffer length. If
    * it is known that all processors have the same input sizes
@@ -983,7 +1034,37 @@ public:
    * on each processor. This function is collective and therefore
    * must be called by all processors in the Communicator.
    */
-  template <typename T, typename A>
+  template <typename T, typename A,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
+  inline void allgather(std::vector<T,A> & r,
+                        const bool identical_buffer_sizes = false) const;
+
+  /**
+   * Take a vector of possibly dynamically sized local variables and expand it
+   * to include values from all processors. By default, each processor is
+   * allowed to have its own unique input buffer length. If it is known that all
+   * processors have the same input sizes additional communication can be
+   * avoided.
+   *
+   * Specifically, this function transforms this:
+   * \verbatim
+   * Processor 0: [ ... N_0 ]
+   * Processor 1: [ ....... N_1 ]
+   * ...
+   * Processor M: [ .. N_M]
+   * \endverbatim
+   *
+   * into this:
+   *
+   * \verbatim
+   * [ [ ... N_0 ] [ ....... N_1 ] ... [ .. N_M] ]
+   * \endverbatim
+   *
+   * on each processor. This function is collective and therefore
+   * must be called by all processors in the Communicator.
+   */
+  template <typename T, typename A,
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
   inline void allgather(std::vector<T,A> & r,
                         const bool identical_buffer_sizes = false) const;
 
@@ -1100,8 +1181,27 @@ public:
    * If \p data is a container, it will be resized on target
    * processors.  When using pre-sized target containers, specify
    * \p identical_sizes=true on all processors for an optimization.
+   *
+   * Fixed variant
    */
-  template <typename T>
+  template <typename T,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
+  inline void broadcast(T & data, const unsigned int root_id=0,
+                        const bool identical_sizes=false) const;
+
+  /**
+   * Take a possibly dynamically-sized local value and broadcast it to all
+   * processors.  Optionally takes the \p root_id processor, which specifies the
+   * processor initiating the broadcast.
+   *
+   * If \p data is a container, it will be resized on target
+   * processors.  When using pre-sized target containers, specify
+   * \p identical_sizes=true on all processors for an optimization.
+   *
+   * Dynamic variant
+   */
+  template <typename T,
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
   inline void broadcast(T & data, const unsigned int root_id=0,
                         const bool identical_sizes=false) const;
 

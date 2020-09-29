@@ -89,6 +89,14 @@ inline void Communicator::send (const unsigned int,
                                 const MessageTag &) const
 { timpi_not_implemented(); }
 
+template <typename T>
+inline void Communicator::send (const unsigned int,
+                                const T &,
+                                const NotADataType &,
+                                Request &,
+                                const MessageTag &) const
+{ timpi_not_implemented(); }
+
 template <typename Context, typename Iter>
 inline void Communicator::send_packed_range(const unsigned int,
                                             const Context *,
@@ -241,7 +249,8 @@ Communicator::send_receive_packed_range
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline bool Communicator::possibly_receive (unsigned int &,
                                             std::vector<T,A> &,
                                             const DataType &,
@@ -252,6 +261,29 @@ inline bool Communicator::possibly_receive (unsigned int &,
   timpi_not_implemented();
 }
 
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline bool Communicator::possibly_receive (unsigned int &,
+                                            std::vector<T,A> &,
+                                            const NotADataType &,
+                                            Request &,
+                                            const MessageTag &) const
+{
+  // Non-blocking I/O from self to self?
+  timpi_not_implemented();
+}
+
+template <typename T, typename A1, typename A2>
+inline
+bool Communicator::possibly_receive (unsigned int &,
+                                     std::vector<std::vector<T,A1>,A2> &,
+                                     const DataType &,
+                                     Request &,
+                                     const MessageTag &) const
+{
+  // Non-blocking I/O from self to self?
+  timpi_not_implemented();
+}
 
 } // namespace TIMPI
 

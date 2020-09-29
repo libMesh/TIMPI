@@ -429,7 +429,8 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::send (const unsigned int dest_processor_id,
                                 const std::vector<T,A> & buf,
                                 Request & req,
@@ -439,6 +440,20 @@ inline void Communicator::send (const unsigned int dest_processor_id,
              StandardType<T>(buf.empty() ? nullptr : &buf.front()), req, tag);
 }
 
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline void Communicator::send (const unsigned int dest_processor_id,
+                                const std::vector<T,A> & buf,
+                                Request & req,
+                                const MessageTag & tag) const
+{
+  this->nonblocking_send_packed_range(dest_processor_id,
+                                      (void *)(nullptr),
+                                      buf.begin(),
+                                      buf.end(),
+                                      req,
+                                      tag);
+}
 
 
 template <typename T, typename A>
@@ -461,7 +476,7 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
 
 
-template <typename T, typename A>
+template <typename T, typename A, typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::send (const unsigned int dest_processor_id,
                                 const std::vector<T,A> & buf,
                                 const DataType & type,
@@ -485,6 +500,25 @@ inline void Communicator::send (const unsigned int dest_processor_id,
   // The MessageTag should stay registered for the Request lifetime
   req.add_post_wait_work
     (new PostWaitDereferenceTag(tag));
+}
+
+template <typename T, typename A, typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline void Communicator::send (const unsigned int dest_processor_id,
+                                const std::vector<T,A> & buf,
+                                const NotADataType &,
+                                Request & req,
+                                const MessageTag & tag) const
+{
+  TIMPI_LOG_SCOPE("send()", "Parallel");
+
+  timpi_assert_less(dest_processor_id, this->size());
+
+  this->nonblocking_send_packed_range(dest_processor_id,
+                                      (void *)(nullptr),
+                                      buf.begin(),
+                                      buf.end(),
+                                      req,
+                                      tag);
 }
 
 
@@ -1487,9 +1521,6 @@ inline void Communicator::allgather(const std::basic_string<T> & sendval,
     recv[i] = r.substr(displacements[i], sendlengths[i]);
 }
 
-
-
-template <>
 inline void Communicator::broadcast (bool & data,
                                      const unsigned int root_id,
                                      const bool /* identical_sizes */) const
@@ -1562,79 +1593,6 @@ inline void Communicator::broadcast (std::basic_string<T> & data,
     timpi_assert_equal_to (data, orig);
 #endif
 }
-
-
-
-template <typename T, typename A,
-          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
-inline void Communicator::broadcast (std::vector<T,A> & data,
-                                     const unsigned int root_id,
-                                     const bool identical_sizes) const
-{
-  if (this->size() == 1)
-    {
-      timpi_assert (!this->rank());
-      timpi_assert (!root_id);
-      return;
-    }
-
-  timpi_assert_less (root_id, this->size());
-  timpi_assert (this->verify(identical_sizes));
-
-  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
-
-  std::size_t data_size = data.size();
-
-  if (identical_sizes)
-    timpi_assert(this->verify(data_size));
-  else
-    this->broadcast(data_size, root_id);
-
-  data.resize(data_size);
-
-  // and get the data from the remote processors.
-  // Pass nullptr if our vector is empty.
-  T * data_ptr = data.empty() ? nullptr : data.data();
-
-  timpi_assert_less(root_id, this->size());
-
-  timpi_call_mpi
-    (MPI_Bcast (data_ptr, cast_int<int>(data.size()),
-                StandardType<T>(data_ptr), root_id, this->get()));
-}
-
-template <typename T, typename A,
-          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
-inline void Communicator::broadcast (std::vector<T,A> & data,
-                                     const unsigned int root_id,
-                                     const bool identical_sizes) const
-{
-  if (this->size() == 1)
-    {
-      timpi_assert (!this->rank());
-      timpi_assert (!root_id);
-      return;
-    }
-
-  timpi_assert_less (root_id, this->size());
-  timpi_assert (this->verify(identical_sizes));
-
-  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
-
-  std::size_t data_size = data.size();
-
-  if (identical_sizes)
-    timpi_assert(this->verify(data_size));
-  else
-    this->broadcast(data_size, root_id);
-
-  data.resize(data_size);
-
-  timpi_assert_less(root_id, this->size());
-
-  this->broadcast_packed_range((void *)(NULL), data.begin(), data.end(), (void *)(NULL), data.begin(), root_id);
-}
-
 
 
 template <typename T, typename A>
@@ -1809,173 +1767,6 @@ inline void Communicator::broadcast (std::set<T,C,A> & data,
     }
 }
 
-template <typename Map,
-          typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                  StandardType<typename Map::mapped_type>::is_fixed_type,
-                                  int>::type>
-inline void Communicator::map_broadcast(Map & data,
-                                        const unsigned int root_id,
-                                        const bool identical_sizes) const
-{
-  if (this->size() == 1)
-    {
-      timpi_assert (!this->rank());
-      timpi_assert (!root_id);
-      return;
-    }
-
-  timpi_assert_less (root_id, this->size());
-  timpi_assert (this->verify(identical_sizes));
-
-  TIMPI_LOG_SCOPE("broadcast(map)", "Parallel");
-
-  std::size_t data_size=data.size();
-  if (identical_sizes)
-    timpi_assert(this->verify(data_size));
-  else
-    this->broadcast(data_size, root_id);
-
-  std::vector<std::pair<typename Map::key_type,
-                        typename Map::mapped_type>> comm_data;
-
-  if (root_id == this->rank())
-    comm_data.assign(data.begin(), data.end());
-  else
-    comm_data.resize(data_size);
-
-  this->broadcast(comm_data, root_id, true);
-
-  if (this->rank() != root_id)
-    {
-      data.clear();
-      data.insert(comm_data.begin(), comm_data.end());
-    }
-}
-
-template <typename Map,
-          typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type),
-                                  int>::type>
-inline void Communicator::map_broadcast(Map & data,
-                                        const unsigned int root_id,
-                                        const bool identical_sizes) const
-{
-  if (this->size() == 1)
-    {
-      timpi_assert (!this->rank());
-      timpi_assert (!root_id);
-      return;
-    }
-
-  timpi_assert_less (root_id, this->size());
-  timpi_assert (this->verify(identical_sizes));
-
-  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
-
-  std::size_t data_size=data.size();
-  if (identical_sizes)
-    timpi_assert(this->verify(data_size));
-  else
-    this->broadcast(data_size, root_id);
-
-  std::vector<typename Map::key_type> pair_first; pair_first.reserve(data_size);
-  std::vector<typename Map::mapped_type> pair_second; pair_first.reserve(data_size);
-
-  if (root_id == this->rank())
-    {
-      for (const auto & pr : data)
-        {
-          pair_first.push_back(pr.first);
-          pair_second.push_back(pr.second);
-        }
-    }
-  else
-    {
-      pair_first.resize(data_size);
-      pair_second.resize(data_size);
-    }
-
-  this->broadcast
-    (pair_first, root_id,
-     StandardType<typename Map::key_type>::is_fixed_type);
-  this->broadcast
-    (pair_second, root_id,
-     StandardType<typename Map::mapped_type>::is_fixed_type);
-
-  timpi_assert(pair_first.size() == pair_first.size());
-
-  if (this->rank() != root_id)
-    {
-      data.clear();
-      for (std::size_t i=0; i<pair_first.size(); ++i)
-        data[pair_first[i]] = pair_second[i];
-    }
-}
-
-template <typename T1, typename T2, typename C, typename A>
-inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
-                                    const unsigned int root_id,
-                                    const bool identical_sizes) const
-{
-  this->map_broadcast(data, root_id, identical_sizes);
-}
-
-
-
-template <typename K, typename V, typename H, typename E, typename A>
-inline void Communicator::broadcast(std::unordered_map<K,V,H,E,A> & data,
-                                    const unsigned int root_id,
-                                    const bool identical_sizes) const
-{
-  this->map_broadcast(data, root_id, identical_sizes);
-}
-
-
-
-template <typename Context, typename OutputContext,
-          typename Iter, typename OutputIter>
-inline void Communicator::broadcast_packed_range(const Context * context1,
-                                                 Iter range_begin,
-                                                 const Iter range_end,
-                                                 OutputContext * context2,
-                                                 OutputIter out_iter,
-                                                 const unsigned int root_id,
-                                                 std::size_t approx_buffer_size) const
-{
-  typedef typename std::iterator_traits<Iter>::value_type T;
-  typedef typename Packing<T>::buffer_type buffer_t;
-
-  do
-    {
-      // We will serialize variable size objects from *range_begin to
-      // *range_end as a sequence of ints in this buffer
-      std::vector<buffer_t> buffer;
-
-      if (this->rank() == root_id)
-        range_begin = pack_range
-          (context1, range_begin, range_end, buffer, approx_buffer_size);
-
-      // this->broadcast(vector) requires the receiving vectors to
-      // already be the appropriate size
-      std::size_t buffer_size = buffer.size();
-      this->broadcast (buffer_size, root_id);
-
-      // We continue until there's nothing left to broadcast
-      if (!buffer_size)
-        break;
-
-      buffer.resize(buffer_size);
-
-      // Broadcast the packed data
-      this->broadcast (buffer, root_id);
-
-      if (this->rank() != root_id)
-        unpack_range
-          (buffer, context2, out_iter, (T*)nullptr);
-    } while (true);  // break above when we reach buffer_size==0
-}
-
-
 
 template <typename Context, typename OutputIter, typename T>
 inline void Communicator::nonblocking_receive_packed_range (const unsigned int src_processor_id,
@@ -2011,7 +1802,7 @@ inline void Communicator::nonblocking_receive_packed_range (const unsigned int s
 
 
 
-template <typename T, typename A>
+template <typename T, typename A, typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
                                             const DataType & type,
@@ -2054,6 +1845,23 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
   }
 
   return int_flag;
+}
+
+template <typename T, typename A, typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
+                                            std::vector<T,A> & buf,
+                                            const NotADataType &,
+                                            Request & req,
+                                            const MessageTag & tag) const
+{
+  TIMPI_LOG_SCOPE("possibly_receive()", "Parallel");
+
+  return this->possibly_receive_packed_range(src_processor_id,
+                                             (void *)(nullptr),
+                                             std::inserter(buf, buf.end()),
+                                             (T *)(nullptr),
+                                             req,
+                                             tag);
 }
 
 
@@ -2422,8 +2230,8 @@ inline void Communicator::max(std::vector<bool,A> & r) const
 
 
 template <typename Map,
-          typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                  StandardType<typename Map::mapped_type>::is_fixed_type,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                  std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
                                   int>::type>
 void Communicator::map_max(Map & data) const
 {
@@ -2465,8 +2273,8 @@ void Communicator::map_max(Map & data) const
 
 
 template <typename Map,
-          typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type),
+          typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
                                   int>::type>
 void Communicator::map_max(Map & data) const
 {
@@ -2711,8 +2519,8 @@ inline void Communicator::sum(std::vector<std::complex<T>,A> & r) const
 // Helper function for summing std::map and std::unordered_map with
 // fixed type (key, value) pairs.
 template <typename Map,
-          typename std::enable_if<StandardType<typename Map::key_type>::is_fixed_type &&
-                                  StandardType<typename Map::mapped_type>::is_fixed_type,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                  std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
                                   int>::type>
 inline void Communicator::map_sum(Map & data) const
 {
@@ -2743,8 +2551,8 @@ inline void Communicator::map_sum(Map & data) const
 // Helper function for summing std::map and std::unordered_map with
 // non-fixed-type (key, value) pairs.
 template <typename Map,
-          typename std::enable_if<!(StandardType<typename Map::key_type>::is_fixed_type &&
-                                    StandardType<typename Map::mapped_type>::is_fixed_type),
+          typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
                                   int>::type>
 inline void Communicator::map_sum(Map & data) const
 {
@@ -2999,7 +2807,7 @@ inline void Communicator::gather(const unsigned int root_id,
 
 
 template <typename T, typename A,
-          typename std::enable_if<StandardType<T>::is_fixed_type, int>::type>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::allgather(const T & sendval,
                                     std::vector<T,A> & recv) const
 {
@@ -3022,7 +2830,7 @@ inline void Communicator::allgather(const T & sendval,
 }
 
 template <typename T, typename A,
-          typename std::enable_if<!StandardType<T>::is_fixed_type, int>::type>
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
 inline void Communicator::allgather(const T & sendval,
                                     std::vector<T,A> & recv) const
 {
@@ -3040,15 +2848,15 @@ inline void Communicator::allgather(const T & sendval,
     {
       std::vector<T> range = {sendval};
 
-      allgather_packed_range((void *)(NULL), range.begin(), range.end(), recv.begin(),
+      allgather_packed_range((void *)(nullptr), range.begin(), range.end(), recv.begin(),
                              approx_each_buffer_size);
     }
   else if (comm_size > 0)
     recv[0] = sendval;
 }
 
-
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::allgather(std::vector<T,A> & r,
                                     const bool identical_buffer_sizes) const
 {
@@ -3059,10 +2867,9 @@ inline void Communicator::allgather(std::vector<T,A> & r,
 
   if (identical_buffer_sizes)
     {
+      timpi_assert(this->verify(r.size()));
       if (r.empty())
         return;
-
-      timpi_assert(this->verify(r.size()));
 
       std::vector<T,A> r_src(r.size()*this->size());
       r_src.swap(r);
@@ -3110,7 +2917,58 @@ inline void Communicator::allgather(std::vector<T,A> & r,
                      displacements.data(), send_type, this->get()));
 }
 
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline void Communicator::allgather(std::vector<T,A> & r,
+                                    const bool identical_buffer_sizes) const
+{
+  if (this->size() < 2)
+    return;
 
+  TIMPI_LOG_SCOPE("allgather()", "Parallel");
+
+  if (identical_buffer_sizes)
+    {
+      timpi_assert(this->verify(r.size()));
+      if (r.empty())
+        return;
+
+
+      std::vector<T,A> r_src(r.size()*this->size());
+      r_src.swap(r);
+
+      this->allgather_packed_range((void *)(nullptr),
+                                   r_src.begin(),
+                                   r_src.end(),
+                                   r.begin());
+      return;
+    }
+
+  std::vector<int>
+    sendlengths  (this->size(), 0),
+    displacements(this->size(), 0);
+
+  const int mysize = static_cast<int>(r.size());
+  this->allgather(mysize, sendlengths);
+
+  // Find the total size of the final array
+  unsigned int globalsize = 0;
+  for (unsigned int i=0; i != this->size(); ++i)
+      globalsize += sendlengths[i];
+
+  // Check for quick return
+  if (globalsize == 0)
+    return;
+
+  // copy the input buffer
+  std::vector<T,A> r_src(globalsize);
+  r_src.swap(r);
+
+  this->allgather_packed_range((void *)(nullptr),
+                               r_src.begin(),
+                               r_src.end(),
+                               r.begin());
+}
 
 template <typename T, typename A>
 inline void Communicator::allgather(std::vector<std::basic_string<T>,A> & r,
@@ -3404,7 +3262,8 @@ inline void Communicator::alltoall(std::vector<T,A> & buf) const
 
 
 
-template <typename T>
+template <typename T,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::broadcast (T & timpi_mpi_var(data),
                                      const unsigned int root_id,
                                      const bool /* identical_sizes */) const
@@ -3427,6 +3286,296 @@ inline void Communicator::broadcast (T & timpi_mpi_var(data),
                 this->get()));
 }
 
+template <typename T,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline void Communicator::broadcast (T & data,
+                                     const unsigned int root_id,
+                                     const bool /* identical_sizes */) const
+{
+  ignore(root_id); // Only needed for MPI and/or dbg/devel
+  if (this->size() == 1)
+    {
+      timpi_assert (!this->rank());
+      timpi_assert (!root_id);
+      return;
+    }
+
+  timpi_assert_less (root_id, this->size());
+
+//   // If we don't have MPI, then we should be done, and calling the below can
+//   // have the side effect of instantiating Packing<T> classes that are not
+//   // defined. (Normally we would be calling a more specialized overload of
+//   // broacast that would then call broadcast_packed_range with appropriate
+//   // template arguments)
+// #ifdef TIMPI_HAVE_MPI
+  std::vector<T> range = {data};
+
+  this->broadcast_packed_range((void *)(nullptr),
+                               range.begin(),
+                               range.end(),
+                               (void *)(nullptr),
+                               range.begin(),
+                               root_id);
+
+  data = range[0];
+// #endif
+}
+
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
+inline void Communicator::broadcast (std::vector<T,A> & timpi_mpi_var(data),
+                                     const unsigned int root_id,
+                                     const bool timpi_mpi_var(identical_sizes)) const
+{
+  ignore(root_id); // Only needed for MPI and/or dbg/devel
+  if (this->size() == 1)
+    {
+      timpi_assert (!this->rank());
+      timpi_assert (!root_id);
+      return;
+    }
+
+#ifdef TIMPI_HAVE_MPI
+
+  timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
+
+  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
+
+  std::size_t data_size = data.size();
+
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
+
+  data.resize(data_size);
+
+  // and get the data from the remote processors.
+  // Pass nullptr if our vector is empty.
+  T * data_ptr = data.empty() ? nullptr : data.data();
+
+  timpi_assert_less(root_id, this->size());
+
+  timpi_call_mpi
+    (MPI_Bcast (data_ptr, cast_int<int>(data.size()),
+                StandardType<T>(data_ptr), root_id, this->get()));
+#endif
+}
+
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline void Communicator::broadcast (std::vector<T,A> & data,
+                                     const unsigned int root_id,
+                                     const bool identical_sizes) const
+{
+  if (this->size() == 1)
+    {
+      timpi_assert (!this->rank());
+      timpi_assert (!root_id);
+      return;
+    }
+
+  timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
+
+  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
+
+  std::size_t data_size = data.size();
+
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
+
+  data.resize(data_size);
+
+  timpi_assert_less(root_id, this->size());
+
+  this->broadcast_packed_range((void *)(nullptr),
+                               data.begin(),
+                               data.end(),
+                               (void *)(nullptr),
+                               data.begin(),
+                               root_id);
+}
+
+template <typename Map,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                  std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value,
+                                  int>::type>
+inline void Communicator::map_broadcast(Map & timpi_mpi_var(data),
+                                        const unsigned int root_id,
+                                        const bool timpi_mpi_var(identical_sizes)) const
+{
+  ignore(root_id); // Only needed for MPI and/or dbg/devel
+  if (this->size() == 1)
+    {
+      timpi_assert (!this->rank());
+      timpi_assert (!root_id);
+      return;
+    }
+
+#ifdef TIMPI_HAVE_MPI
+  timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
+
+  TIMPI_LOG_SCOPE("broadcast(map)", "Parallel");
+
+  std::size_t data_size=data.size();
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
+
+  std::vector<std::pair<typename Map::key_type,
+                        typename Map::mapped_type>> comm_data;
+
+  if (root_id == this->rank())
+    comm_data.assign(data.begin(), data.end());
+  else
+    comm_data.resize(data_size);
+
+  this->broadcast(comm_data, root_id, true);
+
+  if (this->rank() != root_id)
+    {
+      data.clear();
+      data.insert(comm_data.begin(), comm_data.end());
+    }
+#endif
+}
+
+template <typename Map,
+          typename std::enable_if<!(std::is_base_of<DataType, StandardType<typename Map::key_type>>::value &&
+                                    std::is_base_of<DataType, StandardType<typename Map::mapped_type>>::value),
+                                  int>::type>
+inline void Communicator::map_broadcast(Map & timpi_mpi_var(data),
+                                        const unsigned int root_id,
+                                        const bool timpi_mpi_var(identical_sizes)) const
+{
+  ignore(root_id); // Only needed for MPI and/or dbg/devel
+  if (this->size() == 1)
+    {
+      timpi_assert (!this->rank());
+      timpi_assert (!root_id);
+      return;
+    }
+
+#ifdef TIMPI_HAVE_MPI
+  timpi_assert_less (root_id, this->size());
+  timpi_assert (this->verify(identical_sizes));
+
+  TIMPI_LOG_SCOPE("broadcast()", "Parallel");
+
+  std::size_t data_size=data.size();
+  if (identical_sizes)
+    timpi_assert(this->verify(data_size));
+  else
+    this->broadcast(data_size, root_id);
+
+  std::vector<typename Map::key_type> pair_first; pair_first.reserve(data_size);
+  std::vector<typename Map::mapped_type> pair_second; pair_first.reserve(data_size);
+
+  if (root_id == this->rank())
+    {
+      for (const auto & pr : data)
+        {
+          pair_first.push_back(pr.first);
+          pair_second.push_back(pr.second);
+        }
+    }
+  else
+    {
+      pair_first.resize(data_size);
+      pair_second.resize(data_size);
+    }
+
+  this->broadcast
+    (pair_first, root_id,
+     StandardType<typename Map::key_type>::is_fixed_type);
+  this->broadcast
+    (pair_second, root_id,
+     StandardType<typename Map::mapped_type>::is_fixed_type);
+
+  timpi_assert(pair_first.size() == pair_first.size());
+
+  if (this->rank() != root_id)
+    {
+      data.clear();
+      for (std::size_t i=0; i<pair_first.size(); ++i)
+        data[pair_first[i]] = pair_second[i];
+    }
+#endif
+}
+
+template <typename T1, typename T2, typename C, typename A>
+inline void Communicator::broadcast(std::map<T1,T2,C,A> & data,
+                                    const unsigned int root_id,
+                                    const bool identical_sizes) const
+{
+  this->map_broadcast(data, root_id, identical_sizes);
+}
+
+
+
+template <typename K, typename V, typename H, typename E, typename A>
+inline void Communicator::broadcast(std::unordered_map<K,V,H,E,A> & data,
+                                    const unsigned int root_id,
+                                    const bool identical_sizes) const
+{
+  this->map_broadcast(data, root_id, identical_sizes);
+}
+
+template <typename Context, typename OutputContext,
+          typename Iter, typename OutputIter>
+inline void Communicator::broadcast_packed_range(const Context * context1,
+                                                 Iter range_begin,
+                                                 const Iter range_end,
+                                                 OutputContext * context2,
+                                                 OutputIter out_iter,
+                                                 const unsigned int root_id,
+                                                 std::size_t approx_buffer_size) const
+{
+  typedef typename std::iterator_traits<Iter>::value_type T;
+  typedef typename Packing<T>::buffer_type buffer_t;
+
+  if (this->size() == 1)
+  {
+    timpi_assert (!this->rank());
+    timpi_assert (!root_id);
+    return;
+  }
+
+  do
+  {
+    // We will serialize variable size objects from *range_begin to
+    // *range_end as a sequence of ints in this buffer
+    std::vector<buffer_t> buffer;
+
+    if (this->rank() == root_id)
+      range_begin = pack_range
+        (context1, range_begin, range_end, buffer, approx_buffer_size);
+
+    // this->broadcast(vector) requires the receiving vectors to
+    // already be the appropriate size
+    std::size_t buffer_size = buffer.size();
+    this->broadcast (buffer_size, root_id);
+
+    // We continue until there's nothing left to broadcast
+    if (!buffer_size)
+      break;
+
+    buffer.resize(buffer_size);
+
+    // Broadcast the packed data
+    this->broadcast (buffer, root_id);
+
+    if (this->rank() != root_id)
+      unpack_range
+        (buffer, context2, out_iter, (T*)nullptr);
+  } while (true);  // break above when we reach buffer_size==0
+}
 
 
 template <typename Context, typename Iter, typename OutputIter>
@@ -3528,7 +3677,8 @@ inline Status Communicator::packed_range_probe (const unsigned int src_processor
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
                                             std::vector<T,A> & buf,
                                             Request & req,
@@ -3537,6 +3687,21 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
   T * dataptr = buf.empty() ? nullptr : buf.data();
 
   return this->possibly_receive(src_processor_id, buf, StandardType<T>(dataptr), req, tag);
+}
+
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
+                                            std::vector<T,A> & buf,
+                                            Request & req,
+                                            const MessageTag & tag) const
+{
+  return this->possibly_receive_packed_range(src_processor_id,
+                                             (void *)(nullptr),
+                                             buf.begin(),
+                                             (T *)(nullptr),
+                                             req,
+                                             tag);
 }
 
 
