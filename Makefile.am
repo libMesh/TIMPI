@@ -41,11 +41,11 @@ install-data-hook:
 	    echo " *** in generated file $$genfile" ; \
 	    echo " " ; \
 	    cd $(DESTDIR)$(prefix) && cat $$genfile | $(SED) "s,$$oldprefix,$$newprefix,g" > $$genfile.replaced ; \
-	    cd $(DESTDIR)$(prefix) && mv $$genfile.replaced $$genfile ; \
+	    cd $(DESTDIR)$(prefix) && mv -f $$genfile.replaced $$genfile ; \
           done ; \
 	fi
 	cat $(DESTDIR)$(timpi_configdir)/timpi-config | $(SED) "s/has_been_installed=no/has_been_installed=yes/g" > $(DESTDIR)$(timpi_configdir)/timpi-config.installed
-	mv $(DESTDIR)$(timpi_configdir)/timpi-config.installed $(DESTDIR)$(timpi_configdir)/timpi-config && chmod +x $(DESTDIR)$(timpi_configdir)/timpi-config
+	mv -f $(DESTDIR)$(timpi_configdir)/timpi-config.installed $(DESTDIR)$(timpi_configdir)/timpi-config && chmod +x $(DESTDIR)$(timpi_configdir)/timpi-config
 
 # Additional files to be deleted by 'make distclean'
 DISTCLEANFILES  = _configs.sed
