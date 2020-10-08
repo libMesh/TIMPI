@@ -2020,7 +2020,7 @@ inline bool Communicator::semiverify(const std::vector<T,A> * r) const
 template <typename T>
 inline void Communicator::min(T & r,
                               T & o,
-                              Request & request) const
+                              Request & timpi_mpi_var(request)) const
 {
   if (this->size() > 1)
     {
@@ -2199,7 +2199,7 @@ inline void Communicator::minloc(std::vector<bool,A1> & r,
 template <typename T>
 inline void Communicator::max(T & r,
                               T & o,
-                              Request & request) const
+                              Request & timpi_mpi_var(request)) const
 {
   if (this->size() > 1)
     {
@@ -2495,7 +2495,7 @@ inline void Communicator::maxloc(std::vector<bool,A1> & r,
 template <typename T>
 inline void Communicator::sum(T & r,
                               T & o,
-                              Request & request) const
+                              Request & timpi_mpi_var(request)) const
 {
   if (this->size() > 1)
     {
