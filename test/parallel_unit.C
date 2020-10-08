@@ -328,7 +328,7 @@ void testGather()
   void testNonblockingMin ()
   {
     unsigned int local_val = TestCommWorld->rank();
-    processor_id_type min;
+    processor_id_type min = std::numeric_limits<processor_id_type>::max();
 
     Request req;
     TestCommWorld->min(local_val, min, req);
@@ -353,7 +353,7 @@ void testGather()
   void testNonblockingMax ()
   {
     processor_id_type local_val = TestCommWorld->rank();
-    processor_id_type max;
+    processor_id_type max = std::numeric_limits<processor_id_type>::min();
 
     Request req;
     TestCommWorld->max(local_val, max, req);
