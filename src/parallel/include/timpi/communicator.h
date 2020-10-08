@@ -351,6 +351,14 @@ public:
   bool semiverify(const T * r) const;
 
   /**
+   * Non-blocking minimum of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void min(T & r, T & o, Request & req) const;
+
+  /**
    * Take a local variable and replace it with the minimum of it's values
    * on all processors.  Containers are replaced element-wise.
    */
@@ -377,6 +385,14 @@ public:
   inline
   void minloc(std::vector<T,A1> & r,
               std::vector<unsigned int,A2> & min_id) const;
+
+  /**
+   * Non-blocking maximum of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void max(T & r, T & o, Request & req) const;
 
   /**
    * Take a local variable and replace it with the maximum of it's values
@@ -413,6 +429,14 @@ public:
   template <typename T>
   inline
   void sum(T & r) const;
+
+  /**
+   * Non-blocking sum of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void sum(T & r, T & o, Request & req) const;
 
   /**
    * Take a container of local variables on each processor, and
