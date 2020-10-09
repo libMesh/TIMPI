@@ -53,3 +53,7 @@
 
 1.2.1
   * Use "-f" when using mv to overwrite our own files
+
+1.3
+  * More dispatches to packed range; displace is_fixed_type idiom
+  * Add nonblocking min, max, and sum
