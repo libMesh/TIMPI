@@ -50,3 +50,6 @@
   * Use default constructor/destructor/assignment in Status, DataType
   * Oversized pull responses bugfix
   * Clarified Communicator::duplicate() doc comment
+
+1.2.1
+  * Use "-f" when using mv to overwrite our own files
