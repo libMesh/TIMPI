@@ -156,10 +156,10 @@ inline void send_receive_vec_of_vec(const unsigned int dest_processor_id,
       return;
     }
 
-  TIMPI::Request request;
-  comm.send (dest_processor_id, send, request, send_tag);
+  TIMPI::Request req;
+  comm.send (dest_processor_id, send, req, send_tag);
   comm.receive (source_processor_id, recv, recv_tag);
-  request.wait();
+  req.wait();
 }
 
 #endif // TIMPI_HAVE_MPI
@@ -2020,7 +2020,7 @@ inline bool Communicator::semiverify(const std::vector<T,A> * r) const
 template <typename T>
 inline void Communicator::min(T & r,
                               T & o,
-                              Request & timpi_mpi_var(request)) const
+                              Request & timpi_mpi_var(req)) const
 {
   if (this->size() > 1)
     {
@@ -2031,7 +2031,7 @@ inline void Communicator::min(T & r,
                          StandardType<T>(&r),
                          OpFunction<T>::min(),
                          this->get(),
-                         request.get()));
+                         req.get()));
     }
   else
     {
@@ -2199,7 +2199,7 @@ inline void Communicator::minloc(std::vector<bool,A1> & r,
 template <typename T>
 inline void Communicator::max(T & r,
                               T & o,
-                              Request & timpi_mpi_var(request)) const
+                              Request & timpi_mpi_var(req)) const
 {
   if (this->size() > 1)
     {
@@ -2210,7 +2210,7 @@ inline void Communicator::max(T & r,
                          StandardType<T>(&r),
                          OpFunction<T>::max(),
                          this->get(),
-                         request.get()));
+                         req.get()));
     }
   else
     {
@@ -2495,7 +2495,7 @@ inline void Communicator::maxloc(std::vector<bool,A1> & r,
 template <typename T>
 inline void Communicator::sum(T & r,
                               T & o,
-                              Request & timpi_mpi_var(request)) const
+                              Request & timpi_mpi_var(req)) const
 {
   if (this->size() > 1)
     {
@@ -2506,7 +2506,7 @@ inline void Communicator::sum(T & r,
                          StandardType<T>(&r),
                          OpFunction<T>::sum(),
                          this->get(),
-                         request.get()));
+                         req.get()));
     }
   else
     {
