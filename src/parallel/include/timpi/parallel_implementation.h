@@ -2016,6 +2016,31 @@ inline bool Communicator::semiverify(const std::vector<T,A> * r) const
 
 
 
+
+template <typename T>
+inline void Communicator::min(T & r,
+                              T & o,
+                              Request & timpi_mpi_var(request)) const
+{
+  if (this->size() > 1)
+    {
+      TIMPI_LOG_SCOPE("min()", "Parallel");
+
+      timpi_call_mpi
+        (MPI_Iallreduce (&r, &o, 1,
+                         StandardType<T>(&r),
+                         OpFunction<T>::min(),
+                         this->get(),
+                         request.get()));
+    }
+  else
+    {
+      o = r;
+    }
+}
+
+
+
 template <typename T>
 inline void Communicator::min(T & timpi_mpi_var(r)) const
 {
@@ -2167,6 +2192,29 @@ inline void Communicator::minloc(std::vector<bool,A1> & r,
     {
       for (std::size_t i=0; i != r.size(); ++i)
         min_id[i] = this->rank();
+    }
+}
+
+
+template <typename T>
+inline void Communicator::max(T & r,
+                              T & o,
+                              Request & timpi_mpi_var(request)) const
+{
+  if (this->size() > 1)
+    {
+      TIMPI_LOG_SCOPE("max()", "Parallel");
+
+      timpi_call_mpi
+        (MPI_Iallreduce (&r, &o, 1,
+                         StandardType<T>(&r),
+                         OpFunction<T>::max(),
+                         this->get(),
+                         request.get()));
+    }
+  else
+    {
+      o = r;
     }
 }
 
@@ -2440,6 +2488,29 @@ inline void Communicator::maxloc(std::vector<bool,A1> & r,
     {
       for (std::size_t i=0; i != r.size(); ++i)
         max_id[i] = this->rank();
+    }
+}
+
+
+template <typename T>
+inline void Communicator::sum(T & r,
+                              T & o,
+                              Request & timpi_mpi_var(request)) const
+{
+  if (this->size() > 1)
+    {
+      TIMPI_LOG_SCOPE("sum()", "Parallel");
+
+      timpi_call_mpi
+        (MPI_Iallreduce (&r, &o, 1,
+                         StandardType<T>(&r),
+                         OpFunction<T>::sum(),
+                         this->get(),
+                         request.get()));
+    }
+  else
+    {
+      o = r;
     }
 }
 

@@ -307,6 +307,38 @@ void testGather()
 
 
 
+  void testNonblockingSum ()
+  {
+    int true_sum = 0;
+    for (int rank = 0; rank < (int)TestCommWorld->size(); ++rank)
+      true_sum += rank + 1;
+
+    int local_val = TestCommWorld->rank() + 1;
+    int sum;
+
+    Request request;
+    TestCommWorld->sum(local_val, sum, request);
+    request.wait();
+
+    TIMPI_UNIT_ASSERT (true_sum == sum);
+  }
+
+
+
+  void testNonblockingMin ()
+  {
+    unsigned int local_val = TestCommWorld->rank();
+    processor_id_type min = std::numeric_limits<processor_id_type>::max();
+
+    Request req;
+    TestCommWorld->min(local_val, min, req);
+    req.wait();
+
+    TIMPI_UNIT_ASSERT (min == static_cast<unsigned int>(0));
+  }
+
+
+
   void testMin ()
   {
     unsigned int min = TestCommWorld->rank();
@@ -314,6 +346,21 @@ void testGather()
     TestCommWorld->min(min);
 
     TIMPI_UNIT_ASSERT (min == static_cast<unsigned int>(0));
+  }
+
+
+
+  void testNonblockingMax ()
+  {
+    processor_id_type local_val = TestCommWorld->rank();
+    processor_id_type max = std::numeric_limits<processor_id_type>::min();
+
+    Request req;
+    TestCommWorld->max(local_val, max, req);
+    req.wait();
+
+    TIMPI_UNIT_ASSERT (cast_int<processor_id_type>(max+1) ==
+                       cast_int<processor_id_type>(TestCommWorld->size()));
   }
 
 
@@ -789,6 +836,9 @@ int main(int argc, const char * const * argv)
   testSendRecvVecVecs();
   testSemiVerify();
   testSplit();
+  testNonblockingSum();
+  testNonblockingMin();
+  testNonblockingMax();
 
   return 0;
 }
