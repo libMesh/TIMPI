@@ -121,10 +121,10 @@ Communicator *TestCommWorld;
     auto collect_data =
       [&received_data]
       (processor_id_type pid,
-       const typename std::vector<unsigned int> & data)
+       const typename std::vector<unsigned int> & vec_received)
       {
         auto & vec = received_data[pid];
-        vec.insert(vec.end(), data.begin(), data.end());
+        vec.insert(vec.end(), vec_received.begin(), vec_received.end());
       };
 
     TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
@@ -244,13 +244,13 @@ Communicator *TestCommWorld;
     auto collect_data =
       [&received_data]
       (processor_id_type pid,
-       const typename std::vector<std::vector<unsigned int>> & data)
+       const typename std::vector<std::vector<unsigned int>> & vecvec_received)
       {
         auto & vec = received_data[pid];
-        vec.insert(vec.end(), data[0].begin(), data[0].end());
-        TIMPI_UNIT_ASSERT(data.size() == std::size_t(2));
-        TIMPI_UNIT_ASSERT(data[1].size() == std::size_t(1));
-        TIMPI_UNIT_ASSERT(data[0][0] == data[1][0]);
+        vec.insert(vec.end(), vecvec_received[0].begin(), vecvec_received[0].end());
+        TIMPI_UNIT_ASSERT(vecvec_received.size() == std::size_t(2));
+        TIMPI_UNIT_ASSERT(vecvec_received[1].size() == std::size_t(1));
+        TIMPI_UNIT_ASSERT(vecvec_received[0][0] == vecvec_received[1][0]);
       };
 
     TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
@@ -386,9 +386,9 @@ Communicator *TestCommWorld;
     auto collect_data =
       [&received_data]
       (processor_id_type pid,
-       const typename std::vector<unsigned int> & data)
+       const typename std::vector<unsigned int> & vec_received)
       {
-        received_data.emplace(pid, data);
+        received_data.emplace(pid, vec_received);
       };
 
     TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
@@ -466,9 +466,9 @@ Communicator *TestCommWorld;
     auto collect_data =
       [&received_data]
       (processor_id_type pid,
-       const typename std::vector<std::vector<unsigned int>> & data)
+       const typename std::vector<std::vector<unsigned int>> & vecvec_received)
       {
-        received_data.emplace(pid, data);
+        received_data.emplace(pid, vecvec_received);
       };
 
     TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);

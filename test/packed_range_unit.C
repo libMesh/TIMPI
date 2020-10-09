@@ -236,10 +236,10 @@ Communicator *TestCommWorld;
     auto collect_data =
       [&received_data]
       (processor_id_type pid,
-       const typename std::multiset<std::string> & data)
+       const typename std::multiset<std::string> & multiset_received)
       {
         auto & received = received_data[pid];
-        received.insert(data.begin(), data.end());
+        received.insert(multiset_received.begin(), multiset_received.end());
       };
 
     void * context = nullptr;

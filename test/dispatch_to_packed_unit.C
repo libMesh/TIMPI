@@ -241,10 +241,10 @@ void testVectorOfContainersBroadcast()
     auto collect_data =
       [&received_data]
       (processor_id_type pid,
-       const typename std::vector<std::set<unsigned int>> & data)
+       const typename std::vector<std::set<unsigned int>> & vecset_received)
       {
         auto & vec = received_data[pid];
-        vec.insert(vec.end(), data.begin(), data.end());
+        vec.insert(vec.end(), vecset_received.begin(), vecset_received.end());
       };
 
     push_parallel_vector_data(*TestCommWorld, data, collect_data);
