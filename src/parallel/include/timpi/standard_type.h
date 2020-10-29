@@ -363,7 +363,9 @@ class StandardType<std::tuple<Types...>> : public DataType
 {
 public:
   explicit
-  StandardType(const std::tuple<Types...> * example = nullptr) {
+  StandardType(const std::tuple<Types...> * example = nullptr)
+    : DataType()
+  {
     // We need an example for MPI_Address to use
     static const std::tuple<Types...> t;
     if (!example)
@@ -416,6 +418,7 @@ public:
   }
 
   StandardType(const StandardType<std::tuple<Types...>> & timpi_mpi_var(t))
+    : DataType()
   {
     timpi_call_mpi
       (MPI_Type_dup (t._datatype, &_datatype));
