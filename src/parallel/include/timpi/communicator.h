@@ -1208,11 +1208,16 @@ public:
    *
    * Fixed variant
    */
-  template <typename T,
-            typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
+  template <typename T
+#ifdef TIMPI_HAVE_MPI
+            ,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0
+#endif
+            >
   inline void broadcast(T & data, const unsigned int root_id=0,
                         const bool identical_sizes=false) const;
 
+#ifdef TIMPI_HAVE_MPI
   /**
    * Take a possibly dynamically-sized local value and broadcast it to all
    * processors.  Optionally takes the \p root_id processor, which specifies the
@@ -1228,6 +1233,7 @@ public:
             typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
   inline void broadcast(T & data, const unsigned int root_id=0,
                         const bool identical_sizes=false) const;
+#endif
 
   /**
    * Blocking-broadcast range-of-pointers to one processor.  This
