@@ -99,8 +99,7 @@ void testGather()
   }
 
 
-
-  void testAllGatherString()
+  void testGatherString2()
   {
     std::vector<std::string> vals;
     TestCommWorld->gather(0, "Processor" + pt_number[TestCommWorld->rank() % 10], vals);
@@ -109,7 +108,17 @@ void testGather()
       TIMPI_UNIT_ASSERT( "Processor" + pt_number[i % 10]  == vals[i] );
   }
 
+  void testAllGatherString()
+  {
+    std::string send = "Processor" + std::to_string(TestCommWorld->rank());
+    std::vector<std::string> gathered;
 
+    TestCommWorld->allgather(send, gathered);
+
+    TIMPI_UNIT_ASSERT(gathered.size() == TestCommWorld->size());
+    for (std::size_t i = 0; i < gathered.size(); ++i)
+      TIMPI_UNIT_ASSERT(gathered[i] == "Processor" + std::to_string(i));
+  }
 
   void testAllGatherVectorString()
   {
@@ -166,7 +175,21 @@ void testGather()
       TIMPI_UNIT_ASSERT( src[i]  == dest[i] );
   }
 
+  void testBroadcastString()
+  {
+    std::string src = "hello";
+    std::string dest = src;
 
+    // Clear dest on non-root ranks
+    if (TestCommWorld->rank() != 0)
+      dest.clear();
+
+    // By default the root_id is 0
+    TestCommWorld->broadcast(dest);
+
+    for (std::size_t i=0; i<src.size(); i++)
+      TIMPI_UNIT_ASSERT( src[i]  == dest[i] );
+  }
 
   void testBroadcastNestedType()
   {
@@ -805,6 +828,7 @@ int main(int argc, const char * const * argv)
   testGather();
   testAllGather();
   testGatherString();
+  testGatherString2();
   testAllGatherString();
   testAllGatherVectorString();
   testAllGatherEmptyVectorString();
@@ -814,6 +838,7 @@ int main(int argc, const char * const * argv)
   testBroadcast<std::map<int, std::string>>({{0,"foo"}, {1,"bar"}, {2,"baz"}});
   testBroadcast<std::unordered_map<int, int>>({{0,0}, {1,1}, {2,2}});
   testBroadcast<std::unordered_map<int, std::string>>({{0,"foo"}, {1,"bar"}, {2,"baz"}});
+  testBroadcastString();
   testBroadcastNestedType();
   testScatter();
   testBarrier();
