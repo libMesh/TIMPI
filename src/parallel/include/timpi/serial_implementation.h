@@ -285,6 +285,17 @@ bool Communicator::possibly_receive (unsigned int &,
   timpi_not_implemented();
 }
 
+template <typename T, typename A>
+inline void Communicator::allgather(const std::basic_string<T> & sendval,
+                                    std::vector<std::basic_string<T>,A> & recv,
+                                    const bool /*identical_buffer_sizes*/) const
+{
+  timpi_assert(this->size() == 1);
+
+  recv.resize(1);
+  recv[0] = sendval;
+}
+
 } // namespace TIMPI
 
 #endif // ifndef TIMPI_HAVE_MPI
