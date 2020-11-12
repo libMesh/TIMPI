@@ -3333,8 +3333,12 @@ inline void Communicator::alltoall(std::vector<T,A> & buf) const
 
 
 
-template <typename T,
-          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
+template <typename T
+#ifdef TIMPI_HAVE_MPI
+          ,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type
+#endif
+          >
 inline void Communicator::broadcast (T & timpi_mpi_var(data),
                                      const unsigned int root_id,
                                      const bool /* identical_sizes */) const
@@ -3357,6 +3361,7 @@ inline void Communicator::broadcast (T & timpi_mpi_var(data),
                 this->get()));
 }
 
+#ifdef TIMPI_HAVE_MPI
 template <typename T,
           typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
 inline void Communicator::broadcast (T & data,
@@ -3391,6 +3396,7 @@ inline void Communicator::broadcast (T & data,
   data = range[0];
 // #endif
 }
+#endif
 
 template <typename T, typename A,
           typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
