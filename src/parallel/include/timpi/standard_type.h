@@ -92,8 +92,8 @@ struct InnermostType
 };
 
 
-template <typename T>
-struct InnermostType<std::vector<T>>
+template <typename T, typename A>
+struct InnermostType<std::vector<T, A>>
 {
   typedef typename InnermostType<T>::type type;
 };
@@ -115,9 +115,9 @@ StandardType<T> build_standard_type(const T * example = nullptr)
  * Returns a StandardType suitable for use with the data in the
  * example container.
  */
-template <typename T>
+template <typename T, typename A>
 StandardType<typename InnermostType<T>::type>
-build_standard_type(const std::vector<T> * example = nullptr)
+build_standard_type(const std::vector<T, A> * example = nullptr)
 {
   const T * inner_example = (example && !example->empty()) ? &(*example)[0] : nullptr;
   return build_standard_type(inner_example);
