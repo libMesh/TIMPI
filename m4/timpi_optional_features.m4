@@ -46,6 +46,12 @@ AS_IF([test "$enableexceptions" != no],
 
 
 # --------------------------------------------------------------
+# Quadruple precision support - off by default
+# --------------------------------------------------------------
+ACSM_CHOOSE_PRECISION
+
+
+# --------------------------------------------------------------
 # __TIME__ __DATE__ stamps - enabled by default
 # disabling preprocessor timestamps helps compiler caches such
 # as ccache to work more effectively.
