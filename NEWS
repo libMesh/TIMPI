@@ -57,3 +57,10 @@
 1.3
   * More dispatches to packed range; displace is_fixed_type idiom
   * Add nonblocking min, max, and sum
+
+1.4
+  * Explicitly instantiate DataType superclass for tuple
+  * Add -Wcast-align to clang ignore_warnings.h
+  * Ensure methods with SFINAE abling can be used in serial
+  * Support build_standard_type w/ user allocators
+  * Quad-precision support
