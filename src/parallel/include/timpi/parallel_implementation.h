@@ -44,6 +44,11 @@
 #include "timpi/serial_implementation.h"
 #endif
 
+// Boost include if necessary for float128
+#ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
+# include <boost/multiprecision/float128.hpp>
+#endif
+
 // Disable libMesh logging until we decide how to port it best
 // #include "libmesh/libmesh_logging.h"
 #define TIMPI_LOG_SCOPE(f,c)
@@ -191,8 +196,9 @@ template<>
 inline data_type dataplusint_type<long double>() { return MPI_LONG_DOUBLE_INT; }
 
 #ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
+// We'll have to fall back on the pair<float128,int> derived type here
 template<>
-inline data_type dataplusint_type<Real>() { return MPI_DATATYPE_NULL; }
+inline data_type dataplusint_type<TIMPI_DEFAULT_SCALAR_TYPE>() { return MPI_DATATYPE_NULL; }
 #endif
 
 template <typename T>

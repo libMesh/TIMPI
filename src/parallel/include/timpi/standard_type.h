@@ -30,6 +30,11 @@
 #  include "timpi/restore_warnings.h"
 #endif // TIMPI_HAVE_MPI
 
+// Boost include if necessary for float128
+#ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
+# include <boost/multiprecision/float128.hpp>
+#endif
+
 #include <array>
 #include <complex>
 #include <memory>
@@ -176,16 +181,16 @@ TIMPI_STANDARD_TYPE(long double,MPI_LONG_DOUBLE);
 #ifdef TIMPI_HAVE_MPI
 # ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
   template<>
-  class StandardType<Real> : public DataType
+  class StandardType<TIMPI_DEFAULT_SCALAR_TYPE> : public DataType
   {
   public:
     explicit
-      StandardType(const Real * = nullptr) : DataType() {
+      StandardType(const TIMPI_DEFAULT_SCALAR_TYPE * = nullptr) : DataType() {
         timpi_call_mpi(MPI_Type_contiguous(2, MPI_DOUBLE, &_datatype));
         this->commit();
       }
 
-    StandardType(const StandardType<Real> & t) : DataType() {
+    StandardType(const StandardType<TIMPI_DEFAULT_SCALAR_TYPE> & t) : DataType() {
       timpi_call_mpi (MPI_Type_dup (t._datatype, &_datatype));
     }
 
@@ -198,7 +203,7 @@ TIMPI_STANDARD_TYPE(long double,MPI_LONG_DOUBLE);
 # endif
 #else
 # ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
-  TIMPI_STANDARD_TYPE(Real,);
+  TIMPI_STANDARD_TYPE(TIMPI_DEFAULT_SCALAR_TYPE,);
 # endif
 #endif
 

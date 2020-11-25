@@ -22,11 +22,15 @@
 // TIMPI includes
 #include "timpi/timpi_config.h"
 
+// Boost include if necessary for float128
+#ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
+# include <boost/multiprecision/float128.hpp>
+#endif
+
 // C++ includes
 #include <limits>
 #include <set>
 #include <vector>
-
 
 namespace TIMPI
 {
@@ -96,7 +100,7 @@ TIMPI_FLOAT_TYPE(float);
 TIMPI_FLOAT_TYPE(double);
 TIMPI_FLOAT_TYPE(long double);
 #ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
-TIMPI_FLOAT_TYPE(Real);
+TIMPI_FLOAT_TYPE(TIMPI_DEFAULT_SCALAR_TYPE);
 #endif
 
 #define TIMPI_ATTRIBUTES_COMMA ,

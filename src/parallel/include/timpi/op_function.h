@@ -27,6 +27,11 @@
 #  include "timpi/restore_warnings.h"
 #endif // TIMPI_HAVE_MPI
 
+// Boost include if necessary for float128
+#ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
+# include <boost/multiprecision/float128.hpp>
+#endif
+
 // C++ includes
 #include <functional>
 #include <type_traits>
@@ -43,8 +48,8 @@ timpi_mpi_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
 { \
   const int size = *len; \
  \
-  Real *in = static_cast<Real*>(a); \
-  Real *inout = static_cast<Real*>(b); \
+  TIMPI_DEFAULT_SCALAR_TYPE *in = static_cast<TIMPI_DEFAULT_SCALAR_TYPE*>(a); \
+  TIMPI_DEFAULT_SCALAR_TYPE *inout = static_cast<TIMPI_DEFAULT_SCALAR_TYPE*>(b); \
   for (int i=0; i != size; ++i) \
     inout[i] = std::funcname(in[i],inout[i]); \
 }
@@ -55,13 +60,13 @@ timpi_mpi_##funcname##_location(void * a, void * b, int * len, MPI_Datatype *) \
 { \
   const int size = *len; \
  \
-  typedef std::pair<Real, int> dtype; \
+  typedef std::pair<TIMPI_DEFAULT_SCALAR_TYPE, int> dtype; \
  \
   dtype *in = static_cast<dtype*>(a); \
   dtype *inout = static_cast<dtype*>(b); \
   for (int i=0; i != size; ++i) \
     { \
-      Real old_inout = inout[i].first; \
+      TIMPI_DEFAULT_SCALAR_TYPE old_inout = inout[i].first; \
       inout[i].first = std::funcname(in[i].first,inout[i].first); \
       if (old_inout != inout[i].first) \
         inout[i].second = in[i].second; \
@@ -75,10 +80,10 @@ timpi_mpi_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
 { \
   const int size = *len; \
  \
-  Real *in = static_cast<Real*>(a); \
-  Real *inout = static_cast<Real*>(b); \
+  TIMPI_DEFAULT_SCALAR_TYPE *in = static_cast<TIMPI_DEFAULT_SCALAR_TYPE*>(a); \
+  TIMPI_DEFAULT_SCALAR_TYPE *inout = static_cast<TIMPI_DEFAULT_SCALAR_TYPE*>(b); \
   for (int i=0; i != size; ++i) \
-    inout[i] = std::funcname<Real>()(in[i],inout[i]); \
+    inout[i] = std::funcname<TIMPI_DEFAULT_SCALAR_TYPE>()(in[i],inout[i]); \
 }
 
 
@@ -225,7 +230,7 @@ TIMPI_PARALLEL_FLOAT_OPS(long double);
   }
 
   template<>
-  class OpFunction<Real>
+  class OpFunction<TIMPI_DEFAULT_SCALAR_TYPE>
   {
   public:
     TIMPI_MPI_OPFUNCTION(max, max)
@@ -238,7 +243,7 @@ TIMPI_PARALLEL_FLOAT_OPS(long double);
   };
 
 # else
-  TIMPI_PARALLEL_FLOAT_OPS(Real);
+  TIMPI_PARALLEL_FLOAT_OPS(TIMPI_DEFAULT_SCALAR_TYPE);
 # endif
 #endif // TIMPI_DEFAULT_QUADRUPLE_PRECISION
 
