@@ -364,7 +364,9 @@ struct CheckAllFixedTypes<Head>
 };
 
 template<typename... Types>
-class StandardType<std::tuple<Types...>> : public DataType
+class StandardType<std::tuple<Types...>,
+                   typename std::enable_if<
+                     CheckAllFixedTypes<Types...>::is_fixed_type>::type> : public DataType
 {
 public:
   explicit
