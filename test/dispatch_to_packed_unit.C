@@ -3,8 +3,10 @@
 #include <timpi/parallel_sync.h>
 
 #include <iterator>
-#include <vector>
 #include <set>
+#include <tuple>
+#include <utility> // pair
+#include <vector>
 #include <unistd.h>
 
 #define TIMPI_UNIT_ASSERT(expr) \
@@ -138,6 +140,30 @@ std::set<T> createSet(std::size_t size)
       unsigned int value = 0;
       for (auto number : current_set)
         TIMPI_UNIT_ASSERT(number == value++);
+    }
+  }
+
+  void testTupleContainerAllGather()
+  {
+    std::vector<std::tuple<std::set<unsigned int>, unsigned int, unsigned int>> vals;
+    const unsigned int my_rank = TestCommWorld->rank();
+
+    TestCommWorld->allgather(std::make_tuple(
+                               createSet<unsigned int>(my_rank + 1),
+                               my_rank, 2*my_rank), vals);
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = vals.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    for (std::size_t i = 0; i < vec_size; ++i)
+    {
+      const auto & current_set = std::get<0>(vals[i]);
+      unsigned int value = 0;
+      for (auto number : current_set)
+        TIMPI_UNIT_ASSERT(number == value++);
+      TIMPI_UNIT_ASSERT(std::get<1>(vals[i]) == i);
+      TIMPI_UNIT_ASSERT(std::get<2>(vals[i]) == 2*i);
     }
   }
 
