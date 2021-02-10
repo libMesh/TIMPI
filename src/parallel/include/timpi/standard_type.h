@@ -281,6 +281,80 @@ public:
 };
 
 
+
+template<typename T, std::size_t N>
+class StandardType<std::array<T, N>,
+                   typename std::enable_if<
+                     StandardType<T>::is_fixed_type>::type> : public DataType
+{
+public:
+  explicit
+  StandardType(const std::array<T, N> * example = nullptr)
+    : DataType()
+  {
+    // Prevent unused variable warnings when !TIMPI_HAVE_MPI
+    timpi_ignore(example);
+
+    // We need an example for MPI_Address to use
+    std::array<T, N> * ex;
+    std::unique_ptr<std::array<T, N>> temp;
+    if (example)
+      ex = const_cast<std::array<T, N> *>(example);
+    else
+      {
+        temp.reset(new std::array<T, N>());
+        ex = temp.get();
+      }
+
+#ifdef TIMPI_HAVE_MPI
+    static_assert(N > 0, "Zero-length std::array is not supported by TIMPI");
+    StandardType<T> T_type(&((*ex)[0]));
+
+    int blocklength = N;
+    MPI_Aint displs, start;
+    MPI_Datatype tmptype, type = T_type;
+
+    timpi_call_mpi
+      (MPI_Get_address (ex, &start));
+    timpi_call_mpi
+      (MPI_Get_address (&((*ex)[0]), &displs));
+
+    // subtract off offset to first value from the beginning of the structure
+    displs -= start;
+
+    // create a prototype structure
+    timpi_call_mpi
+      (MPI_Type_create_struct (1, &blocklength, &displs, &type,
+                               &tmptype));
+    timpi_call_mpi
+      (MPI_Type_commit (&tmptype));
+
+    // resize the structure type to account for padding, if any
+    timpi_call_mpi
+      (MPI_Type_create_resized (tmptype, 0, sizeof(std::array<T,N>),
+                                &_datatype));
+
+    timpi_call_mpi
+      (MPI_Type_commit (&_datatype));
+
+    timpi_call_mpi
+      (MPI_Type_free (&tmptype));
+#endif // #ifdef TIMPI_HAVE_MPI
+  }
+
+  StandardType(const StandardType<std::array<T, N>> & timpi_mpi_var(t))
+    : DataType()
+  {
+    timpi_call_mpi
+      (MPI_Type_dup (t._datatype, &_datatype));
+  }
+
+  ~StandardType() { this->free(); }
+
+  static const bool is_fixed_type = true;
+};
+
+
 // Helper functions for creating type/displacement arrays for tuples
 //
 // These are classes since we can't partially specialize functions

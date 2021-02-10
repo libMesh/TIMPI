@@ -191,6 +191,42 @@ void testGather()
       TIMPI_UNIT_ASSERT( src[i]  == dest[i] );
   }
 
+  void testBroadcastArrayType()
+  {
+    using std::array;
+    typedef array<array<int, 3>, 2> aa;
+    std::vector<aa> src(3), dest(3);
+
+    src[0][0][0] = 0;
+    src[0][0][1] = -1;
+    src[0][0][2] = -2;
+    src[0][1][0] = -3;
+    src[0][1][1] = -4;
+    src[0][1][2] = -5;
+    src[1][0][0] = 10;
+    src[1][0][1] = 9;
+    src[1][0][2] = 8;
+    src[1][1][0] = 7;
+    src[1][1][1] = 6;
+    src[1][1][2] = 5;
+    src[2][0][0] = 20;
+    src[2][0][1] = 19;
+    src[2][0][2] = 18;
+    src[2][1][0] = 17;
+    src[2][1][1] = 16;
+    src[2][1][2] = 15;
+
+    if (TestCommWorld->rank() == 0)
+      dest = src;
+
+    TestCommWorld->broadcast(dest);
+
+    for (std::size_t i=0; i<src.size(); i++)
+      for (std::size_t j=0; j<2; j++)
+        for (std::size_t k=0; k<3; k++)
+          TIMPI_UNIT_ASSERT(src[i][j][k] == dest[i][j][k]);
+  }
+
   void testBroadcastNestedType()
   {
     using std::pair;
@@ -839,6 +875,7 @@ int main(int argc, const char * const * argv)
   testBroadcast<std::unordered_map<int, int>>({{0,0}, {1,1}, {2,2}});
   testBroadcast<std::unordered_map<int, std::string>>({{0,"foo"}, {1,"bar"}, {2,"baz"}});
   testBroadcastString();
+  testBroadcastArrayType();
   testBroadcastNestedType();
   testScatter();
   testBarrier();
