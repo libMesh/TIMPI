@@ -25,6 +25,7 @@
 #include "timpi/standard_type.h"
 
 // C++ includes
+#include <array>
 #include <cstring>     // memcpy
 #include <iterator>
 #include <tuple>
@@ -536,6 +537,161 @@ Packing<std::tuple<Types...>,
   tail_unpack_comp<Context, BufferIter, 0>(tup, in, ctx);
 
   return tup;
+}
+
+
+
+// specialization for std::array
+template <typename T, std::size_t N>
+class Packing<std::array<T, N>,
+              typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>
+{
+public:
+  typedef typename Packing<T>::buffer_type buffer_type;
+
+  template <typename OutputIter, typename Context>
+  static void pack(const std::array<T, N> & a, OutputIter data_out, const Context * context);
+
+  template <typename Context>
+  static unsigned int packable_size(const std::array<T, N> & a, const Context * context);
+
+  template <typename BufferIter>
+  static unsigned int packed_size(BufferIter iter);
+
+  template <typename BufferIter, typename Context>
+  static std::array<T, N> unpack(BufferIter in, Context * ctx);
+
+private:
+  template <typename T3>
+  struct IsFixed
+  {
+    static const bool value = TIMPI::StandardType<T3>::is_fixed_type;
+  };
+  template <typename T3>
+  struct BufferTypesPer
+  {
+    static const unsigned int value = (sizeof(T3) + sizeof(buffer_type) - 1) / sizeof(buffer_type);
+  };
+
+  template <typename T3,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static unsigned int packable_size_comp(const T3 &, const Context *)
+  {
+    return BufferTypesPer<T3>::value;
+  }
+
+  template <typename T3,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static unsigned int packable_size_comp(const T3 & comp, const Context * ctx)
+  {
+    return Packing<T3>::packable_size(comp, ctx);
+  }
+
+  template <typename T3,
+            typename OutputIter,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static void pack_comp(const T3 & comp, OutputIter data_out, const Context *)
+  {
+    buffer_type T3_as_buffer_types[BufferTypesPer<T3>::value];
+    std::memcpy(T3_as_buffer_types, &comp, sizeof(T3));
+    for (unsigned int i = 0; i != BufferTypesPer<T3>::value; ++i)
+      *data_out++ = T3_as_buffer_types[i];
+  }
+
+  template <typename T3,
+            typename OutputIter,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static void pack_comp(const T3 & comp, OutputIter data_out, const Context * ctx)
+  {
+    Packing<T3>::pack(comp, data_out, ctx);
+  }
+
+  template <typename T3,
+            typename BufferIter,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static void unpack_comp(T3 & comp, BufferIter in, Context *)
+  {
+    std::memcpy(&comp, &(*in), sizeof(T3));
+  }
+
+  template <typename T3,
+            typename BufferIter,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static void unpack_comp(T3 & comp, BufferIter in, Context * ctx)
+  {
+    comp = Packing<T3>::unpack(in, ctx);
+  }
+};
+
+template <typename T, std::size_t N>
+template <typename Context>
+unsigned int
+Packing<std::array<T, N>,
+        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+    packable_size(const std::array<T, N> & a, const Context * ctx)
+{
+  unsigned int returnval = 1; // size
+  for (const auto & entry : a)
+    returnval += packable_size_comp(entry, ctx);
+  return returnval;
+}
+
+template <typename T, std::size_t N>
+template <typename BufferIter>
+unsigned int
+Packing<std::array<T, N>,
+        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+    packed_size(BufferIter iter)
+{
+  // We recorded the size in the first buffer entry
+  return *iter;
+}
+
+template <typename T, std::size_t N>
+template <typename OutputIter, typename Context>
+void
+Packing<std::array<T, N>,
+        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+    pack(const std::array<T, N> & a, OutputIter data_out, const Context * ctx)
+{
+  unsigned int size = packable_size(a, ctx);
+
+  // First write out info about the buffer size
+  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+
+  // Now pack the data
+  for (const auto & entry : a)
+    pack_comp(entry, data_out, ctx);
+}
+
+template <typename T, std::size_t N>
+template <typename BufferIter, typename Context>
+std::array<T, N>
+Packing<std::array<T, N>,
+        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+    unpack(BufferIter in, Context * ctx)
+{
+  std::array<T, N> a;
+
+  // We don't care about the size
+  in++;
+
+  // Unpack the data
+  for (auto & entry : a)
+    {
+      unpack_comp(entry, in, ctx);
+
+      // Make sure we increment the iterator
+      in += packable_size_comp(entry, ctx);
+    }
+
+  return a;
 }
 
 
