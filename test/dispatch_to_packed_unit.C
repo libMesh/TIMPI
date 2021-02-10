@@ -117,6 +117,7 @@ std::set<T> createSet(std::size_t size)
     for (std::size_t i = 0; i < vec_size; ++i)
     {
       const auto & current_set = vals[i];
+      TIMPI_UNIT_ASSERT(current_set.size() == i+1);
       unsigned int value = 0;
       for (auto number : current_set)
         TIMPI_UNIT_ASSERT(number == value++);
@@ -138,6 +139,7 @@ std::set<T> createSet(std::size_t size)
     for (std::size_t i = 0; i < vec_size; ++i)
     {
       const auto & current_set = vals[i];
+      TIMPI_UNIT_ASSERT(current_set.size() == i+1);
       unsigned int value = 0;
       for (auto number : current_set)
         TIMPI_UNIT_ASSERT(number == value++);
