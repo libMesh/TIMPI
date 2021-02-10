@@ -164,11 +164,13 @@ std::set<T> createSet(std::size_t size)
     for (std::size_t i = 0; i < vec_size; ++i)
     {
       const auto & first_set = vals[i][0];
-      const auto & second_set = vals[i][1];
+      TIMPI_UNIT_ASSERT(first_set.size() == i+1);
       unsigned int value = 0;
       for (auto number : first_set)
         TIMPI_UNIT_ASSERT(number == value++);
-      value = 9;
+      const auto & second_set = vals[i][1];
+      TIMPI_UNIT_ASSERT(second_set.size() == i+10);
+      value = 0;
       for (auto number : second_set)
         TIMPI_UNIT_ASSERT(number == value++);
     }
