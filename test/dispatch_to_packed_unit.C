@@ -420,6 +420,8 @@ int main(int argc, const char * const * argv)
   testContainerBroadcast();
   testVectorOfContainersBroadcast();
   testPairContainerAllGather();
+  testTupleContainerAllGather();
+  testArrayContainerAllGather();
 
   testPush();
   testPull();
