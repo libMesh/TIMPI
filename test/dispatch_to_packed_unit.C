@@ -152,8 +152,8 @@ std::set<T> createSet(std::size_t size)
     const unsigned int my_rank = TestCommWorld->rank();
 
     std::array<std::set<unsigned int>, 2> vals_out
-      {createSet<unsigned int>(my_rank + 1),
-       createSet<unsigned int>(my_rank + 10)};
+      {{createSet<unsigned int>(my_rank + 1),
+        createSet<unsigned int>(my_rank + 10)}};
 
     TestCommWorld->allgather(vals_out, vals);
 
