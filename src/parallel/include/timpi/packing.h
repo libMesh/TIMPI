@@ -27,6 +27,7 @@
 // C++ includes
 #include <cstring>     // memcpy
 #include <iterator>
+#include <tuple>
 #include <type_traits> // enable_if, is_same
 #include <utility>     // pair
 #include <vector>
@@ -283,6 +284,263 @@ Packing<std::pair<T1, T2>,
 
   return pr;
 }
+
+
+
+
+template <bool T1_has_buffer_type, bool MoreTypes_have_buffer_Type, typename T1, typename... MoreTypes>
+struct TupleBufferTypeHelper {};
+
+template <typename T1, bool MoreTypes_have_buffer_Type>
+struct TupleBufferTypeHelper<true, MoreTypes_have_buffer_Type, T1> {
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+template <typename T1, typename... MoreTypes>
+struct TupleBufferTypeHelper<true, true, T1, MoreTypes...> {
+  static_assert(std::is_same<typename Packing<T1>::buffer_type,
+                             typename Packing<std::tuple<MoreTypes...>>::buffer_type>::value,
+                "For ease of use we cannot pack two types that use two different buffer types");
+
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+template <typename T1, typename... MoreTypes>
+struct TupleBufferTypeHelper<true, false, T1, MoreTypes...> {
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+template <typename T1, typename... MoreTypes>
+struct TupleBufferTypeHelper<false, true, T1, MoreTypes...> {
+  typedef typename Packing<std::tuple<MoreTypes...>>::buffer_type buffer_type;
+};
+
+template <typename... Types>
+struct TupleBufferType;
+
+template <typename T1, typename... MoreTypes>
+struct TupleBufferType<T1, MoreTypes...> {
+  typedef typename
+    TupleBufferTypeHelper<Has_buffer_type<Packing<T1>>::value,
+                          Has_buffer_type<Packing<MoreTypes...>>::value,
+                          T1, MoreTypes...>::buffer_type buffer_type;
+};
+
+
+
+// specializations for std::tuple
+template <typename Enable>
+class Packing<std::tuple<>, Enable> {};
+
+template <typename... Types>
+class Packing<std::tuple<Types...>,
+              typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>
+{
+public:
+  typedef typename TupleBufferType<Types...>::buffer_type buffer_type;
+
+  template <typename OutputIter, typename Context>
+  static void pack(const std::tuple<Types...> & tup, OutputIter data_out, const Context * context);
+
+  template <typename Context>
+  static unsigned int packable_size(const std::tuple<Types...> & tup, const Context * context);
+
+  template <typename BufferIter>
+  static unsigned int packed_size(BufferIter iter);
+
+  template <typename BufferIter, typename Context>
+  static std::tuple<Types...> unpack(BufferIter in, Context * ctx);
+
+private:
+  template <typename T3>
+  struct IsFixed
+  {
+    static const bool value = TIMPI::StandardType<T3>::is_fixed_type;
+  };
+  template <typename T3>
+  struct BufferTypesPer
+  {
+    static const unsigned int value = (sizeof(T3) + sizeof(buffer_type) - 1) / sizeof(buffer_type);
+  };
+
+  template <typename T3,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static unsigned int packable_size_comp(const T3 &, const Context *)
+  {
+    return BufferTypesPer<T3>::value;
+  }
+
+  template <typename T3,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static unsigned int packable_size_comp(const T3 & comp, const Context * ctx)
+  {
+    return Packing<T3>::packable_size(comp, ctx);
+  }
+
+  template <typename Context,
+            std::size_t I>
+  static typename std::enable_if<I == sizeof...(Types), unsigned int>::type
+  tail_packable_size(const std::tuple<Types...> &,
+                     const Context *)
+  { return 0; }
+
+  template <typename Context,
+            std::size_t I>
+  static typename std::enable_if<I < sizeof...(Types), unsigned int>::type
+  tail_packable_size(const std::tuple<Types...> &tup,
+                     const Context * ctx)
+  {
+    return packable_size_comp(std::get<I>(tup), ctx) +
+      tail_packable_size<Context, I+1>(tup, ctx);
+  }
+
+  template <typename T3,
+            typename OutputIter,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static void pack_comp(const T3 & comp, OutputIter data_out, const Context *)
+  {
+    buffer_type T3_as_buffer_types[BufferTypesPer<T3>::value];
+    std::memcpy(T3_as_buffer_types, &comp, sizeof(T3));
+    for (unsigned int i = 0; i != BufferTypesPer<T3>::value; ++i)
+      *data_out++ = T3_as_buffer_types[i];
+  }
+
+  template <typename T3,
+            typename OutputIter,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static void pack_comp(const T3 & comp, OutputIter data_out, const Context * ctx)
+  {
+    Packing<T3>::pack(comp, data_out, ctx);
+  }
+
+  template <typename Context,
+            typename OutputIter,
+            std::size_t I>
+  static typename std::enable_if<I == sizeof...(Types), void>::type
+  tail_pack_comp(const std::tuple<Types...> &,
+                 OutputIter,
+                 const Context *) {}
+
+  template <typename Context,
+            typename OutputIter,
+            std::size_t I>
+  static typename std::enable_if<I < sizeof...(Types), void>::type
+  tail_pack_comp(const std::tuple<Types...> &tup,
+                 OutputIter data_out,
+                 const Context * ctx)
+  {
+    pack_comp(std::get<I>(tup), data_out, ctx);
+    tail_pack_comp<Context, OutputIter, I+1>(tup, data_out, ctx);
+  }
+
+  template <typename T3,
+            typename BufferIter,
+            typename Context,
+            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
+  static void unpack_comp(T3 & comp, BufferIter in, Context *)
+  {
+    std::memcpy(&comp, &(*in), sizeof(T3));
+  }
+
+  template <typename T3,
+            typename BufferIter,
+            typename Context,
+            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
+  static void unpack_comp(T3 & comp, BufferIter in, Context * ctx)
+  {
+    comp = Packing<T3>::unpack(in, ctx);
+  }
+
+  template <typename Context,
+            typename BufferIter,
+            std::size_t I>
+  static typename std::enable_if<I == sizeof...(Types), void>::type
+  tail_unpack_comp(std::tuple<Types...> &,
+                   BufferIter &,
+                   Context *) {}
+
+  template <typename Context,
+            typename BufferIter,
+            std::size_t I>
+  static typename std::enable_if<I < sizeof...(Types), void>::type
+  tail_unpack_comp(std::tuple<Types...> &tup,
+                   BufferIter & in,
+                   Context * ctx)
+  {
+    unpack_comp(std::get<I>(tup), in, ctx);
+
+    // Make sure we increment the iterator.  The last increment will
+    // be unnecessary, since this is a copy of the iterator in the
+    // higher level unpacking code, but the first N-1 are critical.
+    in += packable_size_comp(std::get<I>(tup), ctx);
+
+    tail_unpack_comp<Context, BufferIter, I+1>(tup, in, ctx);
+  }
+};
+
+
+template <typename... Types>
+template <typename Context>
+unsigned int
+Packing<std::tuple<Types...>,
+        typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
+    packable_size(const std::tuple<Types...> & tup, const Context * ctx)
+{
+  return 1 + tail_packable_size<Context, 0>(tup, ctx);
+}
+
+template <typename... Types>
+template <typename BufferIter>
+unsigned int
+Packing<std::tuple<Types...>,
+        typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
+    packed_size(BufferIter iter)
+{
+  // We recorded the size in the first buffer entry
+  return *iter;
+}
+
+template <typename... Types>
+template <typename OutputIter, typename Context>
+void
+Packing<std::tuple<Types...>,
+        typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
+    pack(const std::tuple<Types...> & tup, OutputIter data_out, const Context * ctx)
+{
+  unsigned int size = packable_size(tup, ctx);
+
+  // First write out info about the buffer size
+  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+
+  // Now pack the data
+  tail_pack_comp<Context, OutputIter, 0>(tup, data_out, ctx);
+}
+
+template <typename... Types>
+template <typename BufferIter, typename Context>
+std::tuple<Types...>
+Packing<std::tuple<Types...>,
+        typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
+    unpack(BufferIter in, Context * ctx)
+{
+  std::tuple<Types...> tup;
+
+  // We don't care about the size
+  in++;
+
+  // Unpack the data
+  tail_unpack_comp<Context, BufferIter, 0>(tup, in, ctx);
+
+  return tup;
+}
+
+
+
+
 
 #define TIMPI_HAVE_STRING_PACKING
 
