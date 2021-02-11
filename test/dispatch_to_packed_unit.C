@@ -2,10 +2,15 @@
 // timpi.h doesn't pull in parallel_sync
 #include <timpi/parallel_sync.h>
 
+#include <algorithm>
 #include <array>
 #include <iterator>
+#include <list>
+#include <map>
 #include <set>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility> // pair
 #include <vector>
 #include <unistd.h>
@@ -30,20 +35,40 @@ using namespace TIMPI;
 
 Communicator *TestCommWorld;
 
-template <typename T>
-std::set<T> createSet(std::size_t size)
+
+template <typename Container>
+Container createContainer(std::size_t size)
 {
-  std::vector<T> temp(size);
+  std::vector<typename Container::value_type> temp(size);
   std::iota(temp.begin(), temp.end(), 0);
-  return std::set<T>(temp.begin(), temp.end());
+  return Container(temp.begin(), temp.end());
 }
 
+
+template <typename T>
+std::set<T> createSet(std::size_t size)
+{ return createContainer<std::set<T>>(size); }
+
+
+template <typename Container>
+Container createMapContainer(std::size_t size)
+{
+  Container c;
+
+  for (std::size_t i = 0; i != size; ++i)
+    c[i*10] = i*50;
+
+  return c;
+}
+
+
+  template <typename Container>
   void testContainerAllGather()
   {
-    std::vector<std::set<unsigned int>> vals;
+    std::vector<Container> vals;
     const unsigned int my_rank = TestCommWorld->rank();
 
-    TestCommWorld->allgather(createSet<unsigned int>(my_rank + 1), vals);
+    TestCommWorld->allgather(createContainer<Container>(my_rank + 1), vals);
 
     const std::size_t comm_size = TestCommWorld->size();
     const std::size_t vec_size = vals.size();
@@ -51,11 +76,39 @@ std::set<T> createSet(std::size_t size)
 
     for (std::size_t i = 0; i < vec_size; ++i)
     {
-      const auto & current_set = vals[i];
-      TIMPI_UNIT_ASSERT(current_set.size() == i+1);
-      unsigned int value = 0;
-      for (auto number : current_set)
-        TIMPI_UNIT_ASSERT(number == value++);
+      const auto & current_container = vals[i];
+      TIMPI_UNIT_ASSERT(current_container.size() == i+1);
+      for (std::size_t n = 0; n != i+1; ++n)
+        {
+          auto it = std::find(current_container.begin(),
+                              current_container.end(), n);
+          TIMPI_UNIT_ASSERT(it != current_container.end());
+        }
+    }
+  }
+
+  template <typename Container>
+  void testMapContainerAllGather()
+  {
+    std::vector<Container> vals;
+    const unsigned int my_rank = TestCommWorld->rank();
+
+    TestCommWorld->allgather(createMapContainer<Container>(my_rank + 1), vals);
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = vals.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    for (std::size_t i = 0; i < vec_size; ++i)
+    {
+      const auto & current_container = vals[i];
+      TIMPI_UNIT_ASSERT(current_container.size() == i+1);
+      for (std::size_t n = 0; n != i+1; ++n)
+        {
+          auto it = current_container.find(n*10);
+          TIMPI_UNIT_ASSERT(it != current_container.end());
+          TIMPI_UNIT_ASSERT(it->second == n*50);
+        }
     }
   }
 
@@ -350,7 +403,11 @@ int main(int argc, const char * const * argv)
   TIMPI::TIMPIInit init(argc, argv);
   TestCommWorld = &init.comm();
 
-  testContainerAllGather();
+  testContainerAllGather<std::list<unsigned int>>();
+  testContainerAllGather<std::set<unsigned int>>();
+  testContainerAllGather<std::unordered_set<unsigned int>>();
+  testMapContainerAllGather<std::map<unsigned int, unsigned int>>();
+  testMapContainerAllGather<std::unordered_map<unsigned int, unsigned int>>();
   testVectorOfContainersAllGather();
   testContainerBroadcast();
   testVectorOfContainersBroadcast();
