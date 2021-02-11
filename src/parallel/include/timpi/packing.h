@@ -209,6 +209,12 @@ struct PairBufferTypeHelper<T1, false, T2, true>
   typedef typename Packing<T2>::buffer_type buffer_type;
 };
 
+template <typename T1, typename T2>
+struct PairBufferTypeHelper<T1, false, T2, false>
+{
+  typedef unsigned int buffer_type;
+};
+
 
 // specialization for std::pair
 template <typename T1, typename T2>
