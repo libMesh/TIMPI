@@ -25,6 +25,7 @@
 #include "timpi/standard_type.h"
 
 // C++ includes
+#include <array>
 #include <cstring>     // memcpy
 #include <iterator>
 #include <tuple>
@@ -102,60 +103,21 @@ public:
   static constexpr bool value = sizeof(test<Derived>(nullptr)) == sizeof(Yes);
 };
 
-template <typename T1, bool T1_has_buffer_type, typename T2, bool T2_has_buffer_type>
-struct PairBufferTypeHelper {};
 
-template <typename T1, typename T2>
-struct PairBufferTypeHelper<T1, true, T2, true>
+// Superclass with utility methods for use with Packing partial
+// specializations that mix fixed-size with Packing-required inner
+// classes.
+template <typename BufferType>
+struct PackingMixedType
 {
-  static_assert(std::is_same<typename Packing<T1>::buffer_type, typename Packing<T2>::buffer_type>::value,
-                "For ease of use we cannot pack two types that use two different buffer types");
+  typedef BufferType buffer_type;
 
-  typedef typename Packing<T1>::buffer_type buffer_type;
-};
-
-template <typename T1, typename T2>
-struct PairBufferTypeHelper<T1, true, T2, false>
-{
-  typedef typename Packing<T1>::buffer_type buffer_type;
-};
-
-template <typename T1, typename T2>
-struct PairBufferTypeHelper<T1, false, T2, true>
-{
-  typedef typename Packing<T2>::buffer_type buffer_type;
-};
-
-
-// specialization for std::pair
-template <typename T1, typename T2>
-class Packing<std::pair<T1, T2>,
-              typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>
-{
-public:
-  typedef typename PairBufferTypeHelper<T1,
-                                        Has_buffer_type<Packing<T1>>::value,
-                                        T2,
-                                        Has_buffer_type<Packing<T2>>::value>::buffer_type buffer_type;
-
-  template <typename OutputIter, typename Context>
-  static void pack(const std::pair<T1, T2> & pr, OutputIter data_out, const Context * context);
-
-  template <typename Context>
-  static unsigned int packable_size(const std::pair<T1, T2> & pr, const Context * context);
-
-  template <typename BufferIter>
-  static unsigned int packed_size(BufferIter iter);
-
-  template <typename BufferIter, typename Context>
-  static std::pair<T1, T2> unpack(BufferIter in, Context * ctx);
-
-private:
   template <typename T3>
   struct IsFixed
   {
     static const bool value = TIMPI::StandardType<T3>::is_fixed_type;
   };
+
   template <typename T3>
   struct BufferTypesPer
   {
@@ -218,6 +180,60 @@ private:
   }
 };
 
+
+
+
+// Utility metafunction for use in Packing<std::pair>
+template <typename T1, bool T1_has_buffer_type, typename T2, bool T2_has_buffer_type>
+struct PairBufferTypeHelper {};
+
+template <typename T1, typename T2>
+struct PairBufferTypeHelper<T1, true, T2, true>
+{
+  static_assert(std::is_same<typename Packing<T1>::buffer_type, typename Packing<T2>::buffer_type>::value,
+                "For ease of use we cannot pack two types that use two different buffer types");
+
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+template <typename T1, typename T2>
+struct PairBufferTypeHelper<T1, true, T2, false>
+{
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+template <typename T1, typename T2>
+struct PairBufferTypeHelper<T1, false, T2, true>
+{
+  typedef typename Packing<T2>::buffer_type buffer_type;
+};
+
+
+// specialization for std::pair
+template <typename T1, typename T2>
+class Packing<std::pair<T1, T2>,
+              typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>
+{
+public:
+  typedef typename PairBufferTypeHelper
+      <T1, Has_buffer_type<Packing<T1>>::value,
+       T2, Has_buffer_type<Packing<T2>>::value>::buffer_type buffer_type;
+
+  typedef PackingMixedType<buffer_type> Mixed;
+
+  template <typename OutputIter, typename Context>
+  static void pack(const std::pair<T1, T2> & pr, OutputIter data_out, const Context * context);
+
+  template <typename Context>
+  static unsigned int packable_size(const std::pair<T1, T2> & pr, const Context * context);
+
+  template <typename BufferIter>
+  static unsigned int packed_size(BufferIter iter);
+
+  template <typename BufferIter, typename Context>
+  static std::pair<T1, T2> unpack(BufferIter in, Context * ctx);
+};
+
 template <typename T1, typename T2>
 template <typename Context>
 unsigned int
@@ -225,7 +241,8 @@ Packing<std::pair<T1, T2>,
         typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
     packable_size(const std::pair<T1, T2> & pr, const Context * ctx)
 {
-  return 1 + packable_size_comp(pr.first, ctx) + packable_size_comp(pr.second, ctx);
+  return 1 + Mixed::packable_size_comp(pr.first, ctx) +
+             Mixed::packable_size_comp(pr.second, ctx);
 }
 
 template <typename T1, typename T2>
@@ -252,14 +269,14 @@ Packing<std::pair<T1, T2>,
   *data_out++ = TIMPI::cast_int<buffer_type>(size);
 
   // Now pack the data
-  pack_comp(pr.first, data_out, ctx);
+  Mixed::pack_comp(pr.first, data_out, ctx);
 
   // TIMPI uses a back_inserter for `pack_range` so we don't (and can't)
   // actually increment the iterator with operator+=. operator++ is a no-op
   //
   // data_out += packable_size_comp(pr.first, ctx);
 
-  pack_comp(pr.second, data_out, ctx);
+  Mixed::pack_comp(pr.second, data_out, ctx);
 }
 
 template <typename T1, typename T2>
@@ -275,12 +292,12 @@ Packing<std::pair<T1, T2>,
   in++;
 
   // Unpack the data
-  unpack_comp(pr.first, in, ctx);
+  Mixed::unpack_comp(pr.first, in, ctx);
 
   // Make sure we increment the iterator
-  in += packable_size_comp(pr.first, ctx);
+  in += Mixed::packable_size_comp(pr.first, ctx);
 
-  unpack_comp(pr.second, in, ctx);
+  Mixed::unpack_comp(pr.second, in, ctx);
 
   return pr;
 }
@@ -339,6 +356,8 @@ class Packing<std::tuple<Types...>,
 public:
   typedef typename TupleBufferType<Types...>::buffer_type buffer_type;
 
+  typedef PackingMixedType<buffer_type> Mixed;
+
   template <typename OutputIter, typename Context>
   static void pack(const std::tuple<Types...> & tup, OutputIter data_out, const Context * context);
 
@@ -350,34 +369,6 @@ public:
 
   template <typename BufferIter, typename Context>
   static std::tuple<Types...> unpack(BufferIter in, Context * ctx);
-
-private:
-  template <typename T3>
-  struct IsFixed
-  {
-    static const bool value = TIMPI::StandardType<T3>::is_fixed_type;
-  };
-  template <typename T3>
-  struct BufferTypesPer
-  {
-    static const unsigned int value = (sizeof(T3) + sizeof(buffer_type) - 1) / sizeof(buffer_type);
-  };
-
-  template <typename T3,
-            typename Context,
-            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
-  static unsigned int packable_size_comp(const T3 &, const Context *)
-  {
-    return BufferTypesPer<T3>::value;
-  }
-
-  template <typename T3,
-            typename Context,
-            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
-  static unsigned int packable_size_comp(const T3 & comp, const Context * ctx)
-  {
-    return Packing<T3>::packable_size(comp, ctx);
-  }
 
   template <typename Context,
             std::size_t I>
@@ -392,29 +383,8 @@ private:
   tail_packable_size(const std::tuple<Types...> &tup,
                      const Context * ctx)
   {
-    return packable_size_comp(std::get<I>(tup), ctx) +
+    return Mixed::packable_size_comp(std::get<I>(tup), ctx) +
       tail_packable_size<Context, I+1>(tup, ctx);
-  }
-
-  template <typename T3,
-            typename OutputIter,
-            typename Context,
-            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
-  static void pack_comp(const T3 & comp, OutputIter data_out, const Context *)
-  {
-    buffer_type T3_as_buffer_types[BufferTypesPer<T3>::value];
-    std::memcpy(T3_as_buffer_types, &comp, sizeof(T3));
-    for (unsigned int i = 0; i != BufferTypesPer<T3>::value; ++i)
-      *data_out++ = T3_as_buffer_types[i];
-  }
-
-  template <typename T3,
-            typename OutputIter,
-            typename Context,
-            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
-  static void pack_comp(const T3 & comp, OutputIter data_out, const Context * ctx)
-  {
-    Packing<T3>::pack(comp, data_out, ctx);
   }
 
   template <typename Context,
@@ -433,26 +403,8 @@ private:
                  OutputIter data_out,
                  const Context * ctx)
   {
-    pack_comp(std::get<I>(tup), data_out, ctx);
+    Mixed::pack_comp(std::get<I>(tup), data_out, ctx);
     tail_pack_comp<Context, OutputIter, I+1>(tup, data_out, ctx);
-  }
-
-  template <typename T3,
-            typename BufferIter,
-            typename Context,
-            typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
-  static void unpack_comp(T3 & comp, BufferIter in, Context *)
-  {
-    std::memcpy(&comp, &(*in), sizeof(T3));
-  }
-
-  template <typename T3,
-            typename BufferIter,
-            typename Context,
-            typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
-  static void unpack_comp(T3 & comp, BufferIter in, Context * ctx)
-  {
-    comp = Packing<T3>::unpack(in, ctx);
   }
 
   template <typename Context,
@@ -471,12 +423,12 @@ private:
                    BufferIter & in,
                    Context * ctx)
   {
-    unpack_comp(std::get<I>(tup), in, ctx);
+    Mixed::unpack_comp(std::get<I>(tup), in, ctx);
 
     // Make sure we increment the iterator.  The last increment will
     // be unnecessary, since this is a copy of the iterator in the
     // higher level unpacking code, but the first N-1 are critical.
-    in += packable_size_comp(std::get<I>(tup), ctx);
+    in += Mixed::packable_size_comp(std::get<I>(tup), ctx);
 
     tail_unpack_comp<Context, BufferIter, I+1>(tup, in, ctx);
   }
@@ -536,6 +488,96 @@ Packing<std::tuple<Types...>,
   tail_unpack_comp<Context, BufferIter, 0>(tup, in, ctx);
 
   return tup;
+}
+
+
+
+// specialization for std::array
+template <typename T, std::size_t N>
+class Packing<std::array<T, N>,
+              typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>
+{
+public:
+  typedef typename Packing<T>::buffer_type buffer_type;
+
+  typedef PackingMixedType<buffer_type> Mixed;
+
+  template <typename OutputIter, typename Context>
+  static void pack(const std::array<T, N> & a, OutputIter data_out, const Context * context);
+
+  template <typename Context>
+  static unsigned int packable_size(const std::array<T, N> & a, const Context * context);
+
+  template <typename BufferIter>
+  static unsigned int packed_size(BufferIter iter);
+
+  template <typename BufferIter, typename Context>
+  static std::array<T, N> unpack(BufferIter in, Context * ctx);
+};
+
+template <typename T, std::size_t N>
+template <typename Context>
+unsigned int
+Packing<std::array<T, N>,
+        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+    packable_size(const std::array<T, N> & a, const Context * ctx)
+{
+  unsigned int returnval = 1; // size
+  for (const auto & entry : a)
+    returnval += Mixed::packable_size_comp(entry, ctx);
+  return returnval;
+}
+
+template <typename T, std::size_t N>
+template <typename BufferIter>
+unsigned int
+Packing<std::array<T, N>,
+        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+    packed_size(BufferIter iter)
+{
+  // We recorded the size in the first buffer entry
+  return *iter;
+}
+
+template <typename T, std::size_t N>
+template <typename OutputIter, typename Context>
+void
+Packing<std::array<T, N>,
+        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+    pack(const std::array<T, N> & a, OutputIter data_out, const Context * ctx)
+{
+  unsigned int size = packable_size(a, ctx);
+
+  // First write out info about the buffer size
+  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+
+  // Now pack the data
+  for (const auto & entry : a)
+    Mixed::pack_comp(entry, data_out, ctx);
+}
+
+template <typename T, std::size_t N>
+template <typename BufferIter, typename Context>
+std::array<T, N>
+Packing<std::array<T, N>,
+        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+    unpack(BufferIter in, Context * ctx)
+{
+  std::array<T, N> a;
+
+  // We don't care about the size
+  in++;
+
+  // Unpack the data
+  for (auto & entry : a)
+    {
+      Mixed::unpack_comp(entry, in, ctx);
+
+      // Make sure we increment the iterator
+      in += Mixed::packable_size_comp(entry, ctx);
+    }
+
+  return a;
 }
 
 

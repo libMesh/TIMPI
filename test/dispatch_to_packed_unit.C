@@ -2,6 +2,7 @@
 // timpi.h doesn't pull in parallel_sync
 #include <timpi/parallel_sync.h>
 
+#include <array>
 #include <iterator>
 #include <set>
 #include <tuple>
@@ -116,6 +117,7 @@ std::set<T> createSet(std::size_t size)
     for (std::size_t i = 0; i < vec_size; ++i)
     {
       const auto & current_set = vals[i];
+      TIMPI_UNIT_ASSERT(current_set.size() == i+1);
       unsigned int value = 0;
       for (auto number : current_set)
         TIMPI_UNIT_ASSERT(number == value++);
@@ -137,8 +139,39 @@ std::set<T> createSet(std::size_t size)
     for (std::size_t i = 0; i < vec_size; ++i)
     {
       const auto & current_set = vals[i];
+      TIMPI_UNIT_ASSERT(current_set.size() == i+1);
       unsigned int value = 0;
       for (auto number : current_set)
+        TIMPI_UNIT_ASSERT(number == value++);
+    }
+  }
+
+  void testArrayContainerAllGather()
+  {
+    std::vector<std::array<std::set<unsigned int>, 2>> vals;
+    const unsigned int my_rank = TestCommWorld->rank();
+
+    std::array<std::set<unsigned int>, 2> vals_out
+      {{createSet<unsigned int>(my_rank + 1),
+        createSet<unsigned int>(my_rank + 10)}};
+
+    TestCommWorld->allgather(vals_out, vals);
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = vals.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    for (std::size_t i = 0; i < vec_size; ++i)
+    {
+      const auto & first_set = vals[i][0];
+      TIMPI_UNIT_ASSERT(first_set.size() == i+1);
+      unsigned int value = 0;
+      for (auto number : first_set)
+        TIMPI_UNIT_ASSERT(number == value++);
+      const auto & second_set = vals[i][1];
+      TIMPI_UNIT_ASSERT(second_set.size() == i+10);
+      value = 0;
+      for (auto number : second_set)
         TIMPI_UNIT_ASSERT(number == value++);
     }
   }
@@ -387,6 +420,8 @@ int main(int argc, const char * const * argv)
   testContainerBroadcast();
   testVectorOfContainersBroadcast();
   testPairContainerAllGather();
+  testTupleContainerAllGather();
+  testArrayContainerAllGather();
 
   testPush();
   testPull();
