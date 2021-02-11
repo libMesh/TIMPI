@@ -28,9 +28,13 @@
 #include <array>
 #include <cstring>     // memcpy
 #include <iterator>
+#include <list>
+#include <map>
 #include <set>
 #include <tuple>
 #include <type_traits> // enable_if, is_same
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>     // pair
 #include <vector>
 
@@ -726,21 +730,49 @@ PackingRange<Container>::unpack(BufferIter in, Context * ctx)
 
 
 
-template <typename T>
-class Packing<std::set<T>> : public PackingRange<std::set<T>>
-{
-public:
-  using typename PackingRange<std::set<T>>::buffer_type;
+#define TIMPI_PACKING_RANGE_SUBCLASS(Container)           \
+class Packing<Container> : public PackingRange<Container> \
+{                                                         \
+public:                                                   \
+  using typename PackingRange<Container>::buffer_type;    \
+                                                          \
+  using typename PackingRange<Container>::Mixed;          \
+                                                          \
+  using PackingRange<Container>::pack;                    \
+  using PackingRange<Container>::packable_size;           \
+  using PackingRange<Container>::packed_size;             \
+  using PackingRange<Container>::unpack;                  \
+}
 
-  using typename PackingRange<std::set<T>>::Mixed;
 
-  using PackingRange<std::set<T>>::pack;
-  using PackingRange<std::set<T>>::packable_size;
-  using PackingRange<std::set<T>>::packed_size;
-  using PackingRange<std::set<T>>::unpack;
-};
+#define TIMPI_P_COMMA ,
 
+template <typename T, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::list<T TIMPI_P_COMMA A>);
 
+template <typename K, typename T, typename C, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::map<K TIMPI_P_COMMA T TIMPI_P_COMMA C TIMPI_P_COMMA A>);
+
+template <typename K, typename T, typename C, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::multimap<K TIMPI_P_COMMA T TIMPI_P_COMMA C TIMPI_P_COMMA A>);
+
+template <typename K, typename C, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::multiset<K TIMPI_P_COMMA C TIMPI_P_COMMA A>);
+
+template <typename K, typename C, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::set<K TIMPI_P_COMMA C TIMPI_P_COMMA A>);
+
+template <typename K, typename T, typename H, typename KE, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_map<K TIMPI_P_COMMA T TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
+
+template <typename K, typename T, typename H, typename KE, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_multimap<K TIMPI_P_COMMA T TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
+
+template <typename K, typename H, typename KE, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_multiset<K TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
+
+template <typename K, typename H, typename KE, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_set<K TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
 
 
 
