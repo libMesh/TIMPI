@@ -28,6 +28,7 @@
 #include <array>
 #include <cstring>     // memcpy
 #include <iterator>
+#include <set>
 #include <tuple>
 #include <type_traits> // enable_if, is_same
 #include <utility>     // pair
@@ -703,6 +704,21 @@ PackingRange<Container>::unpack(BufferIter in, Context * ctx)
   return c;
 }
 
+
+
+template <typename T>
+class Packing<std::set<T>> : public PackingRange<std::set<T>>
+{
+public:
+  using typename PackingRange<std::set<T>>::buffer_type;
+
+  using typename PackingRange<std::set<T>>::Mixed;
+
+  using PackingRange<std::set<T>>::pack;
+  using PackingRange<std::set<T>>::packable_size;
+  using PackingRange<std::set<T>>::packed_size;
+  using PackingRange<std::set<T>>::unpack;
+};
 
 
 
