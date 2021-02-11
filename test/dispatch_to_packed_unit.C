@@ -68,7 +68,9 @@ Container createMapContainer(std::size_t size)
     std::vector<Container> vals;
     const unsigned int my_rank = TestCommWorld->rank();
 
-    TestCommWorld->allgather(createContainer<Container>(my_rank + 1), vals);
+    auto my_val = createContainer<Container>(my_rank + 1);
+
+    TestCommWorld->allgather(my_val, vals);
 
     const std::size_t comm_size = TestCommWorld->size();
     const std::size_t vec_size = vals.size();
@@ -93,7 +95,9 @@ Container createMapContainer(std::size_t size)
     std::vector<Container> vals;
     const unsigned int my_rank = TestCommWorld->rank();
 
-    TestCommWorld->allgather(createMapContainer<Container>(my_rank + 1), vals);
+    auto my_val = createMapContainer<Container>(my_rank + 1);
+
+    TestCommWorld->allgather(my_val, vals);
 
     const std::size_t comm_size = TestCommWorld->size();
     const std::size_t vec_size = vals.size();
