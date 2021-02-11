@@ -582,6 +582,130 @@ Packing<std::array<T, N>,
 
 
 
+// Metafunction to choose buffer types: use a specified
+// Packing<class>::buffer_type for any class that has one; use
+// unsigned int otherwise.
+template <typename T, typename Enable=void>
+struct DefaultBufferType;
+
+template <typename T>
+struct DefaultBufferType <T, typename std::enable_if<Has_buffer_type<Packing<T>>::value>::type>
+{
+  typedef typename Packing<T>::buffer_type type;
+};
+
+template <typename T>
+struct DefaultBufferType <T, typename std::enable_if<!Has_buffer_type<Packing<T>>::value>::type>
+{
+  typedef unsigned int type;
+};
+
+
+
+// helper class for any homogeneous-type variable-size containers
+// which define the usual iterator ranges, value_type, etc.
+template <typename Container>
+class PackingRange
+{
+public:
+  typedef typename
+    DefaultBufferType<typename Container::value_type>::type
+    buffer_type;
+
+  typedef PackingMixedType<buffer_type> Mixed;
+
+  template <typename OutputIter, typename Context>
+  static void pack(const Container & a,
+                   OutputIter data_out, const Context * context);
+
+  template <typename Context>
+  static unsigned int packable_size(const Container & a,
+                                    const Context * context);
+
+  template <typename BufferIter>
+  static unsigned int packed_size(BufferIter iter);
+
+  template <typename BufferIter, typename Context>
+  static Container unpack(BufferIter in, Context * ctx);
+};
+
+
+template <typename Container>
+template <typename Context>
+unsigned int
+PackingRange<Container>::packable_size(const Container & c, const Context * ctx)
+{
+  unsigned int returnval = 1; // size
+  for (const auto & entry : c)
+    returnval += Mixed::packable_size_comp(entry, ctx);
+  return returnval;
+}
+
+template <typename Container>
+template <typename BufferIter>
+unsigned int
+PackingRange<Container>::packed_size(BufferIter iter)
+{
+  // We recorded the size in the first buffer entry
+  return *iter;
+}
+
+template <typename Container>
+template <typename OutputIter, typename Context>
+void
+PackingRange<Container>::pack(const Container & c, OutputIter data_out, const Context * ctx)
+{
+  unsigned int size = packable_size(c, ctx);
+
+  // First write out info about the buffer size
+  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+
+  // Now pack the data
+  for (const auto & entry : c)
+    Mixed::pack_comp(entry, data_out, ctx);
+}
+
+template <typename Container>
+template <typename BufferIter, typename Context>
+Container
+PackingRange<Container>::unpack(BufferIter in, Context * ctx)
+{
+  Container c;
+
+  unsigned int size = packed_size(in);
+
+  timpi_assert_greater(size, 0);
+
+  // Now skip the size data itself
+  in++;
+  size--;
+
+  // Unpack the data
+  std::size_t unpacked_size = 0;
+  while (unpacked_size < size)
+    {
+      typename Container::value_type entry;
+      Mixed::unpack_comp(entry, in, ctx);
+
+      c.insert(c.end(), entry);
+
+      // Make sure we increment the iterator
+      const std::size_t unpacked_size_comp =
+        Mixed::packable_size_comp(entry, ctx);
+      in += unpacked_size_comp;
+      unpacked_size += unpacked_size_comp;
+    }
+
+  // We should always finish at exactly the size we expected, not
+  // proceed past it
+  timpi_assert_equal_to(unpacked_size, size);
+
+  return c;
+}
+
+
+
+
 
 
 #define TIMPI_HAVE_STRING_PACKING
