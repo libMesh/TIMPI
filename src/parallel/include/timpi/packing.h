@@ -172,6 +172,16 @@ struct PackingMixedType
       *data_out++ = T3_as_buffer_types[i];
   }
 
+  template <typename T1, typename T2,
+            typename OutputIter,
+            typename Context,
+            typename std::enable_if<IsFixed<std::pair<T1, T2>>::value, int>::type = 0>
+  static void pack_comp(const std::pair<T1, T2> & comp, OutputIter data_out, const Context * ctx)
+  {
+    pack_comp(comp.first, data_out, ctx);
+    pack_comp(comp.second, data_out, ctx);
+  }
+
   template <typename T3,
             typename OutputIter,
             typename Context,
@@ -189,6 +199,17 @@ struct PackingMixedType
   {
     std::memcpy(&comp, &(*in), sizeof(T3));
   }
+
+  template <typename T1, typename T2,
+            typename BufferIter,
+            typename Context,
+            typename std::enable_if<IsFixed<std::pair<T1, T2>>::value, int>::type = 0>
+  static void unpack_comp(const std::pair<T1, T2> & comp, BufferIter in, const Context * ctx)
+  {
+    unpack_comp(comp.first, in, ctx);
+    unpack_comp(comp.second, in, ctx);
+  }
+
 
   template <typename T3,
             typename BufferIter,
