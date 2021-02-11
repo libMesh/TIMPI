@@ -105,6 +105,19 @@ public:
 };
 
 
+// Metafunction to get a value_type from map and unordered_map with
+// non-const keys, so we can create a key/value pair more easily
+template <typename ValueType>
+struct DefaultValueType {
+  typedef ValueType type;
+};
+
+template <typename K, typename V>
+struct DefaultValueType<std::pair<const K, V>> {
+  typedef std::pair<K, V> type;
+};
+
+
 // Superclass with utility methods for use with Packing partial
 // specializations that mix fixed-size with Packing-required inner
 // classes.
@@ -116,7 +129,9 @@ struct PackingMixedType
   template <typename T3>
   struct IsFixed
   {
-    static const bool value = TIMPI::StandardType<T3>::is_fixed_type;
+    static const bool value =
+      TIMPI::StandardType
+      <typename DefaultValueType<T3>::type>::is_fixed_type;
   };
 
   template <typename T3>
@@ -608,7 +623,6 @@ struct DefaultBufferType <T, typename std::enable_if<!Has_buffer_type<Packing<T>
 };
 
 
-
 // helper class for any homogeneous-type variable-size containers
 // which define the usual iterator ranges, value_type, etc.
 template <typename Container>
@@ -691,7 +705,7 @@ PackingRange<Container>::unpack(BufferIter in, Context * ctx)
   std::size_t unpacked_size = 0;
   while (unpacked_size < size)
     {
-      typename Container::value_type entry;
+      typename DefaultValueType<typename Container::value_type>::type entry;
       Mixed::unpack_comp(entry, in, ctx);
 
       c.insert(c.end(), entry);
