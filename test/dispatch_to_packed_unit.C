@@ -56,7 +56,7 @@ Container createMapContainer(std::size_t size)
   Container c;
 
   for (std::size_t i = 0; i != size; ++i)
-    c[i*10] = i*50;
+    c.insert(std::make_pair(i*10, i*50));
 
   return c;
 }
@@ -410,8 +410,12 @@ int main(int argc, const char * const * argv)
   testContainerAllGather<std::list<unsigned int>>();
   testContainerAllGather<std::set<unsigned int>>();
   testContainerAllGather<std::unordered_set<unsigned int>>();
+  testContainerAllGather<std::multiset<unsigned int>>();
+  testContainerAllGather<std::unordered_multiset<unsigned int>>();
   testMapContainerAllGather<std::map<unsigned int, unsigned int>>();
   testMapContainerAllGather<std::unordered_map<unsigned int, unsigned int>>();
+  testMapContainerAllGather<std::multimap<unsigned int, unsigned int>>();
+  testMapContainerAllGather<std::unordered_multimap<unsigned int, unsigned int>>();
   testVectorOfContainersAllGather();
   testContainerBroadcast();
   testVectorOfContainersBroadcast();
