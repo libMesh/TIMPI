@@ -64,3 +64,11 @@
   * Ensure methods with SFINAE abling can be used in serial
   * Support build_standard_type w/ user allocators
   * Quad-precision support
+
+1.5
+  * Move Packing<string> into sources
+  * Packing<tuple> specialization
+  * StandardType<std::array> support
+  * Packing<array> support
+  * Packing<list, map, unordered_set, etc>
+  
