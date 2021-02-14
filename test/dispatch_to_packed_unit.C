@@ -2,10 +2,15 @@
 // timpi.h doesn't pull in parallel_sync
 #include <timpi/parallel_sync.h>
 
+#include <algorithm>
 #include <array>
 #include <iterator>
+#include <list>
+#include <map>
 #include <set>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility> // pair
 #include <vector>
 #include <unistd.h>
@@ -26,89 +31,46 @@ public:
 };
 }
 
-namespace libMesh {
-namespace Parallel {
-template <typename T>
-class Packing<std::set<T>> {
-public:
-
-  static const unsigned int size_bytes = 4;
-
-  typedef T buffer_type;
-
-  static unsigned int
-  get_set_len (typename std::vector<T>::const_iterator in)
-  {
-    unsigned int set_len = reinterpret_cast<const unsigned char &>(in[size_bytes-1]);
-    for (signed int i=size_bytes-2; i >= 0; --i)
-      {
-        set_len *= 256;
-        set_len += reinterpret_cast<const unsigned char &>(in[i]);
-      }
-    return set_len;
-  }
-
-
-  static unsigned int
-  packed_size (typename std::vector<T>::const_iterator in)
-  {
-    return get_set_len(in) + size_bytes;
-  }
-
-  static unsigned int packable_size
-  (const std::set<T> & s,
-   const void *)
-  {
-    return s.size() + size_bytes;
-  }
-
-
-  template <typename Iter>
-  static void pack (const std::set<T> & b, Iter data_out,
-                    const void *)
-  {
-    unsigned int set_len = b.size();
-    for (unsigned int i=0; i != size_bytes; ++i)
-      {
-        *data_out++ = (set_len % 256);
-        set_len /= 256;
-      }
-    std::copy(b.begin(), b.end(), data_out);
-  }
-
-  static std::set<T>
-  unpack (typename std::vector<T>::const_iterator in, void *)
-  {
-    unsigned int set_len = get_set_len(in);
-
-    return std::set<T>(in + size_bytes, in + size_bytes + set_len);
-  }
-
-};
-
-
-} // namespace Parallel
-
-} // namespace libMesh
-
 using namespace TIMPI;
 
 Communicator *TestCommWorld;
 
-template <typename T>
-std::set<T> createSet(std::size_t size)
+
+template <typename Container>
+Container createContainer(std::size_t size)
 {
-  std::vector<T> temp(size);
+  std::vector<typename Container::value_type> temp(size);
   std::iota(temp.begin(), temp.end(), 0);
-  return std::set<T>(temp.begin(), temp.end());
+  return Container(temp.begin(), temp.end());
 }
 
+
+template <typename T>
+std::set<T> createSet(std::size_t size)
+{ return createContainer<std::set<T>>(size); }
+
+
+template <typename Container>
+Container createMapContainer(std::size_t size)
+{
+  Container c;
+
+  for (std::size_t i = 0; i != size; ++i)
+    c.insert(std::make_pair(i*10, i*50));
+
+  return c;
+}
+
+
+  template <typename Container>
   void testContainerAllGather()
   {
-    std::vector<std::set<unsigned int>> vals;
+    std::vector<Container> vals;
     const unsigned int my_rank = TestCommWorld->rank();
 
-    TestCommWorld->allgather(createSet<unsigned int>(my_rank + 1), vals);
+    auto my_val = createContainer<Container>(my_rank + 1);
+
+    TestCommWorld->allgather(my_val, vals);
 
     const std::size_t comm_size = TestCommWorld->size();
     const std::size_t vec_size = vals.size();
@@ -116,11 +78,41 @@ std::set<T> createSet(std::size_t size)
 
     for (std::size_t i = 0; i < vec_size; ++i)
     {
-      const auto & current_set = vals[i];
-      TIMPI_UNIT_ASSERT(current_set.size() == i+1);
-      unsigned int value = 0;
-      for (auto number : current_set)
-        TIMPI_UNIT_ASSERT(number == value++);
+      const auto & current_container = vals[i];
+      TIMPI_UNIT_ASSERT(current_container.size() == i+1);
+      for (std::size_t n = 0; n != i+1; ++n)
+        {
+          auto it = std::find(current_container.begin(),
+                              current_container.end(), n);
+          TIMPI_UNIT_ASSERT(it != current_container.end());
+        }
+    }
+  }
+
+  template <typename Container>
+  void testMapContainerAllGather()
+  {
+    std::vector<Container> vals;
+    const unsigned int my_rank = TestCommWorld->rank();
+
+    auto my_val = createMapContainer<Container>(my_rank + 1);
+
+    TestCommWorld->allgather(my_val, vals);
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = vals.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    for (std::size_t i = 0; i < vec_size; ++i)
+    {
+      const auto & current_container = vals[i];
+      TIMPI_UNIT_ASSERT(current_container.size() == i+1);
+      for (std::size_t n = 0; n != i+1; ++n)
+        {
+          auto it = current_container.find(n*10);
+          TIMPI_UNIT_ASSERT(it != current_container.end());
+          TIMPI_UNIT_ASSERT(it->second == n*50);
+        }
     }
   }
 
@@ -415,7 +407,15 @@ int main(int argc, const char * const * argv)
   TIMPI::TIMPIInit init(argc, argv);
   TestCommWorld = &init.comm();
 
-  testContainerAllGather();
+  testContainerAllGather<std::list<unsigned int>>();
+  testContainerAllGather<std::set<unsigned int>>();
+  testContainerAllGather<std::unordered_set<unsigned int>>();
+  testContainerAllGather<std::multiset<unsigned int>>();
+  testContainerAllGather<std::unordered_multiset<unsigned int>>();
+  testMapContainerAllGather<std::map<unsigned int, unsigned int>>();
+  testMapContainerAllGather<std::unordered_map<unsigned int, unsigned int>>();
+  testMapContainerAllGather<std::multimap<unsigned int, unsigned int>>();
+  testMapContainerAllGather<std::unordered_multimap<unsigned int, unsigned int>>();
   testVectorOfContainersAllGather();
   testContainerBroadcast();
   testVectorOfContainersBroadcast();

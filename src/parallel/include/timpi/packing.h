@@ -28,8 +28,13 @@
 #include <array>
 #include <cstring>     // memcpy
 #include <iterator>
+#include <list>
+#include <map>
+#include <set>
 #include <tuple>
 #include <type_traits> // enable_if, is_same
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>     // pair
 #include <vector>
 
@@ -104,6 +109,19 @@ public:
 };
 
 
+// Metafunction to get a value_type from map and unordered_map with
+// non-const keys, so we can create a key/value pair more easily
+template <typename ValueType>
+struct DefaultValueType {
+  typedef ValueType type;
+};
+
+template <typename K, typename V>
+struct DefaultValueType<std::pair<const K, V>> {
+  typedef std::pair<K, V> type;
+};
+
+
 // Superclass with utility methods for use with Packing partial
 // specializations that mix fixed-size with Packing-required inner
 // classes.
@@ -115,7 +133,9 @@ struct PackingMixedType
   template <typename T3>
   struct IsFixed
   {
-    static const bool value = TIMPI::StandardType<T3>::is_fixed_type;
+    static const bool value =
+      TIMPI::StandardType
+      <typename DefaultValueType<T3>::type>::is_fixed_type;
   };
 
   template <typename T3>
@@ -152,6 +172,16 @@ struct PackingMixedType
       *data_out++ = T3_as_buffer_types[i];
   }
 
+  template <typename T1, typename T2,
+            typename OutputIter,
+            typename Context,
+            typename std::enable_if<IsFixed<std::pair<T1, T2>>::value, int>::type = 0>
+  static void pack_comp(const std::pair<T1, T2> & comp, OutputIter data_out, const Context * ctx)
+  {
+    pack_comp(comp.first, data_out, ctx);
+    pack_comp(comp.second, data_out, ctx);
+  }
+
   template <typename T3,
             typename OutputIter,
             typename Context,
@@ -169,6 +199,20 @@ struct PackingMixedType
   {
     std::memcpy(&comp, &(*in), sizeof(T3));
   }
+
+  template <typename T1, typename T2,
+            typename BufferIter,
+            typename Context,
+            typename std::enable_if<IsFixed<std::pair<T1, T2>>::value, int>::type = 0>
+  static void unpack_comp(std::pair<T1, T2> & comp, BufferIter in, Context * ctx)
+  {
+    unpack_comp(comp.first, in, ctx);
+
+    in += packable_size_comp(comp.first, ctx);
+
+    unpack_comp(comp.second, in, ctx);
+  }
+
 
   template <typename T3,
             typename BufferIter,
@@ -206,6 +250,12 @@ template <typename T1, typename T2>
 struct PairBufferTypeHelper<T1, false, T2, true>
 {
   typedef typename Packing<T2>::buffer_type buffer_type;
+};
+
+template <typename T1, typename T2>
+struct PairBufferTypeHelper<T1, false, T2, false>
+{
+  typedef unsigned int buffer_type;
 };
 
 
@@ -581,6 +631,172 @@ Packing<std::array<T, N>,
 }
 
 
+
+// Metafunction to choose buffer types: use a specified
+// Packing<class>::buffer_type for any class that has one; use
+// unsigned int otherwise.
+template <typename T, typename Enable=void>
+struct DefaultBufferType;
+
+template <typename T>
+struct DefaultBufferType <T, typename std::enable_if<Has_buffer_type<Packing<T>>::value>::type>
+{
+  typedef typename Packing<T>::buffer_type type;
+};
+
+template <typename T>
+struct DefaultBufferType <T, typename std::enable_if<!Has_buffer_type<Packing<T>>::value>::type>
+{
+  typedef unsigned int type;
+};
+
+
+// helper class for any homogeneous-type variable-size containers
+// which define the usual iterator ranges, value_type, etc.
+template <typename Container>
+class PackingRange
+{
+public:
+  typedef typename
+    DefaultBufferType<typename Container::value_type>::type
+    buffer_type;
+
+  typedef PackingMixedType<buffer_type> Mixed;
+
+  template <typename OutputIter, typename Context>
+  static void pack(const Container & a,
+                   OutputIter data_out, const Context * context);
+
+  template <typename Context>
+  static unsigned int packable_size(const Container & a,
+                                    const Context * context);
+
+  template <typename BufferIter>
+  static unsigned int packed_size(BufferIter iter);
+
+  template <typename BufferIter, typename Context>
+  static Container unpack(BufferIter in, Context * ctx);
+};
+
+
+template <typename Container>
+template <typename Context>
+unsigned int
+PackingRange<Container>::packable_size(const Container & c, const Context * ctx)
+{
+  unsigned int returnval = 1; // size
+  for (const auto & entry : c)
+    returnval += Mixed::packable_size_comp(entry, ctx);
+  return returnval;
+}
+
+template <typename Container>
+template <typename BufferIter>
+unsigned int
+PackingRange<Container>::packed_size(BufferIter iter)
+{
+  // We recorded the size in the first buffer entry
+  return *iter;
+}
+
+template <typename Container>
+template <typename OutputIter, typename Context>
+void
+PackingRange<Container>::pack(const Container & c, OutputIter data_out, const Context * ctx)
+{
+  unsigned int size = packable_size(c, ctx);
+
+  // First write out info about the buffer size
+  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+
+  // Now pack the data
+  for (const auto & entry : c)
+    Mixed::pack_comp(entry, data_out, ctx);
+}
+
+template <typename Container>
+template <typename BufferIter, typename Context>
+Container
+PackingRange<Container>::unpack(BufferIter in, Context * ctx)
+{
+  Container c;
+
+  unsigned int size = packed_size(in);
+
+  timpi_assert_greater(size, 0);
+
+  // Now skip the size data itself
+  in++;
+  size--;
+
+  // Unpack the data
+  std::size_t unpacked_size = 0;
+  while (unpacked_size < size)
+    {
+      typename DefaultValueType<typename Container::value_type>::type entry;
+      Mixed::unpack_comp(entry, in, ctx);
+
+      c.insert(c.end(), entry);
+
+      // Make sure we increment the iterator
+      const std::size_t unpacked_size_comp =
+        Mixed::packable_size_comp(entry, ctx);
+      in += unpacked_size_comp;
+      unpacked_size += unpacked_size_comp;
+    }
+
+  // We should always finish at exactly the size we expected, not
+  // proceed past it
+  timpi_assert_equal_to(unpacked_size, size);
+
+  return c;
+}
+
+
+
+#define TIMPI_PACKING_RANGE_SUBCLASS(Container)           \
+class Packing<Container> : public PackingRange<Container> \
+{                                                         \
+public:                                                   \
+  using typename PackingRange<Container>::buffer_type;    \
+                                                          \
+  using typename PackingRange<Container>::Mixed;          \
+                                                          \
+  using PackingRange<Container>::pack;                    \
+  using PackingRange<Container>::packable_size;           \
+  using PackingRange<Container>::packed_size;             \
+  using PackingRange<Container>::unpack;                  \
+}
+
+
+#define TIMPI_P_COMMA ,
+
+template <typename T, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::list<T TIMPI_P_COMMA A>);
+
+template <typename K, typename T, typename C, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::map<K TIMPI_P_COMMA T TIMPI_P_COMMA C TIMPI_P_COMMA A>);
+
+template <typename K, typename T, typename C, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::multimap<K TIMPI_P_COMMA T TIMPI_P_COMMA C TIMPI_P_COMMA A>);
+
+template <typename K, typename C, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::multiset<K TIMPI_P_COMMA C TIMPI_P_COMMA A>);
+
+template <typename K, typename C, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::set<K TIMPI_P_COMMA C TIMPI_P_COMMA A>);
+
+template <typename K, typename T, typename H, typename KE, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_map<K TIMPI_P_COMMA T TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
+
+template <typename K, typename T, typename H, typename KE, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_multimap<K TIMPI_P_COMMA T TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
+
+template <typename K, typename H, typename KE, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_multiset<K TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
+
+template <typename K, typename H, typename KE, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_set<K TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
 
 
 
