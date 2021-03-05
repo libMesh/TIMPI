@@ -184,7 +184,7 @@ push_parallel_nbx_helper(const Communicator & comm,
   const_cast<Communicator &>(comm).send_mode(Communicator::SYNCHRONOUS);
 
   // The send requests
-  std::list<Request> reqs;
+  std::list<Request> requests;
 
   processor_id_type num_procs = comm.size();
 
@@ -200,8 +200,8 @@ push_parallel_nbx_helper(const Communicator & comm,
         act_on_data(destid, datum);
       else
         {
-          reqs.emplace_back();
-          send_functor(comm, destid, datum, reqs.back(), tag);
+          requests.emplace_back();
+          send_functor(comm, destid, datum, requests.back(), tag);
         }
     }
 
@@ -210,7 +210,7 @@ push_parallel_nbx_helper(const Communicator & comm,
     return;
 
   // Whether or not all of the sends are complete
-  bool sends_complete = reqs.empty();
+  bool sends_complete = requests.empty();
 
   // Whether or not the nonblocking barrier has started
   bool started_barrier = false;
@@ -218,7 +218,7 @@ push_parallel_nbx_helper(const Communicator & comm,
   Request barrier_request;
 
   // The pair of src_pid and requests
-  std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_reqs;
+  std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_requests;
   auto current_request = std::make_shared<Request>();
 
   // Storage for the incoming data
@@ -237,7 +237,7 @@ push_parallel_nbx_helper(const Communicator & comm,
     if (possibly_receive_functor(
             comm, current_src_proc, *current_incoming_data, *current_request, tag))
     {
-      receive_reqs.emplace_back(current_src_proc, current_request);
+      receive_requests.emplace_back(current_src_proc, current_request);
       current_request = std::make_shared<Request>();
 
       // current_src_proc will now hold the src pid for this receive
@@ -246,7 +246,7 @@ push_parallel_nbx_helper(const Communicator & comm,
     }
 
     // Clean up outstanding receive requests
-    receive_reqs.remove_if([&act_on_data, &incoming_data](std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
+    receive_requests.remove_if([&act_on_data, &incoming_data](std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
                            {
                              auto & pid = pid_req_pair.first;
                              auto & req = pid_req_pair.second;
@@ -273,7 +273,7 @@ push_parallel_nbx_helper(const Communicator & comm,
                              return false;
                            });
 
-    reqs.remove_if([](Request & req)
+    requests.remove_if([](Request & req)
                    {
                      if (req.test())
                      {
@@ -289,7 +289,7 @@ push_parallel_nbx_helper(const Communicator & comm,
 
 
     // See if all of the sends are finished
-    if (reqs.empty())
+    if (requests.empty())
       sends_complete = true;
 
     // If they've all completed then we can start the barrier
@@ -300,7 +300,7 @@ push_parallel_nbx_helper(const Communicator & comm,
     }
 
     // Must fully receive everything before being allowed to move on!
-    if (receive_reqs.empty())
+    if (receive_requests.empty())
       // See if all proessors have finished all sends (i.e. _done_!)
       if (started_barrier)
         if (barrier_request.test())
@@ -496,7 +496,7 @@ void pull_parallel_vector_data(const Communicator & comm,
 
   // First index: order of creation, irrelevant
   std::vector<std::vector<std::vector<datum,A>>> response_data;
-  std::vector<Request> response_reqs;
+  std::vector<Request> response_requests;
 
   // We'll grab a tag so we can overlap request sends and receives
   // without confusing one for the other
@@ -504,7 +504,7 @@ void pull_parallel_vector_data(const Communicator & comm,
 
   auto gather_functor =
     [&comm, &gather_data, &act_on_data,
-     &response_data, &response_reqs, &tag]
+     &response_data, &response_requests, &tag]
     (processor_id_type pid, query_type query)
     {
       std::vector<std::vector<datum,A>> response;
@@ -521,7 +521,7 @@ void pull_parallel_vector_data(const Communicator & comm,
         {
           Request sendreq;
           comm.send(pid, response, sendreq, tag);
-          response_reqs.push_back(sendreq);
+          response_requests.push_back(sendreq);
           response_data.push_back(std::move(response));
         }
     };
@@ -536,7 +536,7 @@ void pull_parallel_vector_data(const Communicator & comm,
   // non-blocking APIs with this data type.
   //
   // FIXME - implement Derek's API from #1684, switch to that!
-  std::vector<Request> receive_reqs;
+  std::vector<Request> receive_requests;
   std::vector<processor_id_type> receive_procids;
   for (std::size_t i = 0,
        n_queries = queries.size() - queries.count(comm.rank());
@@ -555,7 +555,7 @@ void pull_parallel_vector_data(const Communicator & comm,
       act_on_data(proc_id, querydata, received_data);
     }
 
-  wait(response_reqs);
+  wait(response_requests);
 }
 
 } // namespace TIMPI
