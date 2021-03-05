@@ -159,7 +159,7 @@ template <typename MapToContainers,
           typename ActionFunctor>
 void
 push_parallel_nbx_helper(const Communicator & comm,
-                         MapToContainers & data,
+                         const MapToContainers & data,
                          SendFunctor & send_functor,
                          PossiblyReceiveFunctor & possibly_receive_functor,
                          ActionFunctor & act_on_data)
@@ -332,7 +332,7 @@ void push_parallel_vector_data(const Communicator & comm,
 
   auto send_functor = [&type](const Communicator & comm,
                               const processor_id_type dest_pid,
-                              container_type & datum,
+                              const container_type & datum,
                               Request & request,
                               const MessageTag tag) {
     comm.send(dest_pid, datum, type, request, tag);
@@ -347,8 +347,8 @@ void push_parallel_vector_data(const Communicator & comm,
         current_src_proc, current_incoming_data, type, current_request, tag);
   };
 
-  push_parallel_nbx_helper(
-      comm, const_cast<MapToVectors &>(data), send_functor, possibly_receive_functor, act_on_data);
+  push_parallel_nbx_helper(comm, data, send_functor,
+                           possibly_receive_functor, act_on_data);
 }
 
 
@@ -366,7 +366,7 @@ void push_parallel_packed_range(const Communicator & comm,
 
   auto send_functor = [&context](const Communicator & comm,
                                  const processor_id_type dest_pid,
-                                 container_type & datum,
+                                 const container_type & datum,
                                  Request & request,
                                  const MessageTag tag) {
     comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), request, tag);
@@ -386,11 +386,8 @@ void push_parallel_packed_range(const Communicator & comm,
         tag);
   };
 
-  push_parallel_nbx_helper(comm,
-                           const_cast<MapToContainers &>(data),
-                           send_functor,
-                           possibly_receive_functor,
-                           act_on_data);
+  push_parallel_nbx_helper(comm, data, send_functor,
+                           possibly_receive_functor, act_on_data);
 }
 
 
