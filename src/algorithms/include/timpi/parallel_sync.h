@@ -229,83 +229,88 @@ push_parallel_nbx_helper(const Communicator & comm,
 
   // Keep looking for receives
   while (true)
-  {
-    // Look for data from anywhere
-    current_src_proc = any_source;
-
-    // Check if there is a message and start receiving it
-    if (possibly_receive_functor(
-            comm, current_src_proc, *current_incoming_data, *current_request, tag))
     {
-      receive_requests.emplace_back(current_src_proc, current_request);
-      current_request = std::make_shared<Request>();
+      // Look for data from anywhere
+      current_src_proc = any_source;
 
-      // current_src_proc will now hold the src pid for this receive
-      incoming_data.emplace(current_src_proc, current_incoming_data);
-      current_incoming_data = std::make_shared<container_type>();
+      // Check if there is a message and start receiving it
+      if (possibly_receive_functor(comm, current_src_proc,
+                                   *current_incoming_data,
+                                   *current_request, tag))
+        {
+          receive_requests.emplace_back(current_src_proc,
+                                        current_request);
+          current_request = std::make_shared<Request>();
+
+          // current_src_proc will now hold the src pid for this receive
+          incoming_data.emplace(current_src_proc,
+                                current_incoming_data);
+          current_incoming_data = std::make_shared<container_type>();
+        }
+
+        // Clean up outstanding receive requests
+      receive_requests.remove_if
+        ([&act_on_data, &incoming_data]
+         (std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
+         {
+           auto & pid = pid_req_pair.first;
+           auto & req = pid_req_pair.second;
+
+           // If it's finished - let's act on it
+           if (req->test())
+             {
+               // Do any post-wait work
+               req->wait();
+
+               auto it = incoming_data.find(pid);
+               timpi_assert(it != incoming_data.end());
+
+               act_on_data(pid, *it->second);
+
+               // Don't need this data anymore
+               incoming_data.erase(it);
+
+               // This removes it from the list
+               return true;
+             }
+
+             // Not finished yet
+             return false;
+           });
+
+      requests.remove_if
+        ([](Request & req)
+         {
+           if (req.test())
+             {
+               // Do Post-Wait work
+               req.wait();
+               return true;
+             }
+
+             // Not finished yet
+             return false;
+         });
+
+
+      // See if all of the sends are finished
+      if (requests.empty())
+        sends_complete = true;
+
+      // If they've all completed then we can start the barrier
+      if (sends_complete && !started_barrier)
+        {
+          started_barrier = true;
+          comm.nonblocking_barrier(barrier_request);
+        }
+
+      // Must fully receive everything before being allowed to move on!
+      if (receive_requests.empty())
+        // See if all proessors have finished all sends (i.e. _done_!)
+        if (started_barrier)
+          if (barrier_request.test())
+            break; // Done!
     }
-
-    // Clean up outstanding receive requests
-    receive_requests.remove_if([&act_on_data, &incoming_data](std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
-                           {
-                             auto & pid = pid_req_pair.first;
-                             auto & req = pid_req_pair.second;
-
-                             // If it's finished - let's act on it
-                             if (req->test())
-                             {
-                               // Do any post-wait work
-                               req->wait();
-
-                               auto it = incoming_data.find(pid);
-                               timpi_assert(it != incoming_data.end());
-
-                               act_on_data(pid, *it->second);
-
-                               // Don't need this data anymore
-                               incoming_data.erase(it);
-
-                               // This removes it from the list
-                               return true;
-                             }
-
-                             // Not finished yet
-                             return false;
-                           });
-
-    requests.remove_if([](Request & req)
-                   {
-                     if (req.test())
-                     {
-                       // Do Post-Wait work
-                       req.wait();
-
-                       return true;
-                     }
-
-                     // Not finished yet
-                     return false;
-                   });
-
-
-    // See if all of the sends are finished
-    if (requests.empty())
-      sends_complete = true;
-
-    // If they've all completed then we can start the barrier
-    if (sends_complete && !started_barrier)
-    {
-      started_barrier = true;
-      comm.nonblocking_barrier(barrier_request);
-    }
-
-    // Must fully receive everything before being allowed to move on!
-    if (receive_requests.empty())
-      // See if all proessors have finished all sends (i.e. _done_!)
-      if (started_barrier)
-        if (barrier_request.test())
-          break; // Done!
-  }
 
   // Reset the send mode
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
