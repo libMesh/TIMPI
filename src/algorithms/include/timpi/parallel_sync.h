@@ -186,27 +186,27 @@ push_parallel_nbx_helper(const Communicator & comm,
   // The send requests
   std::list<Request> requests;
 
-  processor_id_type num_procs = comm.size();
+  const processor_id_type num_procs = comm.size();
 
   for (auto & datapair : data)
     {
       // In the case of data partitioned into more processors than we
       // have ranks, we "wrap around"
-      processor_id_type destid = datapair.first % num_procs;
+      processor_id_type dest_pid = datapair.first % num_procs;
       auto & datum = datapair.second;
 
       // Just act on data if the user requested a send-to-self
-      if (destid == comm.rank())
-        act_on_data(destid, datum);
+      if (dest_pid == comm.rank())
+        act_on_data(dest_pid, datum);
       else
         {
           requests.emplace_back();
-          send_functor(comm, destid, datum, requests.back(), tag);
+          send_functor(comm, dest_pid, datum, requests.back(), tag);
         }
     }
 
   // In serial we've now acted on all our data.
-  if (comm.size() == 1)
+  if (num_procs == 1)
     return;
 
   // Whether or not all of the sends are complete
