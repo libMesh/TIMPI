@@ -52,14 +52,24 @@ namespace TIMPI {
  * All receives and actions are completed before this function
  * returns.
  *
- * Note: it is very important that the message tag be completely
- * unique to each invocation
+ * Two methods exist: one with a const reference to the data and another
+ * with an rvalue reference to the data. If you wish to use move semantics
+ * within the data received in \p act_on_data, use the method that passes
+ * the data as an rvalue reference.
  */
+ ///@{
 template <typename MapToVectors,
           typename ActionFunctor>
 void push_parallel_vector_data(const Communicator & comm,
                                const MapToVectors & data,
                                const ActionFunctor & act_on_data);
+
+template <typename MapToVectors,
+         typename ActionFunctor>
+void push_parallel_vector_data(const Communicator & comm,
+                               MapToVectors && data,
+                               const ActionFunctor & act_on_data);
+ ///@}
 
 /**
  * Send query vectors, receive and answer them with vectors of data,
@@ -95,7 +105,7 @@ template <typename datum,
 void pull_parallel_vector_data(const Communicator & comm,
                                const MapToVectors & queries,
                                GatherFunctor & gather_data,
-                               ActionFunctor & act_on_data,
+                               const ActionFunctor & act_on_data,
                                const datum * example);
 
 /**
@@ -115,9 +125,12 @@ void pull_parallel_vector_data(const Communicator & comm,
 * All receives and actions are completed before this function
 * returns.
 *
-* Note: it is very important that the message tag be completely
-* unique to each invocation
+* Two methods exist: one with a const reference to the data and another
+* with an rvalue reference to the data. If you wish to use move semantics
+* within the data received in \p act_on_data, use the method that passes
+* the data as an rvalue reference.
 */
+///@{
 template <typename MapToVectors,
           typename ActionFunctor,
           typename Context>
@@ -125,6 +138,15 @@ void push_parallel_packed_range(const Communicator & comm,
                                 const MapToVectors & data,
                                 Context * context,
                                 const ActionFunctor & act_on_data);
+
+template <typename MapToVectors,
+          typename ActionFunctor,
+          typename Context>
+void push_parallel_packed_range(const Communicator & comm,
+                                MapToVectors && data,
+                                Context * context,
+                                const ActionFunctor & act_on_data);
+///@}
 
 //------------------------------------------------------------------------
 // Parallel function overloads
@@ -159,10 +181,10 @@ template <typename MapToContainers,
           typename ActionFunctor>
 void
 push_parallel_nbx_helper(const Communicator & comm,
-                         const MapToContainers & data,
+                         MapToContainers & data,
                          SendFunctor & send_functor,
                          PossiblyReceiveFunctor & possibly_receive_functor,
-                         ActionFunctor & act_on_data)
+                         const ActionFunctor & act_on_data)
 {
   typedef typename MapToContainers::value_type::second_type container_type;
 
@@ -218,8 +240,8 @@ push_parallel_nbx_helper(const Communicator & comm,
   Request barrier_request;
 
   // The pair of src_pid and requests
-  std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_requests;
-  auto current_request = std::make_shared<Request>();
+  std::list<std::pair<unsigned int, Request>> receive_requests;
+  Request current_request;
 
   // Storage for the incoming data
   std::multimap<processor_id_type, std::shared_ptr<container_type>> incoming_data;
@@ -236,11 +258,11 @@ push_parallel_nbx_helper(const Communicator & comm,
       // Check if there is a message and start receiving it
       if (possibly_receive_functor(comm, current_src_proc,
                                    *current_incoming_data,
-                                   *current_request, tag))
+                                   current_request, tag))
         {
           receive_requests.emplace_back(current_src_proc,
-                                        current_request);
-          current_request = std::make_shared<Request>();
+                                        std::move(current_request));
+          current_request = Request();
 
           // current_src_proc will now hold the src pid for this receive
           incoming_data.emplace(current_src_proc,
@@ -251,16 +273,16 @@ push_parallel_nbx_helper(const Communicator & comm,
         // Clean up outstanding receive requests
       receive_requests.remove_if
         ([&act_on_data, &incoming_data]
-         (std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
+         (std::pair<unsigned int, Request> & pid_req_pair)
          {
            auto & pid = pid_req_pair.first;
            auto & req = pid_req_pair.second;
 
            // If it's finished - let's act on it
-           if (req->test())
+           if (req.test())
              {
                // Do any post-wait work
-               req->wait();
+               req.wait();
 
                auto it = incoming_data.find(pid);
                timpi_assert(it != incoming_data.end());
@@ -318,11 +340,50 @@ push_parallel_nbx_helper(const Communicator & comm,
 
 
 
+template <typename MapToContainers,
+          typename ActionFunctor,
+          typename Context>
+void push_parallel_packed_range_helper(const Communicator & comm,
+                                       MapToContainers & data,
+                                       Context * context,
+                                       const ActionFunctor & act_on_data)
+{
+  typedef typename MapToContainers::value_type::second_type container_type;
+  typedef typename container_type::value_type nonref_type;
+  typename std::remove_const<nonref_type>::type * output_type = nullptr;
+
+  auto send_functor = [&context](const Communicator & comm,
+                                 const processor_id_type dest_pid,
+                                 const container_type & datum,
+                                 Request & request,
+                                 const MessageTag tag) {
+    comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), request, tag);
+  };
+
+  auto possibly_receive_functor = [&context, &output_type](const Communicator & comm,
+                                                           unsigned int & current_src_proc,
+                                                           container_type & current_incoming_data,
+                                                           Request & current_request,
+                                                           const MessageTag tag) {
+    return comm.possibly_receive_packed_range(
+        current_src_proc,
+        context,
+        std::inserter(current_incoming_data, current_incoming_data.end()),
+        output_type,
+        current_request,
+        tag);
+  };
+
+  push_parallel_nbx_helper(comm, data, send_functor,
+                           possibly_receive_functor, act_on_data);
+}
+
+
 template <typename MapToVectors,
           typename ActionFunctor>
-void push_parallel_vector_data(const Communicator & comm,
-                               const MapToVectors & data,
-                               const ActionFunctor & act_on_data)
+void push_parallel_vector_data_helper(const Communicator & comm,
+                                      MapToVectors & data,
+                                      const ActionFunctor & act_on_data)
 {
   typedef typename MapToVectors::value_type::second_type container_type;
   typedef decltype(data.begin()->second.front()) ref_type;
@@ -357,6 +418,27 @@ void push_parallel_vector_data(const Communicator & comm,
 }
 
 
+template <typename MapToVectors,
+          typename ActionFunctor>
+void push_parallel_vector_data(const Communicator & comm,
+                               const MapToVectors & data,
+                               const ActionFunctor & act_on_data)
+{
+  push_parallel_vector_data_helper(comm, const_cast<MapToVectors &>(data), act_on_data);
+}
+
+
+template <typename MapToVectors,
+          typename ActionFunctor>
+void push_parallel_vector_data(const Communicator & comm,
+                               MapToVectors && data,
+                               const ActionFunctor & act_on_data)
+{
+  auto moved_data(std::move(data));
+  push_parallel_vector_data_helper(comm, moved_data, act_on_data);
+}
+
+
 template <typename MapToContainers,
           typename ActionFunctor,
           typename Context>
@@ -365,34 +447,21 @@ void push_parallel_packed_range(const Communicator & comm,
                                 Context * context,
                                 const ActionFunctor & act_on_data)
 {
-  typedef typename MapToContainers::value_type::second_type container_type;
-  typedef typename container_type::value_type nonref_type;
-  typename std::remove_const<nonref_type>::type * output_type = nullptr;
+  push_parallel_packed_range_helper(comm, const_cast<MapToContainers &>(data),
+                                    context, act_on_data);
+}
 
-  auto send_functor = [&context](const Communicator & comm,
-                                 const processor_id_type dest_pid,
-                                 const container_type & datum,
-                                 Request & request,
-                                 const MessageTag tag) {
-    comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), request, tag);
-  };
 
-  auto possibly_receive_functor = [&context, &output_type](const Communicator & comm,
-                                                           unsigned int & current_src_proc,
-                                                           container_type & current_incoming_data,
-                                                           Request & current_request,
-                                                           const MessageTag tag) {
-    return comm.possibly_receive_packed_range(
-        current_src_proc,
-        context,
-        std::inserter(current_incoming_data, current_incoming_data.end()),
-        output_type,
-        current_request,
-        tag);
-  };
-
-  push_parallel_nbx_helper(comm, data, send_functor,
-                           possibly_receive_functor, act_on_data);
+template <typename MapToContainers,
+          typename ActionFunctor,
+          typename Context>
+void push_parallel_packed_range(const Communicator & comm,
+                                MapToContainers && data,
+                                Context * context,
+                                const ActionFunctor & act_on_data)
+{
+  auto moved_data(std::move(data));
+  push_parallel_packed_range_helper(comm, moved_data, context, act_on_data);
 }
 
 

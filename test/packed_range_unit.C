@@ -1,11 +1,13 @@
 #include <timpi/parallel_sync.h>
 #include <timpi/timpi.h>
+#include <timpi/packing.h>
 
 #include <iterator>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
+#include <memory>
 
 #define TIMPI_UNIT_ASSERT(expr) \
   if (!(expr)) \
@@ -30,6 +32,33 @@ struct null_output_iterator
   // construct one or have any of its methods called.
   null_output_iterator & operator*() { return *this; }
 };
+
+#if __cplusplus > 201402L
+namespace libMesh
+{
+namespace Parallel
+{
+template <>
+class Packing<std::unique_ptr<int>>
+{
+public:
+  typedef int buffer_type;
+
+  static unsigned int packed_size(typename std::vector<int>::const_iterator) { return 1; }
+  static unsigned int packable_size(const std::unique_ptr<int> &, const void *) { return 1; }
+
+  template <typename Iter>
+  static void pack(const std::unique_ptr<int> & object, Iter data_out, const void *) { data_out = *object; }
+
+  template <typename BufferIter>
+  static std::unique_ptr<int> unpack(BufferIter in, const void *)
+    {
+      return std::make_unique<int>(*in++);
+    }
+};
+}
+}
+#endif
 
 using namespace TIMPI;
 
@@ -216,6 +245,85 @@ Communicator *TestCommWorld;
     testPushPackedImpl((TestCommWorld->size() + 4) * 2);
   }
 
+#if __cplusplus > 201402L
+  void testPushPackedImplMove(int M)
+  {
+    const int size = TestCommWorld->size(),
+              rank = TestCommWorld->rank();
+
+    std::map<processor_id_type, std::vector<std::unique_ptr<int>>>
+      data, received_data;
+
+    for (int d=0; d != M; ++d)
+      {
+        int diffsize = std::abs(d-rank);
+        int diffsqrt = std::sqrt(diffsize);
+        if (diffsqrt*diffsqrt == diffsize)
+          for (int i=-1; i != diffsqrt; ++i)
+            data[d].emplace_back(std::make_unique<int>(d));
+      }
+
+    auto collect_data =
+      [&received_data]
+      (processor_id_type pid,
+       std::vector<std::unique_ptr<int>> & vector_received)
+      {
+        auto & received = received_data[pid];
+        for (auto & val : vector_received)
+          received.emplace_back(std::move(val));
+      };
+
+    void * context = nullptr;
+    TIMPI::push_parallel_packed_range(*TestCommWorld, std::move(data), context, collect_data);
+
+    // Test the received results, for each processor id p we're in
+    // charge of.
+    std::vector<std::size_t> checked_sizes(size, 0);
+    for (int p=rank; p < M; p += size)
+      for (int srcp=0; srcp != size; ++srcp)
+        {
+          int diffsize = std::abs(srcp-p);
+          int diffsqrt = std::sqrt(diffsize);
+          if (diffsqrt*diffsqrt != diffsize)
+            {
+              if (received_data.count(srcp))
+                {
+                  std::size_t count = 0;
+                  for (const auto & val : received_data[srcp])
+                    if (*val == p)
+                      ++count;
+
+                  TIMPI_UNIT_ASSERT(count == (std::size_t)std::ptrdiff_t(0));
+                }
+              continue;
+            }
+
+          TIMPI_UNIT_ASSERT(received_data.count(srcp) == std::size_t(1));
+
+          std::size_t count = 0;
+          for (const auto & val : received_data[srcp])
+            if (*val == p)
+              ++count;
+
+          TIMPI_UNIT_ASSERT(count == (std::size_t)std::ptrdiff_t(diffsqrt+1));
+          checked_sizes[srcp] += diffsqrt+1;
+        }
+
+    for (int srcp=0; srcp != size; ++srcp)
+      TIMPI_UNIT_ASSERT(checked_sizes[srcp] == received_data[srcp].size());
+  }
+
+  void testPushPackedMove()
+  {
+    testPushPackedImpl(TestCommWorld->size());
+  }
+
+  void testPushPackedMoveOversized()
+  {
+    testPushPackedImpl((TestCommWorld->size() + 4) * 2);
+  }
+#endif
+
 int main(int argc, const char * const * argv)
 {
   TIMPI::TIMPIInit init(argc, argv);
@@ -227,6 +335,10 @@ int main(int argc, const char * const * argv)
   testContainerSendReceive();
   testPushPacked();
   testPushPackedOversized();
+#if __cplusplus > 201402L
+  testPushPackedMove();
+  testPushPackedMoveOversized();
+#endif
 
   return 0;
 }
