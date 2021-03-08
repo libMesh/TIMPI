@@ -199,8 +199,24 @@ Communicator *TestCommWorld;
         received.insert(multiset_received.begin(), multiset_received.end());
       };
 
+    // Ensure that no const_cast perfidy in parallel_sync.h messes up
+    // our original data
+    std::map<processor_id_type, std::multiset<std::string>> preserved_data {data};
+
+    // Do the push
     void * context = nullptr;
     TIMPI::push_parallel_packed_range(*TestCommWorld, data, context, collect_data);
+
+    // Test the sent data, which shouldn't have changed
+    TIMPI_UNIT_ASSERT(preserved_data.size() == data.size());
+    for (const auto & pair: preserved_data)
+      {
+        const auto &pd_ms = pair.second;
+        const auto &d_ms = data[pair.first];
+        TIMPI_UNIT_ASSERT(pd_ms.size() == d_ms.size());
+        for (auto entry : pd_ms)
+          TIMPI_UNIT_ASSERT(pd_ms.count(entry) == d_ms.count(entry));
+      }
 
     // Test the received results, for each processor id p we're in
     // charge of.
