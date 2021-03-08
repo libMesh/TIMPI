@@ -52,20 +52,12 @@ namespace TIMPI {
  * All receives and actions are completed before this function
  * returns.
  *
- * Two methods exist: one with a const reference to the data and another
- * with an rvalue reference to the data. If you wish to use move semantics
- * within the data received in \p act_on_data, use the method that passes
- * the data as an rvalue reference.
+ * If you wish to use move semantics within the data received in \p
+ * act_on_data, pass data itself as an rvalue reference.
  */
  ///@{
 template <typename MapToVectors,
           typename ActionFunctor>
-void push_parallel_vector_data(const Communicator & comm,
-                               const MapToVectors & data,
-                               const ActionFunctor & act_on_data);
-
-template <typename MapToVectors,
-         typename ActionFunctor>
 void push_parallel_vector_data(const Communicator & comm,
                                MapToVectors && data,
                                const ActionFunctor & act_on_data);
@@ -125,20 +117,11 @@ void pull_parallel_vector_data(const Communicator & comm,
 * All receives and actions are completed before this function
 * returns.
 *
-* Two methods exist: one with a const reference to the data and another
-* with an rvalue reference to the data. If you wish to use move semantics
-* within the data received in \p act_on_data, use the method that passes
-* the data as an rvalue reference.
+* If you wish to use move semantics within the data received in \p
+* act_on_data, pass data itself as an rvalue reference.
+*
 */
 ///@{
-template <typename MapToVectors,
-          typename ActionFunctor,
-          typename Context>
-void push_parallel_packed_range(const Communicator & comm,
-                                const MapToVectors & data,
-                                Context * context,
-                                const ActionFunctor & act_on_data);
-
 template <typename MapToVectors,
           typename ActionFunctor,
           typename Context>
@@ -343,12 +326,12 @@ push_parallel_nbx_helper(const Communicator & comm,
 template <typename MapToContainers,
           typename ActionFunctor,
           typename Context>
-void push_parallel_packed_range_helper(const Communicator & comm,
-                                       MapToContainers & data,
-                                       Context * context,
-                                       const ActionFunctor & act_on_data)
+void push_parallel_packed_range(const Communicator & comm,
+                                MapToContainers && data,
+                                Context * context,
+                                const ActionFunctor & act_on_data)
 {
-  typedef typename MapToContainers::value_type::second_type container_type;
+  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type container_type;
   typedef typename container_type::value_type nonref_type;
   typename std::remove_const<nonref_type>::type * output_type = nullptr;
 
@@ -381,11 +364,11 @@ void push_parallel_packed_range_helper(const Communicator & comm,
 
 template <typename MapToVectors,
           typename ActionFunctor>
-void push_parallel_vector_data_helper(const Communicator & comm,
-                                      MapToVectors & data,
-                                      const ActionFunctor & act_on_data)
+void push_parallel_vector_data(const Communicator & comm,
+                               MapToVectors && data,
+                               const ActionFunctor & act_on_data)
 {
-  typedef typename MapToVectors::value_type::second_type container_type;
+  typedef typename std::remove_reference<MapToVectors>::type::value_type::second_type container_type;
   typedef decltype(data.begin()->second.front()) ref_type;
   typedef typename std::remove_reference<ref_type>::type nonref_type;
   typedef typename std::remove_const<nonref_type>::type nonconst_nonref_type;
@@ -415,53 +398,6 @@ void push_parallel_vector_data_helper(const Communicator & comm,
 
   push_parallel_nbx_helper(comm, data, send_functor,
                            possibly_receive_functor, act_on_data);
-}
-
-
-template <typename MapToVectors,
-          typename ActionFunctor>
-void push_parallel_vector_data(const Communicator & comm,
-                               const MapToVectors & data,
-                               const ActionFunctor & act_on_data)
-{
-  push_parallel_vector_data_helper(comm, const_cast<MapToVectors &>(data), act_on_data);
-}
-
-
-template <typename MapToVectors,
-          typename ActionFunctor>
-void push_parallel_vector_data(const Communicator & comm,
-                               MapToVectors && data,
-                               const ActionFunctor & act_on_data)
-{
-  auto moved_data(std::move(data));
-  push_parallel_vector_data_helper(comm, moved_data, act_on_data);
-}
-
-
-template <typename MapToContainers,
-          typename ActionFunctor,
-          typename Context>
-void push_parallel_packed_range(const Communicator & comm,
-                                const MapToContainers & data,
-                                Context * context,
-                                const ActionFunctor & act_on_data)
-{
-  push_parallel_packed_range_helper(comm, const_cast<MapToContainers &>(data),
-                                    context, act_on_data);
-}
-
-
-template <typename MapToContainers,
-          typename ActionFunctor,
-          typename Context>
-void push_parallel_packed_range(const Communicator & comm,
-                                MapToContainers && data,
-                                Context * context,
-                                const ActionFunctor & act_on_data)
-{
-  auto moved_data(std::move(data));
-  push_parallel_packed_range_helper(comm, moved_data, context, act_on_data);
 }
 
 
