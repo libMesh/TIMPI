@@ -158,6 +158,9 @@ void pull_parallel_vector_data(const Communicator & comm,
 // Parallel members
 //
 
+// Separate namespace for not-for-public-use helper functions
+namespace detail {
+
 template <typename MapToContainers,
           typename SendFunctor,
           typename PossiblyReceiveFunctor,
@@ -321,6 +324,8 @@ push_parallel_nbx_helper(const Communicator & comm,
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
 }
 
+} // namespace detail
+
 
 
 template <typename MapToContainers,
@@ -357,8 +362,8 @@ void push_parallel_packed_range(const Communicator & comm,
         tag);
   };
 
-  push_parallel_nbx_helper(comm, data, send_functor,
-                           possibly_receive_functor, act_on_data);
+  detail::push_parallel_nbx_helper
+    (comm, data, send_functor, possibly_receive_functor, act_on_data);
 }
 
 
@@ -396,8 +401,8 @@ void push_parallel_vector_data(const Communicator & comm,
         current_src_proc, current_incoming_data, type, current_request, tag);
   };
 
-  push_parallel_nbx_helper(comm, data, send_functor,
-                           possibly_receive_functor, act_on_data);
+  detail::push_parallel_nbx_helper
+    (comm, data, send_functor, possibly_receive_functor, act_on_data);
 }
 
 
