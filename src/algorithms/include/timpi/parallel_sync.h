@@ -168,8 +168,8 @@ template <typename MapToContainers,
 void
 push_parallel_nbx_helper(const Communicator & comm,
                          MapToContainers & data,
-                         SendFunctor & send_functor,
-                         PossiblyReceiveFunctor & possibly_receive_functor,
+                         const SendFunctor & send_functor,
+                         const PossiblyReceiveFunctor & possibly_receive_functor,
                          const ActionFunctor & act_on_data)
 {
   typedef typename MapToContainers::value_type::second_type container_type;
