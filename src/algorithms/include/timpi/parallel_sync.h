@@ -52,14 +52,16 @@ namespace TIMPI {
  * All receives and actions are completed before this function
  * returns.
  *
- * Note: it is very important that the message tag be completely
- * unique to each invocation
+ * If you wish to use move semantics within the data received in \p
+ * act_on_data, pass data itself as an rvalue reference.
  */
+ ///@{
 template <typename MapToVectors,
           typename ActionFunctor>
 void push_parallel_vector_data(const Communicator & comm,
-                               const MapToVectors & data,
+                               MapToVectors && data,
                                const ActionFunctor & act_on_data);
+ ///@}
 
 /**
  * Send query vectors, receive and answer them with vectors of data,
@@ -95,7 +97,7 @@ template <typename datum,
 void pull_parallel_vector_data(const Communicator & comm,
                                const MapToVectors & queries,
                                GatherFunctor & gather_data,
-                               ActionFunctor & act_on_data,
+                               const ActionFunctor & act_on_data,
                                const datum * example);
 
 /**
@@ -115,16 +117,19 @@ void pull_parallel_vector_data(const Communicator & comm,
 * All receives and actions are completed before this function
 * returns.
 *
-* Note: it is very important that the message tag be completely
-* unique to each invocation
+* If you wish to use move semantics within the data received in \p
+* act_on_data, pass data itself as an rvalue reference.
+*
 */
+///@{
 template <typename MapToVectors,
           typename ActionFunctor,
           typename Context>
 void push_parallel_packed_range(const Communicator & comm,
-                                const MapToVectors & data,
+                                MapToVectors && data,
                                 Context * context,
                                 const ActionFunctor & act_on_data);
+///@}
 
 //------------------------------------------------------------------------
 // Parallel function overloads
@@ -153,33 +158,31 @@ void pull_parallel_vector_data(const Communicator & comm,
 // Parallel members
 //
 
-template <typename MapToVectors,
+// Separate namespace for not-for-public-use helper functions
+namespace detail {
+
+template <typename MapToContainers,
+          typename SendFunctor,
+          typename PossiblyReceiveFunctor,
           typename ActionFunctor>
-void push_parallel_vector_data(const Communicator & comm,
-                               const MapToVectors & data,
-                               const ActionFunctor & act_on_data)
+void
+push_parallel_nbx_helper(const Communicator & comm,
+                         MapToContainers & data,
+                         const SendFunctor & send_functor,
+                         const PossiblyReceiveFunctor & possibly_receive_functor,
+                         const ActionFunctor & act_on_data)
 {
+  typedef typename MapToContainers::value_type::second_type container_type;
+
   // This function must be run on all processors at once
   timpi_parallel_only(comm);
 
   // This function implements the "NBX" algorithm from
   // https://htor.inf.ethz.ch/publications/img/hoefler-dsde-protocols.pdf
 
-  typedef decltype(data.begin()->second.front()) ref_type;
-  typedef typename std::remove_reference<ref_type>::type nonref_type;
-  typedef typename std::remove_const<nonref_type>::type nonconst_nonref_type;
-
   // We'll grab a tag so we can overlap request sends and receives
   // without confusing one for the other
   auto tag = comm.get_unique_tag();
-
-  // We'll construct the StandardType once rather than inside a loop.
-  // We can't pass in example data here, because we might have
-  // data.empty() on some ranks, so we'll need StandardType to be able
-  // to construct the user's data type without an example.
-  auto type = build_standard_type(static_cast<nonconst_nonref_type*>(nullptr));
-
-  // Post all of the sends, non-blocking and synchronous
 
   // Save off the old send_mode so we can restore it after this
   auto old_send_mode = comm.send_mode();
@@ -189,290 +192,217 @@ void push_parallel_vector_data(const Communicator & comm,
   const_cast<Communicator &>(comm).send_mode(Communicator::SYNCHRONOUS);
 
   // The send requests
-  std::list<Request> reqs;
+  std::list<Request> requests;
 
-  processor_id_type num_procs = comm.size();
+  const processor_id_type num_procs = comm.size();
 
   for (auto & datapair : data)
     {
       // In the case of data partitioned into more processors than we
       // have ranks, we "wrap around"
-      processor_id_type destid = datapair.first % num_procs;
+      processor_id_type dest_pid = datapair.first % num_procs;
       auto & datum = datapair.second;
 
       // Just act on data if the user requested a send-to-self
-      if (destid == comm.rank())
-        act_on_data(destid, datum);
+      if (dest_pid == comm.rank())
+        act_on_data(dest_pid, datum);
       else
         {
-          Request sendreq;
-          comm.send(destid, datum, type, sendreq, tag);
-          reqs.push_back(sendreq);
+          requests.emplace_back();
+          send_functor(comm, dest_pid, datum, requests.back(), tag);
         }
     }
 
   // In serial we've now acted on all our data.
-  if (comm.size() == 1)
+  if (num_procs == 1)
     return;
 
-  bool sends_complete = reqs.empty();
+  // Whether or not all of the sends are complete
+  bool sends_complete = requests.empty();
+
+  // Whether or not the nonblocking barrier has started
   bool started_barrier = false;
+  // Request for the nonblocking barrier
   Request barrier_request;
 
-  // Receive
-
   // The pair of src_pid and requests
-  std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_reqs;
+  std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_requests;
   auto current_request = std::make_shared<Request>();
 
-  std::multimap<processor_id_type, std::shared_ptr<std::vector<nonconst_nonref_type>>> incoming_data;
-  auto current_incoming_data = std::make_shared<std::vector<nonconst_nonref_type>>();
+  // Storage for the incoming data
+  std::multimap<processor_id_type, std::shared_ptr<container_type>> incoming_data;
+  auto current_incoming_data = std::make_shared<container_type>();
 
   unsigned int current_src_proc = 0;
 
   // Keep looking for receives
   while (true)
-  {
-    // Look for data from anywhere
-    current_src_proc = any_source;
-
-    // Check if there is a message and start receiving it
-    if (comm.possibly_receive(current_src_proc,
-                              *current_incoming_data, type,
-                              *current_request, tag))
     {
-      receive_reqs.emplace_back(current_src_proc, current_request);
-      current_request = std::make_shared<Request>();
+      // Look for data from anywhere
+      current_src_proc = any_source;
 
-      // current_src_proc will now hold the src pid for this receive
-      incoming_data.emplace(current_src_proc, current_incoming_data);
-      current_incoming_data = std::make_shared<std::vector<nonconst_nonref_type>>();
+      // Check if there is a message and start receiving it
+      if (possibly_receive_functor(comm, current_src_proc,
+                                   *current_incoming_data,
+                                   *current_request, tag))
+        {
+          receive_requests.emplace_back(current_src_proc,
+                                        current_request);
+          current_request = std::make_shared<Request>();
+
+          // current_src_proc will now hold the src pid for this receive
+          incoming_data.emplace(current_src_proc,
+                                current_incoming_data);
+          current_incoming_data = std::make_shared<container_type>();
+        }
+
+        // Clean up outstanding receive requests
+      receive_requests.remove_if
+        ([&act_on_data, &incoming_data]
+         (std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
+         {
+           auto & pid = pid_req_pair.first;
+           auto & req = pid_req_pair.second;
+
+           // If it's finished - let's act on it
+           if (req->test())
+             {
+               // Do any post-wait work
+               req->wait();
+
+               auto it = incoming_data.find(pid);
+               timpi_assert(it != incoming_data.end());
+
+               act_on_data(pid, *it->second);
+
+               // Don't need this data anymore
+               incoming_data.erase(it);
+
+               // This removes it from the list
+               return true;
+             }
+
+             // Not finished yet
+             return false;
+           });
+
+      requests.remove_if
+        ([](Request & req)
+         {
+           if (req.test())
+             {
+               // Do Post-Wait work
+               req.wait();
+               return true;
+             }
+
+             // Not finished yet
+             return false;
+         });
+
+
+      // See if all of the sends are finished
+      if (requests.empty())
+        sends_complete = true;
+
+      // If they've all completed then we can start the barrier
+      if (sends_complete && !started_barrier)
+        {
+          started_barrier = true;
+          comm.nonblocking_barrier(barrier_request);
+        }
+
+      // Must fully receive everything before being allowed to move on!
+      if (receive_requests.empty())
+        // See if all proessors have finished all sends (i.e. _done_!)
+        if (started_barrier)
+          if (barrier_request.test())
+            break; // Done!
     }
-
-    // Clean up outstanding receive requests
-    receive_reqs.remove_if([&act_on_data, &incoming_data](std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
-                           {
-                             auto & pid = pid_req_pair.first;
-                             auto & req = pid_req_pair.second;
-
-                             // If it's finished - let's act on it
-                             if (req->test())
-                             {
-                               // Do any post-wait work
-                               req->wait();
-
-                               auto it = incoming_data.find(pid);
-                               timpi_assert(it != incoming_data.end());
-
-                               act_on_data(pid, *it->second);
-
-                               // Don't need this data anymore
-                               incoming_data.erase(it);
-
-                               // This removes it from the list
-                               return true;
-                             }
-
-                             // Not finished yet
-                             return false;
-                           });
-
-    reqs.remove_if([](Request & req)
-                   {
-                     if (req.test())
-                     {
-                       // Do Post-Wait work
-                       req.wait();
-
-                       return true;
-                     }
-
-                     // Not finished yet
-                     return false;
-                   });
-
-
-    // See if all of the sends are finished
-    if (reqs.empty())
-      sends_complete = true;
-
-    // If they've all completed then we can start the barrier
-    if (sends_complete && !started_barrier)
-    {
-      started_barrier = true;
-      comm.nonblocking_barrier(barrier_request);
-    }
-
-    // Must fully receive everything before being allowed to move on!
-    if (receive_reqs.empty())
-      // See if all proessors have finished all sends (i.e. _done_!)
-      if (started_barrier)
-        if (barrier_request.test())
-          break; // Done!
-  }
 
   // Reset the send mode
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
 }
+
+} // namespace detail
+
 
 
 template <typename MapToContainers,
           typename ActionFunctor,
           typename Context>
 void push_parallel_packed_range(const Communicator & comm,
-                                const MapToContainers & data,
+                                MapToContainers && data,
                                 Context * context,
                                 const ActionFunctor & act_on_data)
 {
-  // This function must be run on all processors at once
-  timpi_parallel_only(comm);
-
-  // This function implements the "NBX" algorithm from
-  // https://htor.inf.ethz.ch/publications/img/hoefler-dsde-protocols.pdf
-
-  typedef typename MapToContainers::value_type map_pair_type;
-  typedef typename map_pair_type::second_type container_type;
+  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type container_type;
   typedef typename container_type::value_type nonref_type;
+  typename std::remove_const<nonref_type>::type * output_type = nullptr;
+
+  auto send_functor = [&context](const Communicator & comm,
+                                 const processor_id_type dest_pid,
+                                 const container_type & datum,
+                                 Request & request,
+                                 const MessageTag tag) {
+    comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), request, tag);
+  };
+
+  auto possibly_receive_functor = [&context, &output_type](const Communicator & comm,
+                                                           unsigned int & current_src_proc,
+                                                           container_type & current_incoming_data,
+                                                           Request & current_request,
+                                                           const MessageTag tag) {
+    return comm.possibly_receive_packed_range(
+        current_src_proc,
+        context,
+        std::inserter(current_incoming_data, current_incoming_data.end()),
+        output_type,
+        current_request,
+        tag);
+  };
+
+  detail::push_parallel_nbx_helper
+    (comm, data, send_functor, possibly_receive_functor, act_on_data);
+}
+
+
+template <typename MapToVectors,
+          typename ActionFunctor>
+void push_parallel_vector_data(const Communicator & comm,
+                               MapToVectors && data,
+                               const ActionFunctor & act_on_data)
+{
+  typedef typename std::remove_reference<MapToVectors>::type::value_type::second_type container_type;
+  typedef decltype(data.begin()->second.front()) ref_type;
+  typedef typename std::remove_reference<ref_type>::type nonref_type;
   typedef typename std::remove_const<nonref_type>::type nonconst_nonref_type;
 
-  // We'll grab a tag so we can overlap request sends and receives
-  // without confusing one for the other
-  auto tag = comm.get_unique_tag();
+  // We'll construct the StandardType once rather than inside a loop.
+  // We can't pass in example data here, because we might have
+  // data.empty() on some ranks, so we'll need StandardType to be able
+  // to construct the user's data type without an example.
+  auto type = build_standard_type(static_cast<nonconst_nonref_type *>(nullptr));
 
-  // Post all of the sends, non-blocking and synchronous
+  auto send_functor = [&type](const Communicator & comm,
+                              const processor_id_type dest_pid,
+                              const container_type & datum,
+                              Request & request,
+                              const MessageTag tag) {
+    comm.send(dest_pid, datum, type, request, tag);
+  };
 
-  // Save off the old send_mode so we can restore it after this
-  auto old_send_mode = comm.send_mode();
+  auto possibly_receive_functor = [&type](const Communicator & comm,
+                                          unsigned int & current_src_proc,
+                                          container_type & current_incoming_data,
+                                          Request & current_request,
+                                          const MessageTag tag) {
+    return comm.possibly_receive(
+        current_src_proc, current_incoming_data, type, current_request, tag);
+  };
 
-  // Set the sending to synchronous - this is so that we can know when
-  // the sends are complete
-  const_cast<Communicator &>(comm).send_mode(Communicator::SYNCHRONOUS);
-
-  // The send requests
-  std::list<Request> reqs;
-
-  processor_id_type num_procs = comm.size();
-
-  for (auto & datapair : data)
-    {
-      // In the case of data partitioned into more processors than we
-      // have ranks, we "wrap around"
-      processor_id_type destid = datapair.first % num_procs;
-      auto & datum = datapair.second;
-
-      // Just act on data if the user requested a send-to-self
-      if (destid == comm.rank())
-        act_on_data(destid, datum);
-      else
-        {
-          Request sendreq;
-          comm.nonblocking_send_packed_range(destid, context, datum.begin(), datum.end(), sendreq, tag);
-          reqs.push_back(sendreq);
-        }
-    }
-
-  bool sends_complete = reqs.empty();
-  bool started_barrier = false;
-  Request barrier_request;
-
-  // Receive
-
-  // The pair of src_pid and requests
-  std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_reqs;
-  auto current_request = std::make_shared<Request>();
-
-  std::multimap<processor_id_type, std::shared_ptr<container_type>> incoming_data;
-  auto current_incoming_data = std::make_shared<container_type>();
-
-  nonconst_nonref_type * output_type = nullptr;
-
-  unsigned int current_src_proc = 0;
-
-  // Keep looking for receives
-  while (true)
-  {
-    // Look for data from anywhere
-    current_src_proc = TIMPI::any_source;
-
-    // Check if there is a message and start receiving it
-    if (comm.possibly_receive_packed_range
-          (current_src_proc, context,
-           std::inserter(*current_incoming_data,
-                         current_incoming_data->end()),
-           output_type, *current_request, tag))
-    {
-      receive_reqs.emplace_back(current_src_proc, current_request);
-      current_request = std::make_shared<Request>();
-
-      // current_src_proc will now hold the src pid for this receive
-      incoming_data.emplace(current_src_proc, current_incoming_data);
-      current_incoming_data = std::make_shared<container_type>();
-    }
-
-    // Clean up outstanding receive requests
-    receive_reqs.remove_if([&act_on_data, &incoming_data](std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
-                           {
-                             auto & pid = pid_req_pair.first;
-                             auto & req = pid_req_pair.second;
-
-                             // If it's finished - let's act on it
-                             if (req->test())
-                             {
-                               // Do any post-wait work
-                               req->wait();
-
-                               auto it = incoming_data.find(pid);
-                               timpi_assert(it != incoming_data.end());
-
-                               act_on_data(pid, *it->second);
-
-                               // Don't need this data anymore
-                               incoming_data.erase(it);
-
-                               // This removes it from the list
-                               return true;
-                             }
-
-                             // Not finished yet
-                             return false;
-                           });
-
-    reqs.remove_if([](Request & req)
-                   {
-                     if (req.test())
-                     {
-                       // Do Post-Wait work
-                       req.wait();
-
-                       return true;
-                     }
-
-                     // Not finished yet
-                     return false;
-                   });
-
-
-    // See if all of the sends are finished
-    if (reqs.empty())
-      sends_complete = true;
-
-    // If they've all completed then we can start the barrier
-    if (sends_complete && !started_barrier)
-    {
-      started_barrier = true;
-      comm.nonblocking_barrier(barrier_request);
-    }
-
-    // Must fully receive everything before being allowed to move on!
-    if (receive_reqs.empty())
-      // See if all proessors have finished all sends (i.e. _done_!)
-      if (started_barrier)
-        if (barrier_request.test())
-          break; // Done!
-  }
-
-  // Reset the send mode
-  const_cast<Communicator &>(comm).send_mode(old_send_mode);
+  detail::push_parallel_nbx_helper
+    (comm, data, send_functor, possibly_receive_functor, act_on_data);
 }
 
 
@@ -578,7 +508,7 @@ void pull_parallel_vector_data(const Communicator & comm,
 
   // First index: order of creation, irrelevant
   std::vector<std::vector<std::vector<datum,A>>> response_data;
-  std::vector<Request> response_reqs;
+  std::vector<Request> response_requests;
 
   // We'll grab a tag so we can overlap request sends and receives
   // without confusing one for the other
@@ -586,7 +516,7 @@ void pull_parallel_vector_data(const Communicator & comm,
 
   auto gather_functor =
     [&comm, &gather_data, &act_on_data,
-     &response_data, &response_reqs, &tag]
+     &response_data, &response_requests, &tag]
     (processor_id_type pid, query_type query)
     {
       std::vector<std::vector<datum,A>> response;
@@ -603,7 +533,7 @@ void pull_parallel_vector_data(const Communicator & comm,
         {
           Request sendreq;
           comm.send(pid, response, sendreq, tag);
-          response_reqs.push_back(sendreq);
+          response_requests.push_back(sendreq);
           response_data.push_back(std::move(response));
         }
     };
@@ -618,7 +548,7 @@ void pull_parallel_vector_data(const Communicator & comm,
   // non-blocking APIs with this data type.
   //
   // FIXME - implement Derek's API from #1684, switch to that!
-  std::vector<Request> receive_reqs;
+  std::vector<Request> receive_requests;
   std::vector<processor_id_type> receive_procids;
   for (std::size_t i = 0,
        n_queries = queries.size() - queries.count(comm.rank());
@@ -637,7 +567,7 @@ void pull_parallel_vector_data(const Communicator & comm,
       act_on_data(proc_id, querydata, received_data);
     }
 
-  wait(response_reqs);
+  wait(response_requests);
 }
 
 } // namespace TIMPI

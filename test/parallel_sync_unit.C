@@ -170,6 +170,57 @@ Communicator *TestCommWorld;
   }
 
 
+  void testPushMove()
+  {
+    const int size = TestCommWorld->size(),
+              rank = TestCommWorld->rank();
+
+    std::map<processor_id_type, std::vector<unsigned int>> data, received_data;
+
+    const int M = TestCommWorld->size();
+    fill_scalar_data(data, M);
+
+    auto collect_data =
+      [&received_data]
+      (processor_id_type pid,
+       typename std::vector<unsigned int> & vec_received)
+      {
+        auto & vec = received_data[pid];
+        for (auto & val : vec_received)
+          vec.emplace_back(std::move(val));
+      };
+
+    TIMPI::push_parallel_vector_data(*TestCommWorld, std::move(data), collect_data);
+
+    // Test the received results, for each processor id p we're in
+    // charge of.
+    std::vector<std::size_t> checked_sizes(size, 0);
+    for (int p=rank; p < M; p += size)
+      for (int srcp=0; srcp != size; ++srcp)
+        {
+          int diffsize = std::abs(srcp-p);
+          int diffsqrt = std::sqrt(diffsize);
+          if (diffsqrt*diffsqrt != diffsize)
+            {
+              if (received_data.count(srcp))
+                {
+                  const std::vector<unsigned int> & datum = received_data[srcp];
+                  TIMPI_UNIT_ASSERT(std::count(datum.begin(), datum.end(), p) == std::ptrdiff_t(0));
+                }
+              continue;
+            }
+
+          TIMPI_UNIT_ASSERT(received_data.count(srcp) == std::size_t(1));
+          const std::vector<unsigned int> & datum = received_data[srcp];
+          TIMPI_UNIT_ASSERT(std::count(datum.begin(), datum.end(), p) == std::ptrdiff_t(diffsqrt+1));
+          checked_sizes[srcp] += diffsqrt+1;
+        }
+
+    for (int srcp=0; srcp != size; ++srcp)
+      TIMPI_UNIT_ASSERT(checked_sizes[srcp] == received_data[srcp].size());
+  }
+
+
   void testPullImpl(int M)
   {
     std::map<processor_id_type, std::vector<unsigned int> > data, received_data;
@@ -546,6 +597,7 @@ int main(int argc, const char * const * argv)
   TestCommWorld = &init.comm();
 
   testPush();
+  testPushMove();
   testPull();
   testPushVecVec();
   testPullVecVec();
