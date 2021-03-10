@@ -226,8 +226,8 @@ push_parallel_nbx_helper(const Communicator & comm,
   Request barrier_request;
 
   // The pair of src_pid and requests
-  std::list<std::pair<unsigned int, Request>> receive_requests;
-  Request current_request;
+  std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_requests;
+  auto current_request = std::make_shared<Request>();
 
   // Storage for the incoming data
   std::multimap<processor_id_type, std::shared_ptr<container_type>> incoming_data;
@@ -244,11 +244,11 @@ push_parallel_nbx_helper(const Communicator & comm,
       // Check if there is a message and start receiving it
       if (possibly_receive_functor(comm, current_src_proc,
                                    *current_incoming_data,
-                                   current_request, tag))
+                                   *current_request, tag))
         {
           receive_requests.emplace_back(current_src_proc,
-                                        std::move(current_request));
-          current_request = Request();
+                                        current_request);
+          current_request = std::make_shared<Request>();
 
           // current_src_proc will now hold the src pid for this receive
           incoming_data.emplace(current_src_proc,
@@ -259,16 +259,16 @@ push_parallel_nbx_helper(const Communicator & comm,
         // Clean up outstanding receive requests
       receive_requests.remove_if
         ([&act_on_data, &incoming_data]
-         (std::pair<unsigned int, Request> & pid_req_pair)
+         (std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
          {
            auto & pid = pid_req_pair.first;
            auto & req = pid_req_pair.second;
 
            // If it's finished - let's act on it
-           if (req.test())
+           if (req->test())
              {
                // Do any post-wait work
-               req.wait();
+               req->wait();
 
                auto it = incoming_data.find(pid);
                timpi_assert(it != incoming_data.end());
