@@ -71,4 +71,6 @@
   * StandardType<std::array> support
   * Packing<array> support
   * Packing<list, map, unordered_set, etc>
-  
+
+1.6
+  * Generalize push_parallel_[packed_range/vector_data] to allow data moves
