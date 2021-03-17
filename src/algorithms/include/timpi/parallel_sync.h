@@ -342,9 +342,9 @@ void push_parallel_packed_range(const Communicator & comm,
 
   auto send_functor = [&context, &comm](const processor_id_type dest_pid,
                                         const container_type & datum,
-                                        Request & request,
+                                        Request & send_request,
                                         const MessageTag tag) {
-    comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), request, tag);
+    comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), send_request, tag);
   };
 
   auto possibly_receive_functor = [&context, &output_type, &comm](unsigned int & current_src_proc,
@@ -384,9 +384,9 @@ void push_parallel_vector_data(const Communicator & comm,
 
   auto send_functor = [&type, &comm](const processor_id_type dest_pid,
                                      const container_type & datum,
-                                     Request & request,
+                                     Request & send_request,
                                      const MessageTag tag) {
-    comm.send(dest_pid, datum, type, request, tag);
+    comm.send(dest_pid, datum, type, send_request, tag);
   };
 
   auto possibly_receive_functor = [&type, &comm](unsigned int & current_src_proc,
