@@ -209,7 +209,7 @@ push_parallel_nbx_helper(const Communicator & comm,
       else
         {
           requests.emplace_back();
-          send_functor(comm, dest_pid, datum, requests.back(), tag);
+          send_functor(dest_pid, datum, requests.back(), tag);
         }
     }
 
@@ -242,7 +242,7 @@ push_parallel_nbx_helper(const Communicator & comm,
       current_src_proc = any_source;
 
       // Check if there is a message and start receiving it
-      if (possibly_receive_functor(comm, current_src_proc,
+      if (possibly_receive_functor(current_src_proc,
                                    *current_incoming_data,
                                    *current_request, tag))
         {
@@ -340,19 +340,17 @@ void push_parallel_packed_range(const Communicator & comm,
   typedef typename container_type::value_type nonref_type;
   typename std::remove_const<nonref_type>::type * output_type = nullptr;
 
-  auto send_functor = [&context](const Communicator & comm,
-                                 const processor_id_type dest_pid,
-                                 const container_type & datum,
-                                 Request & request,
-                                 const MessageTag tag) {
+  auto send_functor = [&context, &comm](const processor_id_type dest_pid,
+                                        const container_type & datum,
+                                        Request & request,
+                                        const MessageTag tag) {
     comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), request, tag);
   };
 
-  auto possibly_receive_functor = [&context, &output_type](const Communicator & comm,
-                                                           unsigned int & current_src_proc,
-                                                           container_type & current_incoming_data,
-                                                           Request & current_request,
-                                                           const MessageTag tag) {
+  auto possibly_receive_functor = [&context, &output_type, &comm](unsigned int & current_src_proc,
+                                                                  container_type & current_incoming_data,
+                                                                  Request & current_request,
+                                                                  const MessageTag tag) {
     return comm.possibly_receive_packed_range(
         current_src_proc,
         context,
@@ -384,19 +382,17 @@ void push_parallel_vector_data(const Communicator & comm,
   // to construct the user's data type without an example.
   auto type = build_standard_type(static_cast<nonconst_nonref_type *>(nullptr));
 
-  auto send_functor = [&type](const Communicator & comm,
-                              const processor_id_type dest_pid,
-                              const container_type & datum,
-                              Request & request,
-                              const MessageTag tag) {
+  auto send_functor = [&type, &comm](const processor_id_type dest_pid,
+                                     const container_type & datum,
+                                     Request & request,
+                                     const MessageTag tag) {
     comm.send(dest_pid, datum, type, request, tag);
   };
 
-  auto possibly_receive_functor = [&type](const Communicator & comm,
-                                          unsigned int & current_src_proc,
-                                          container_type & current_incoming_data,
-                                          Request & current_request,
-                                          const MessageTag tag) {
+  auto possibly_receive_functor = [&type, &comm](unsigned int & current_src_proc,
+                                                 container_type & current_incoming_data,
+                                                 Request & current_request,
+                                                 const MessageTag tag) {
     return comm.possibly_receive(
         current_src_proc, current_incoming_data, type, current_request, tag);
   };
