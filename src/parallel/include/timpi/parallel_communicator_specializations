@@ -116,6 +116,24 @@
     inline
     void set_union(std::map<T1,T2,C,A> &data) const;
 
+    template <typename K, typename H, typename KE, typename A>
+    inline
+    void set_union(std::unordered_set<K,H,KE,A> &data,
+                   const unsigned int root_id) const;
+
+    template <typename K, typename H, typename KE, typename A>
+    inline
+    void set_union(std::unordered_set<K,H,KE,A> &data) const;
+
+    template <typename K, typename T, typename H, typename KE, typename A>
+    inline
+    void set_union(std::unordered_map<K,T,H,KE,A> &data,
+                   const unsigned int root_id) const;
+
+    template <typename K, typename T, typename H, typename KE, typename A>
+    inline
+    void set_union(std::unordered_map<K,T,H,KE,A> &data) const;
+
     template <typename T, typename A1, typename A2>
     inline
     bool possibly_receive (unsigned int & src_processor_id,
