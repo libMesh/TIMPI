@@ -32,6 +32,11 @@ if BUILD_DBG_MODE
   parallel_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
   parallel_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)
 
+  set_unit_dbg_SOURCES = parallel_unit.C
+  set_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
+  set_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
+  set_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)
+
   dispatch_to_packed_unit_dbg_SOURCES = dispatch_to_packed_unit.C
   dispatch_to_packed_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
   dispatch_to_packed_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
@@ -41,6 +46,7 @@ if BUILD_DBG_MODE
   check_PROGRAMS += packed_range_unit-dbg
   check_PROGRAMS += parallel_sync_unit-dbg
   check_PROGRAMS += parallel_unit-dbg
+  check_PROGRAMS += set_unit-dbg
   check_PROGRAMS += dispatch_to_packed_unit-dbg
 endif
 
@@ -65,6 +71,11 @@ if BUILD_DEVEL_MODE
   parallel_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
   parallel_unit_devel_CXXFLAGS = $(CXXFLAGS_DEVEL)
 
+  set_unit_devel_SOURCES = set_unit.C
+  set_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
+  set_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
+  set_unit_devel_CXXFLAGS = $(CXXFLAGS_DEVEL)
+
   dispatch_to_packed_unit_devel_SOURCES = dispatch_to_packed_unit.C
   dispatch_to_packed_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
   dispatch_to_packed_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
@@ -74,6 +85,7 @@ if BUILD_DEVEL_MODE
   check_PROGRAMS += packed_range_unit-devel
   check_PROGRAMS += parallel_sync_unit-devel
   check_PROGRAMS += parallel_unit-devel
+  check_PROGRAMS += set_unit-devel
   check_PROGRAMS += dispatch_to_packed_unit-devel
 endif
 
@@ -98,6 +110,11 @@ if BUILD_OPT_MODE
   parallel_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
   parallel_unit_opt_CXXFLAGS = $(CXXFLAGS_OPT)
 
+  set_unit_opt_SOURCES = set_unit.C
+  set_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
+  set_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
+  set_unit_opt_CXXFLAGS = $(CXXFLAGS_OPT)
+
   dispatch_to_packed_unit_opt_SOURCES = dispatch_to_packed_unit.C
   dispatch_to_packed_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
   dispatch_to_packed_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
@@ -107,6 +124,7 @@ if BUILD_OPT_MODE
   check_PROGRAMS += packed_range_unit-opt
   check_PROGRAMS += parallel_sync_unit-opt
   check_PROGRAMS += parallel_unit-opt
+  check_PROGRAMS += set_unit-opt
   check_PROGRAMS += dispatch_to_packed_unit-opt
 endif
 
@@ -131,6 +149,11 @@ if BUILD_OPROF_MODE
   parallel_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
   parallel_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
 
+  set_unit_oprof_SOURCES = set_unit.C
+  set_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
+  set_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
+  set_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
+
   dispatch_to_packed_unit_oprof_SOURCES = dispatch_to_packed_unit.C
   dispatch_to_packed_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
   dispatch_to_packed_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
@@ -140,6 +163,7 @@ if BUILD_OPROF_MODE
   check_PROGRAMS += packed_range_unit-oprof
   check_PROGRAMS += parallel_sync_unit-oprof
   check_PROGRAMS += parallel_unit-oprof
+  check_PROGRAMS += set_unit-oprof
   check_PROGRAMS += dispatch_to_packed_unit-oprof
 endif
 
@@ -164,6 +188,11 @@ if BUILD_PROF_MODE
   parallel_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
   parallel_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
 
+  set_unit_prof_SOURCES = set_unit.C
+  set_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
+  set_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
+  set_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
+
   dispatch_to_packed_unit_prof_SOURCES = dispatch_to_packed_unit.C
   dispatch_to_packed_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
   dispatch_to_packed_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
@@ -173,6 +202,7 @@ if BUILD_PROF_MODE
   check_PROGRAMS += packed_range_unit-prof
   check_PROGRAMS += parallel_sync_unit-prof
   check_PROGRAMS += parallel_unit-prof
+  check_PROGRAMS += set_unit-prof
   check_PROGRAMS += dispatch_to_packed_unit-prof
 endif
 
