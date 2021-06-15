@@ -772,6 +772,9 @@ public:                                                   \
 #define TIMPI_P_COMMA ,
 
 template <typename T, typename A>
+TIMPI_PACKING_RANGE_SUBCLASS(std::vector<T TIMPI_P_COMMA A>);
+
+template <typename T, typename A>
 TIMPI_PACKING_RANGE_SUBCLASS(std::list<T TIMPI_P_COMMA A>);
 
 template <typename K, typename T, typename C, typename A>
