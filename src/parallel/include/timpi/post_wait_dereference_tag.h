@@ -35,7 +35,7 @@ struct PostWaitDereferenceTag : public PostWaitWork {
 
   // Our real work is done by the MessageTag member's destructor;
   // there's no advantage to dereferencing our tag slightly earlier.
-  virtual void run() {}
+  virtual void run() override {}
 
 private:
   MessageTag _tag;
