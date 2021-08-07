@@ -2736,6 +2736,61 @@ inline void Communicator::set_union(std::map<T1,T2,C,A> & data) const
 }
 
 
+template <typename K, typename H, typename KE, typename A>
+inline void Communicator::set_union(std::unordered_set<K,H,KE,A> & data,
+                                    const unsigned int root_id) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<K> vecdata(data.begin(), data.end());
+      this->gather(root_id, vecdata);
+      if (this->rank() == root_id)
+        data.insert(vecdata.begin(), vecdata.end());
+    }
+}
+
+
+
+template <typename K, typename H, typename KE, typename A>
+inline void Communicator::set_union(std::unordered_set<K,H,KE,A> & data) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<K> vecdata(data.begin(), data.end());
+      this->allgather(vecdata, false);
+      data.insert(vecdata.begin(), vecdata.end());
+    }
+}
+
+
+
+template <typename K, typename T, typename H, typename KE, typename A>
+inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data,
+                                    const unsigned int root_id) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
+      this->gather(root_id, vecdata);
+      if (this->rank() == root_id)
+        data.insert(vecdata.begin(), vecdata.end());
+    }
+}
+
+
+
+template <typename K, typename T, typename H, typename KE, typename A>
+inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
+      this->allgather(vecdata, false);
+      data.insert(vecdata.begin(), vecdata.end());
+    }
+}
+
+
 
 template <typename T, typename A>
 inline void Communicator::gather(const unsigned int root_id,
