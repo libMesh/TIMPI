@@ -93,6 +93,7 @@ include_HEADERS += parallel/include/timpi/post_wait_unpack_nested_buffer.h
 include_HEADERS += parallel/include/timpi/post_wait_work.h
 include_HEADERS += parallel/include/timpi/request.h
 include_HEADERS += parallel/include/timpi/serial_implementation.h
+include_HEADERS += parallel/include/timpi/standard_type_forward.h
 include_HEADERS += parallel/include/timpi/standard_type.h
 include_HEADERS += parallel/include/timpi/status.h
 

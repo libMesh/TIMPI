@@ -1,5 +1,6 @@
 Makefile.in
 aclocal.m4
+timpi_config.h.tmp.in
 timpi_config.h.tmp.in~
 timpi_config.h
 autom4te.cache
