@@ -32,7 +32,7 @@ if BUILD_DBG_MODE
   parallel_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
   parallel_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)
 
-  set_unit_dbg_SOURCES = parallel_unit.C
+  set_unit_dbg_SOURCES = set_unit.C
   set_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
   set_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
   set_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)

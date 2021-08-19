@@ -15,7 +15,7 @@ for method in ${ORDERED_METHODS}; do
 done
 
 for method in ${MY_METHODS}; do
-    for prog in message_tag packed_range parallel_sync parallel dispatch_to_packed; do
+    for prog in message_tag packed_range parallel_sync parallel dispatch_to_packed set; do
         echo $TIMPI_RUN ./${prog}_unit-$method
         $TIMPI_RUN ./${prog}_unit-$method
     done
