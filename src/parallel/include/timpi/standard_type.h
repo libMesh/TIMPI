@@ -22,6 +22,7 @@
 // TIMPI includes
 #include "timpi/data_type.h"
 #include "timpi/timpi_config.h"
+#include "timpi/standard_type_forward.h"
 
 // C/C++ includes
 #ifdef TIMPI_HAVE_MPI
@@ -72,7 +73,7 @@ struct standardtype_dependent_false : std::false_type
  * More complicated data types may need to provide a pointer-to-T so
  * that we can use MPI_Address without constructing a new T.
  */
-template <typename T, typename Enable = void>
+template <typename T, typename Enable>
 class StandardType : public NotADataType
 {
   /*
