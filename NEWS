@@ -74,3 +74,6 @@
 
 1.6
   * Generalize push_parallel_[packed_range/vector_data] to allow data moves
+
+1.7
+  * Packing<vector> support

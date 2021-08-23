@@ -1,5 +1,5 @@
 
-AM_LDFLAGS = -version-info 2:0:0
+AM_LDFLAGS = -version-info 3:0:0
 
 #----------------------------------------------
 # List of source files to build dynamic library
