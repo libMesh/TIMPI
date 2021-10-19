@@ -26,6 +26,7 @@
 
 // C++ includes
 #include <array>
+#include <climits>     // CHAR_BIT
 #include <cstring>     // memcpy
 #include <iterator>
 #include <list>
@@ -85,6 +86,59 @@ public:
   template <typename BufferIter, typename Context>
   static T unpack(BufferIter in, Context * ctx);
 };
+
+
+// Utility functions for encoding and decoding lengths into buffers
+// with data types that may be too small to hold an unsigned int.  For
+// MPI compatibility we assume that lengths do fit into an int.
+template <typename buffer_type>
+inline
+constexpr int
+get_packed_len_entries ()
+{
+  return
+    (sizeof(unsigned int) + (sizeof(buffer_type)-1)) /
+    sizeof(buffer_type);
+}
+
+template <typename buffer_type>
+inline
+unsigned int
+get_packed_len (typename std::vector<buffer_type>::const_iterator in)
+{
+  // If we're using 2-byte or 1-byte buffer type then we have to split
+  // into multiple entries
+  constexpr int n_bits = (sizeof(buffer_type) * CHAR_BIT);
+
+  // We may have a small signed buffer type into which we stuffed
+  // an unsigned value
+  if (n_bits < 32)
+    {
+      const int n_size_entries = get_packed_len_entries<buffer_type>();
+      unsigned int packed_len = 0;
+
+      for (signed int i = n_size_entries-1; i >= 0; --i)
+        {
+          packed_len <<= n_bits;
+
+          const auto next_entry = in[i];
+
+          if (next_entry < 0)
+            packed_len += 1 << n_bits;
+
+          packed_len += next_entry;
+        }
+      return packed_len;
+    }
+
+  // With 32 bits or more this is trivial
+
+  timpi_assert_equal_to(get_packed_len_entries<buffer_type>(), 1);
+  timpi_assert_greater_equal(*in, 0);
+
+  return *in;
+}
+
 
 // Idiom taken from https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Member_Detector
 template <typename T>
