@@ -863,34 +863,19 @@ template <typename T>
 class Packing<std::basic_string<T>> {
 public:
 
-  static const unsigned int size_bytes = 4;
-
   typedef T buffer_type;
-
-  static unsigned int
-  get_string_len (typename std::vector<T>::const_iterator in)
-  {
-    unsigned int string_len = reinterpret_cast<const unsigned char &>(in[size_bytes-1]);
-    for (signed int i=size_bytes-2; i >= 0; --i)
-      {
-        string_len *= 256;
-        string_len += reinterpret_cast<const unsigned char &>(in[i]);
-      }
-    return string_len;
-  }
-
 
   static unsigned int
   packed_size (typename std::vector<T>::const_iterator in)
   {
-    return get_string_len(in) + size_bytes;
+    return get_packed_len<T>(in) + get_packed_len_entries<T>();
   }
 
   static unsigned int packable_size
   (const std::basic_string<T> & s,
    const void *)
   {
-    return s.size() + size_bytes;
+    return s.size() + get_packed_len_entries<T>();
   }
 
 
@@ -899,6 +884,7 @@ public:
                     const void *)
   {
     unsigned int string_len = b.size();
+    constexpr int size_bytes = get_packed_len_entries<T>();
     for (unsigned int i=0; i != size_bytes; ++i)
       {
         *data_out++ = (string_len % 256);
@@ -910,7 +896,8 @@ public:
   static std::basic_string<T>
   unpack (typename std::vector<T>::const_iterator in, void *)
   {
-    unsigned int string_len = get_string_len(in);
+    const unsigned int string_len = get_packed_len<T>(in);
+    constexpr int size_bytes = get_packed_len_entries<T>();
 
     std::ostringstream oss;
     for (unsigned int i = 0; i < string_len; ++i)
