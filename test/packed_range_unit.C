@@ -66,8 +66,6 @@ Communicator *TestCommWorld;
 
   void testNullAllGather()
   {
-    std::vector<processor_id_type> vals;
-
     std::vector<std::string> send(1);
     if (TestCommWorld->rank() == 0)
       send[0].assign("Hello");
@@ -80,10 +78,95 @@ Communicator *TestCommWorld;
   }
 
 
+  // Make sure we don't have problems with strings of length above 256
+  // inside pairs, like we used to.
+  void testPairStringAllGather()
+  {
+    std::vector<std::pair<std::string, std::string>> sendv(2);
+
+    sendv[0].first.assign("Hello");
+    auto & s0 = sendv[0].second;
+    s0.assign("Is it me you're looking for?\n");
+    for (int i=0; i != 6; ++i)
+      s0 = s0+s0;
+    timpi_assert_greater(s0.size(), 256);
+
+    sendv[1].first.assign("Goodbye");
+    auto & s1 = sendv[1].second;
+    s1.assign("to you!  Guess it's better to say, goodbye\n");
+    for (int i=0; i != 6; ++i)
+      s1 = s1+s1;
+    timpi_assert_greater(s1.size(), 256);
+
+    std::vector<std::pair<std::string, std::string>> send(1);
+    if (TestCommWorld->rank() == 0)
+      send[0] = sendv[0];
+    else
+      send[0] = sendv[1];
+
+    std::vector<std::pair<std::string, std::string>> recv;
+
+    TestCommWorld->allgather_packed_range
+      ((void *)(NULL), send.begin(), send.end(),
+       std::back_inserter(recv));
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = recv.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    TIMPI_UNIT_ASSERT(sendv[0] == recv[0]);
+    for (std::size_t i=1; i < vec_size; ++i)
+      TIMPI_UNIT_ASSERT(sendv[1] == recv[i]);
+  }
+
+
+  // Make sure we don't have problems with strings of length above 256
+  // inside other containers either
+  void testTupleStringAllGather()
+  {
+    std::vector<std::tuple<std::string, std::string, std::string>> sendv(2);
+
+    auto & s0 = std::get<1>(sendv[0]);
+    std::get<0>(sendv[0]).assign("Hello");
+    s0.assign("Is it me you're looking for?\n");
+    for (int i=0; i != 6; ++i)
+      s0 = s0+s0;
+    timpi_assert_greater(s0.size(), 256);
+    std::get<2>(sendv[0]).assign("I can see it in your eyes.\n");
+
+    auto & s1 = std::get<1>(sendv[1]);
+    std::get<0>(sendv[1]).assign("Goodbye");
+    s1.assign("to you!  Guess it's better to say, goodbye\n");
+    for (int i=0; i != 6; ++i)
+      s1 = s1+s1;
+    timpi_assert_greater(s1.size(), 256);
+    std::get<2>(sendv[1]).assign("'Cause baby it's over now.\n");
+
+    std::vector<std::tuple<std::string, std::string, std::string>> send(1);
+    if (TestCommWorld->rank() == 0)
+      send[0] = sendv[0];
+    else
+      send[0] = sendv[1];
+
+    std::vector<std::tuple<std::string, std::string, std::string>> recv;
+
+    TestCommWorld->allgather_packed_range
+      ((void *)(NULL), send.begin(), send.end(),
+       std::back_inserter(recv));
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = recv.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    TIMPI_UNIT_ASSERT(sendv[0] == recv[0]);
+    for (std::size_t i=1; i < vec_size; ++i)
+      TIMPI_UNIT_ASSERT(sendv[1] == recv[i]);
+  }
+
+
+
   void testNullSendReceive()
   {
-    std::vector<processor_id_type> vals;
-
     std::vector<std::string> send(1);
     const unsigned int my_rank = TestCommWorld->rank();
     const unsigned int dest_rank =
@@ -346,6 +429,8 @@ int main(int argc, const char * const * argv)
   TestCommWorld = &init.comm();
 
   testNullAllGather();
+  testPairStringAllGather();
+  testTupleStringAllGather();
   testNullSendReceive();
   testContainerAllGather();
   testContainerSendReceive();
