@@ -101,6 +101,23 @@ get_packed_len_entries ()
     sizeof(buffer_type);
 }
 
+
+template <typename T, typename Iter>
+inline
+void
+put_packed_len (unsigned int len, Iter data_out)
+{
+  // I hoped decltype(*data_out) would always be T, but no dice
+  constexpr int size_bytes = get_packed_len_entries<T>();
+
+  for (unsigned int i=0; i != size_bytes; ++i)
+    {
+      *data_out++ = (len % 256);
+      len /= 256;
+    }
+}
+
+
 template <typename buffer_type>
 inline
 unsigned int
@@ -883,13 +900,7 @@ public:
   static void pack (const std::basic_string<T> & b, Iter data_out,
                     const void *)
   {
-    unsigned int string_len = b.size();
-    constexpr int size_bytes = get_packed_len_entries<T>();
-    for (unsigned int i=0; i != size_bytes; ++i)
-      {
-        *data_out++ = (string_len % 256);
-        string_len /= 256;
-      }
+    put_packed_len<T>(b.size(), data_out);
     std::copy(b.begin(), b.end(), data_out);
   }
 
