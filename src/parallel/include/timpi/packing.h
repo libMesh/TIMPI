@@ -362,8 +362,9 @@ Packing<std::pair<T1, T2>,
         typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
     packable_size(const std::pair<T1, T2> & pr, const Context * ctx)
 {
-  return 1 + Mixed::packable_size_comp(pr.first, ctx) +
-             Mixed::packable_size_comp(pr.second, ctx);
+  return get_packed_len_entries<buffer_type>() +
+    Mixed::packable_size_comp(pr.first, ctx) +
+    Mixed::packable_size_comp(pr.second, ctx);
 }
 
 template <typename T1, typename T2>
@@ -374,7 +375,7 @@ Packing<std::pair<T1, T2>,
     packed_size(BufferIter iter)
 {
   // We recorded the size in the first buffer entry
-  return *iter;
+  return get_packed_len<buffer_type>(iter);
 }
 
 template <typename T1, typename T2>
@@ -387,7 +388,7 @@ Packing<std::pair<T1, T2>,
   unsigned int size = packable_size(pr, ctx);
 
   // First write out info about the buffer size
-  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+  put_packed_len<buffer_type>(size, data_out);
 
   // Now pack the data
   Mixed::pack_comp(pr.first, data_out, ctx);
@@ -409,8 +410,9 @@ Packing<std::pair<T1, T2>,
 {
   std::pair<T1, T2> pr;
 
-  // We don't care about the size
-  in++;
+  // We ignore total size here but we have to increment past it
+  constexpr int size_bytes = get_packed_len_entries<buffer_type>();
+  in += size_bytes;
 
   // Unpack the data
   Mixed::unpack_comp(pr.first, in, ctx);
