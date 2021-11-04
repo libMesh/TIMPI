@@ -38,6 +38,8 @@ for method in ${METHODS}; do
      AS_ECHO([])
 done
 
+AS_ECHO(["Any warnings-to-errors flags.. : $ACSM_ANY_WERROR_FLAG"])
+AS_ECHO(["Any paranoid warning flags.... : $ACSM_ANY_PARANOID_FLAGS"])
 AS_ECHO(["Install dir................... : $prefix"])
 AS_ECHO(["Build user.................... : $USER"])
 AS_ECHO(["Build host.................... : $BUILD_HOST"])
