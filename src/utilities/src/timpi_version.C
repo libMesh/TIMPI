@@ -25,29 +25,29 @@ namespace TIMPI
     std::cout << "--------------------------------------------------------" << std::endl;
     std::cout << "TIMPI Package: Version = " << TIMPI_LIB_VERSION;
     std::cout << " (" << get_timpi_version() << ")" << std::endl << std::endl;
-  
+
     std::cout << TIMPI_LIB_RELEASE << std::endl << std::endl;
-  
+
     std::cout << "Build Date   = " << TIMPI_BUILD_DATE     << std::endl;
     std::cout << "Build Host   = " << TIMPI_BUILD_HOST     << std::endl;
     std::cout << "Build User   = " << TIMPI_BUILD_USER     << std::endl;
     std::cout << "Build Arch   = " << TIMPI_BUILD_ARCH     << std::endl;
     std::cout << "Build Rev    = " << TIMPI_BUILD_VERSION  << std::endl << std::endl;
-  
+
     std::cout << "C++ Config   = " << TIMPI_CXX << " " << TIMPI_CXXFLAGS << std::endl;
     std::cout << "--------------------------------------------------------" << std::endl;
-  
+
     return;
   }
 
   int get_timpi_version()
   {
     /* Note: return format follows the versioning convention xx.yy.zz where
-   
+
        xx = major version number
        yy = minor version number
        zz = micro version number
-     
+
        For example:
        v.   0.23  -> 002300 = 2300
        v   0.23.1 -> 002301 = 2301
@@ -68,7 +68,7 @@ namespace TIMPI
 #ifdef TIMPI_MICRO_VERSION
     micro_version = TIMPI_MICRO_VERSION;
 #endif
-      
+
     return major_version*10000 + minor_version*100 + micro_version;
   }
 
