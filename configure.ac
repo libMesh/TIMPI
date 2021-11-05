@@ -84,6 +84,10 @@ TIMPI_SET_CXX_FLAGS
 
 SET_BUILD_METHODS
 
+ACSM_ENABLE_PARANOID
+
+ACSM_ENABLE_WERROR
+
 dnl---------------------------------------------------------
 dnl Checks for library prerequisites for other libraries...
 dnl---------------------------------------------------------

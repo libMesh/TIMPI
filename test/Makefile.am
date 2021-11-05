@@ -5,6 +5,12 @@ AM_CPPFLAGS += -I$(top_srcdir)/src/parallel/include
 AM_CPPFLAGS += -I$(top_srcdir)/src/utilities/include
 AM_CPPFLAGS += -I$(top_builddir)/src/utilities/include #timpi_version.h, timpi_config.h
 
+CXXFLAGS_DBG += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+CXXFLAGS_DEVEL += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+CXXFLAGS_OPROF += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+CXXFLAGS_OPT += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+CXXFLAGS_PROF += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+
 LIBS         = $(timpi_optional_LIBS)
 
 #Script to run underlying tests

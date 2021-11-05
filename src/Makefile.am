@@ -1,6 +1,13 @@
 
 AM_LDFLAGS = -version-info 3:0:0
 
+CXXFLAGS_DBG += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+CXXFLAGS_DEVEL += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+CXXFLAGS_OPROF += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+CXXFLAGS_OPT += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+CXXFLAGS_PROF += $(ACSM_ANY_WERROR_FLAG) $(ACSM_ANY_PARANOID_FLAGS)
+
+
 #----------------------------------------------
 # List of source files to build dynamic library
 #----------------------------------------------
