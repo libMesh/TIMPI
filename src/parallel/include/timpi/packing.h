@@ -26,6 +26,7 @@
 
 // C++ includes
 #include <array>
+#include <climits>     // CHAR_BIT
 #include <cstring>     // memcpy
 #include <iterator>
 #include <list>
@@ -85,6 +86,76 @@ public:
   template <typename BufferIter, typename Context>
   static T unpack(BufferIter in, Context * ctx);
 };
+
+
+// Utility functions for encoding and decoding lengths into buffers
+// with data types that may be too small to hold an unsigned int.  For
+// MPI compatibility we assume that lengths do fit into an int.
+template <typename buffer_type>
+inline
+constexpr int
+get_packed_len_entries ()
+{
+  return
+    (sizeof(unsigned int) + (sizeof(buffer_type)-1)) /
+    sizeof(buffer_type);
+}
+
+
+template <typename T, typename Iter>
+inline
+void
+put_packed_len (unsigned int len, Iter data_out)
+{
+  // I hoped decltype(*data_out) would always be T, but no dice
+  constexpr int size_bytes = get_packed_len_entries<T>();
+
+  for (unsigned int i=0; i != size_bytes; ++i)
+    {
+      *data_out++ = (len % 256);
+      len /= 256;
+    }
+}
+
+
+template <typename buffer_type>
+inline
+unsigned int
+get_packed_len (typename std::vector<buffer_type>::const_iterator in)
+{
+  // If we're using 2-byte or 1-byte buffer type then we have to split
+  // into multiple entries
+  constexpr int n_bits = (sizeof(buffer_type) * CHAR_BIT);
+
+  // We may have a small signed buffer type into which we stuffed
+  // an unsigned value
+  if (n_bits < 32)
+    {
+      const int n_size_entries = get_packed_len_entries<buffer_type>();
+      unsigned int packed_len = 0;
+
+      for (signed int i = n_size_entries-1; i >= 0; --i)
+        {
+          packed_len <<= n_bits;
+
+          const auto next_entry = in[i];
+
+          if (next_entry < 0)
+            packed_len += 1 << n_bits;
+
+          packed_len += next_entry;
+        }
+      return packed_len;
+    }
+
+  // With 32 bits or more this is trivial
+
+  timpi_assert_equal_to(get_packed_len_entries<buffer_type>(), 1);
+  timpi_assert_greater_equal(*in, 0);
+
+  return *in;
+}
+
 
 // Idiom taken from https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Member_Detector
 template <typename T>
@@ -291,8 +362,9 @@ Packing<std::pair<T1, T2>,
         typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
     packable_size(const std::pair<T1, T2> & pr, const Context * ctx)
 {
-  return 1 + Mixed::packable_size_comp(pr.first, ctx) +
-             Mixed::packable_size_comp(pr.second, ctx);
+  return get_packed_len_entries<buffer_type>() +
+    Mixed::packable_size_comp(pr.first, ctx) +
+    Mixed::packable_size_comp(pr.second, ctx);
 }
 
 template <typename T1, typename T2>
@@ -302,8 +374,8 @@ Packing<std::pair<T1, T2>,
         typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
     packed_size(BufferIter iter)
 {
-  // We recorded the size in the first buffer entry
-  return *iter;
+  // We recorded the size in the first buffer entries
+  return get_packed_len<buffer_type>(iter);
 }
 
 template <typename T1, typename T2>
@@ -316,7 +388,7 @@ Packing<std::pair<T1, T2>,
   unsigned int size = packable_size(pr, ctx);
 
   // First write out info about the buffer size
-  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+  put_packed_len<buffer_type>(size, data_out);
 
   // Now pack the data
   Mixed::pack_comp(pr.first, data_out, ctx);
@@ -338,8 +410,9 @@ Packing<std::pair<T1, T2>,
 {
   std::pair<T1, T2> pr;
 
-  // We don't care about the size
-  in++;
+  // We ignore total size here but we have to increment past it
+  constexpr int size_bytes = get_packed_len_entries<buffer_type>();
+  in += size_bytes;
 
   // Unpack the data
   Mixed::unpack_comp(pr.first, in, ctx);
@@ -492,7 +565,8 @@ Packing<std::tuple<Types...>,
         typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
     packable_size(const std::tuple<Types...> & tup, const Context * ctx)
 {
-  return 1 + tail_packable_size<Context, 0>(tup, ctx);
+  return get_packed_len_entries<buffer_type>() +
+    tail_packable_size<Context, 0>(tup, ctx);
 }
 
 template <typename... Types>
@@ -502,8 +576,8 @@ Packing<std::tuple<Types...>,
         typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
     packed_size(BufferIter iter)
 {
-  // We recorded the size in the first buffer entry
-  return *iter;
+  // We recorded the size in the first buffer entries
+  return get_packed_len<buffer_type>(iter);
 }
 
 template <typename... Types>
@@ -516,7 +590,7 @@ Packing<std::tuple<Types...>,
   unsigned int size = packable_size(tup, ctx);
 
   // First write out info about the buffer size
-  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+  put_packed_len<buffer_type>(size, data_out);
 
   // Now pack the data
   tail_pack_comp<Context, OutputIter, 0>(tup, data_out, ctx);
@@ -531,8 +605,9 @@ Packing<std::tuple<Types...>,
 {
   std::tuple<Types...> tup;
 
-  // We don't care about the size
-  in++;
+  // We ignore total size here but we have to increment past it
+  constexpr int size_bytes = get_packed_len_entries<buffer_type>();
+  in += size_bytes;
 
   // Unpack the data
   tail_unpack_comp<Context, BufferIter, 0>(tup, in, ctx);
@@ -572,7 +647,7 @@ Packing<std::array<T, N>,
         typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
     packable_size(const std::array<T, N> & a, const Context * ctx)
 {
-  unsigned int returnval = 1; // size
+  unsigned int returnval = get_packed_len_entries<buffer_type>(); // size
   for (const auto & entry : a)
     returnval += Mixed::packable_size_comp(entry, ctx);
   return returnval;
@@ -585,8 +660,8 @@ Packing<std::array<T, N>,
         typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
     packed_size(BufferIter iter)
 {
-  // We recorded the size in the first buffer entry
-  return *iter;
+  // We recorded the size in the first buffer entries
+  return get_packed_len<buffer_type>(iter);
 }
 
 template <typename T, std::size_t N>
@@ -599,7 +674,7 @@ Packing<std::array<T, N>,
   unsigned int size = packable_size(a, ctx);
 
   // First write out info about the buffer size
-  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+  put_packed_len<buffer_type>(size, data_out);
 
   // Now pack the data
   for (const auto & entry : a)
@@ -615,8 +690,9 @@ Packing<std::array<T, N>,
 {
   std::array<T, N> a;
 
-  // We don't care about the size
-  in++;
+  // We ignore total size here but we have to increment past it
+  constexpr int size_bytes = get_packed_len_entries<buffer_type>();
+  in += size_bytes;
 
   // Unpack the data
   for (auto & entry : a)
@@ -684,7 +760,7 @@ template <typename Context>
 unsigned int
 PackingRange<Container>::packable_size(const Container & c, const Context * ctx)
 {
-  unsigned int returnval = 1; // size
+  unsigned int returnval = get_packed_len_entries<buffer_type>(); // size
   for (const auto & entry : c)
     returnval += Mixed::packable_size_comp(entry, ctx);
   return returnval;
@@ -695,8 +771,8 @@ template <typename BufferIter>
 unsigned int
 PackingRange<Container>::packed_size(BufferIter iter)
 {
-  // We recorded the size in the first buffer entry
-  return *iter;
+  // We recorded the size in the first buffer entries
+  return get_packed_len<buffer_type>(iter);
 }
 
 template <typename Container>
@@ -707,7 +783,7 @@ PackingRange<Container>::pack(const Container & c, OutputIter data_out, const Co
   unsigned int size = packable_size(c, ctx);
 
   // First write out info about the buffer size
-  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+  put_packed_len<buffer_type>(size, data_out);
 
   // Now pack the data
   for (const auto & entry : c)
@@ -725,9 +801,10 @@ PackingRange<Container>::unpack(BufferIter in, Context * ctx)
 
   timpi_assert_greater(size, 0);
 
-  // Now skip the size data itself
-  in++;
-  size--;
+  // Get the total size
+  constexpr int size_bytes = get_packed_len_entries<buffer_type>();
+  in += size_bytes;
+  size -= size_bytes;
 
   // Unpack the data
   std::size_t unpacked_size = 0;
@@ -809,34 +886,19 @@ template <typename T>
 class Packing<std::basic_string<T>> {
 public:
 
-  static const unsigned int size_bytes = 4;
-
   typedef T buffer_type;
-
-  static unsigned int
-  get_string_len (typename std::vector<T>::const_iterator in)
-  {
-    unsigned int string_len = reinterpret_cast<const unsigned char &>(in[size_bytes-1]);
-    for (signed int i=size_bytes-2; i >= 0; --i)
-      {
-        string_len *= 256;
-        string_len += reinterpret_cast<const unsigned char &>(in[i]);
-      }
-    return string_len;
-  }
-
 
   static unsigned int
   packed_size (typename std::vector<T>::const_iterator in)
   {
-    return get_string_len(in) + size_bytes;
+    return get_packed_len<T>(in) + get_packed_len_entries<T>();
   }
 
   static unsigned int packable_size
   (const std::basic_string<T> & s,
    const void *)
   {
-    return s.size() + size_bytes;
+    return s.size() + get_packed_len_entries<T>();
   }
 
 
@@ -844,19 +906,15 @@ public:
   static void pack (const std::basic_string<T> & b, Iter data_out,
                     const void *)
   {
-    unsigned int string_len = b.size();
-    for (unsigned int i=0; i != size_bytes; ++i)
-      {
-        *data_out++ = (string_len % 256);
-        string_len /= 256;
-      }
+    put_packed_len<T>(b.size(), data_out);
     std::copy(b.begin(), b.end(), data_out);
   }
 
   static std::basic_string<T>
   unpack (typename std::vector<T>::const_iterator in, void *)
   {
-    unsigned int string_len = get_string_len(in);
+    const unsigned int string_len = get_packed_len<T>(in);
+    constexpr int size_bytes = get_packed_len_entries<T>();
 
     std::ostringstream oss;
     for (unsigned int i = 0; i < string_len; ++i)

@@ -33,6 +33,48 @@ struct null_output_iterator
   null_output_iterator & operator*() { return *this; }
 };
 
+
+template <int i, typename T>
+inline
+auto my_get(T & container) -> decltype(std::get<i>(container))
+{
+  return std::get<i>(container);
+}
+
+
+template <int i, typename T>
+inline
+auto my_get(T & container) -> decltype(*container.begin())
+{
+  auto fwd_it = container.begin();
+  for (int n_it = 0; n_it < i; ++n_it)
+    ++fwd_it;
+  return *fwd_it;
+}
+
+
+// Need to disambiguate - array has get() and begin()...
+template <int i, typename T, std::size_t N>
+inline
+auto my_get(std::array<T, N> & container) -> decltype(std::get<i>(container))
+{
+  return std::get<i>(container);
+}
+
+
+template <typename T>
+inline void my_resize(T & container, std::size_t size) { container.resize(size); }
+
+template <typename T, typename U>
+inline void my_resize(std::pair<T,U> &, std::size_t) {}
+
+template <typename ... Types>
+inline void my_resize(std::tuple<Types...> &, std::size_t) {}
+
+template <typename T, std::size_t N>
+inline void my_resize(std::array<T,N> &, std::size_t) {}
+
+
 #if __cplusplus > 201402L
 namespace libMesh
 {
@@ -66,8 +108,6 @@ Communicator *TestCommWorld;
 
   void testNullAllGather()
   {
-    std::vector<processor_id_type> vals;
-
     std::vector<std::string> send(1);
     if (TestCommWorld->rank() == 0)
       send[0].assign("Hello");
@@ -80,10 +120,124 @@ Communicator *TestCommWorld;
   }
 
 
+  // Make sure we don't have problems with strings of length above 256
+  // inside pairs, like we used to.
+  template <typename PairAtLeast>
+  void testGettableStringAllGather()
+  {
+    std::vector<PairAtLeast> sendv(2);
+    my_resize(sendv[0], 2);
+    my_resize(sendv[1], 2);
+
+    my_get<0>(sendv[0]).assign("Hello");
+    auto & s0 = my_get<1>(sendv[0]);
+    s0.assign("Is it me you're looking for?\n");
+    for (int i=0; i != 6; ++i)
+      s0 = s0+s0;
+    timpi_assert_greater(s0.size(), 256);
+
+    my_get<0>(sendv[1]).assign("Goodbye");
+    auto & s1 = my_get<1>(sendv[1]);
+    s1.assign("to you!  Guess it's better to say, goodbye\n");
+    for (int i=0; i != 6; ++i)
+      s1 = s1+s1;
+    timpi_assert_greater(s1.size(), 256);
+
+    std::vector<PairAtLeast> send(1);
+    my_resize(send[0], 2);
+
+    if (TestCommWorld->rank() == 0)
+      send[0] = sendv[0];
+    else
+      send[0] = sendv[1];
+
+    std::vector<PairAtLeast> recv;
+
+    TestCommWorld->allgather_packed_range
+      ((void *)(NULL), send.begin(), send.end(),
+       std::back_inserter(recv));
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = recv.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    TIMPI_UNIT_ASSERT(sendv[0] == recv[0]);
+    for (std::size_t i=1; i < vec_size; ++i)
+      TIMPI_UNIT_ASSERT(sendv[1] == recv[i]);
+  }
+
+
+  void testPairStringAllGather()
+  {
+    testGettableStringAllGather<std::pair<std::string, std::string>>();
+  }
+
+
+  void testArrayStringAllGather()
+  {
+    testGettableStringAllGather<std::array<std::string, 4>>();
+  }
+
+
+  void testListStringAllGather()
+  {
+    testGettableStringAllGather<std::list<std::string>>();
+  }
+
+
+  void testVectorStringAllGather()
+  {
+    testGettableStringAllGather<std::vector<std::string>>();
+  }
+
+
+  // Make sure we don't have problems with strings of length above 256
+  // inside other containers either
+  void testTupleStringAllGather()
+  {
+    std::vector<std::tuple<std::string, std::string, std::string>> sendv(2);
+
+    auto & s0 = std::get<1>(sendv[0]);
+    std::get<0>(sendv[0]).assign("Hello");
+    s0.assign("Is it me you're looking for?\n");
+    for (int i=0; i != 6; ++i)
+      s0 = s0+s0;
+    timpi_assert_greater(s0.size(), 256);
+    std::get<2>(sendv[0]).assign("I can see it in your eyes.\n");
+
+    auto & s1 = std::get<1>(sendv[1]);
+    std::get<0>(sendv[1]).assign("Goodbye");
+    s1.assign("to you!  Guess it's better to say, goodbye\n");
+    for (int i=0; i != 6; ++i)
+      s1 = s1+s1;
+    timpi_assert_greater(s1.size(), 256);
+    std::get<2>(sendv[1]).assign("'Cause baby it's over now.\n");
+
+    std::vector<std::tuple<std::string, std::string, std::string>> send(1);
+    if (TestCommWorld->rank() == 0)
+      send[0] = sendv[0];
+    else
+      send[0] = sendv[1];
+
+    std::vector<std::tuple<std::string, std::string, std::string>> recv;
+
+    TestCommWorld->allgather_packed_range
+      ((void *)(NULL), send.begin(), send.end(),
+       std::back_inserter(recv));
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = recv.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    TIMPI_UNIT_ASSERT(sendv[0] == recv[0]);
+    for (std::size_t i=1; i < vec_size; ++i)
+      TIMPI_UNIT_ASSERT(sendv[1] == recv[i]);
+  }
+
+
+
   void testNullSendReceive()
   {
-    std::vector<processor_id_type> vals;
-
     std::vector<std::string> send(1);
     const unsigned int my_rank = TestCommWorld->rank();
     const unsigned int dest_rank =
@@ -346,6 +500,9 @@ int main(int argc, const char * const * argv)
   TestCommWorld = &init.comm();
 
   testNullAllGather();
+  testPairStringAllGather();
+  testArrayStringAllGather();
+  testTupleStringAllGather();
   testNullSendReceive();
   testContainerAllGather();
   testContainerSendReceive();
