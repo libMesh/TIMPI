@@ -647,7 +647,7 @@ Packing<std::array<T, N>,
         typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
     packable_size(const std::array<T, N> & a, const Context * ctx)
 {
-  unsigned int returnval = 1; // size
+  unsigned int returnval = get_packed_len_entries<buffer_type>(); // size
   for (const auto & entry : a)
     returnval += Mixed::packable_size_comp(entry, ctx);
   return returnval;
@@ -660,8 +660,8 @@ Packing<std::array<T, N>,
         typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
     packed_size(BufferIter iter)
 {
-  // We recorded the size in the first buffer entry
-  return *iter;
+  // We recorded the size in the first buffer entries
+  return get_packed_len<buffer_type>(iter);
 }
 
 template <typename T, std::size_t N>
@@ -674,7 +674,7 @@ Packing<std::array<T, N>,
   unsigned int size = packable_size(a, ctx);
 
   // First write out info about the buffer size
-  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+  put_packed_len<buffer_type>(size, data_out);
 
   // Now pack the data
   for (const auto & entry : a)
@@ -690,8 +690,9 @@ Packing<std::array<T, N>,
 {
   std::array<T, N> a;
 
-  // We don't care about the size
-  in++;
+  // We ignore total size here but we have to increment past it
+  constexpr int size_bytes = get_packed_len_entries<buffer_type>();
+  in += size_bytes;
 
   // Unpack the data
   for (auto & entry : a)
@@ -759,7 +760,7 @@ template <typename Context>
 unsigned int
 PackingRange<Container>::packable_size(const Container & c, const Context * ctx)
 {
-  unsigned int returnval = 1; // size
+  unsigned int returnval = get_packed_len_entries<buffer_type>(); // size
   for (const auto & entry : c)
     returnval += Mixed::packable_size_comp(entry, ctx);
   return returnval;
@@ -770,8 +771,8 @@ template <typename BufferIter>
 unsigned int
 PackingRange<Container>::packed_size(BufferIter iter)
 {
-  // We recorded the size in the first buffer entry
-  return *iter;
+  // We recorded the size in the first buffer entries
+  return get_packed_len<buffer_type>(iter);
 }
 
 template <typename Container>
@@ -782,7 +783,7 @@ PackingRange<Container>::pack(const Container & c, OutputIter data_out, const Co
   unsigned int size = packable_size(c, ctx);
 
   // First write out info about the buffer size
-  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+  put_packed_len<buffer_type>(size, data_out);
 
   // Now pack the data
   for (const auto & entry : c)
@@ -800,9 +801,10 @@ PackingRange<Container>::unpack(BufferIter in, Context * ctx)
 
   timpi_assert_greater(size, 0);
 
-  // Now skip the size data itself
-  in++;
-  size--;
+  // Get the total size
+  constexpr int size_bytes = get_packed_len_entries<buffer_type>();
+  in += size_bytes;
+  size -= size_bytes;
 
   // Unpack the data
   std::size_t unpacked_size = 0;
