@@ -80,31 +80,32 @@ Communicator *TestCommWorld;
 
   // Make sure we don't have problems with strings of length above 256
   // inside pairs, like we used to.
-  void testPairStringAllGather()
+  template <typename PairAtLeast>
+  void testGettableStringAllGather()
   {
-    std::vector<std::pair<std::string, std::string>> sendv(2);
+    std::vector<PairAtLeast> sendv(2);
 
-    sendv[0].first.assign("Hello");
-    auto & s0 = sendv[0].second;
+    std::get<0>(sendv[0]).assign("Hello");
+    auto & s0 = std::get<1>(sendv[0]);
     s0.assign("Is it me you're looking for?\n");
     for (int i=0; i != 6; ++i)
       s0 = s0+s0;
     timpi_assert_greater(s0.size(), 256);
 
-    sendv[1].first.assign("Goodbye");
-    auto & s1 = sendv[1].second;
+    std::get<0>(sendv[1]).assign("Goodbye");
+    auto & s1 = std::get<1>(sendv[1]);
     s1.assign("to you!  Guess it's better to say, goodbye\n");
     for (int i=0; i != 6; ++i)
       s1 = s1+s1;
     timpi_assert_greater(s1.size(), 256);
 
-    std::vector<std::pair<std::string, std::string>> send(1);
+    std::vector<PairAtLeast> send(1);
     if (TestCommWorld->rank() == 0)
       send[0] = sendv[0];
     else
       send[0] = sendv[1];
 
-    std::vector<std::pair<std::string, std::string>> recv;
+    std::vector<PairAtLeast> recv;
 
     TestCommWorld->allgather_packed_range
       ((void *)(NULL), send.begin(), send.end(),
@@ -117,6 +118,18 @@ Communicator *TestCommWorld;
     TIMPI_UNIT_ASSERT(sendv[0] == recv[0]);
     for (std::size_t i=1; i < vec_size; ++i)
       TIMPI_UNIT_ASSERT(sendv[1] == recv[i]);
+  }
+
+
+  void testPairStringAllGather()
+  {
+    testGettableStringAllGather<std::pair<std::string, std::string>>();
+  }
+
+
+  void testArrayStringAllGather()
+  {
+    testGettableStringAllGather<std::array<std::string, 4>>();
   }
 
 
@@ -430,6 +443,7 @@ int main(int argc, const char * const * argv)
 
   testNullAllGather();
   testPairStringAllGather();
+  testArrayStringAllGather();
   testTupleStringAllGather();
   testNullSendReceive();
   testContainerAllGather();
