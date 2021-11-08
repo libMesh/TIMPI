@@ -33,6 +33,48 @@ struct null_output_iterator
   null_output_iterator & operator*() { return *this; }
 };
 
+
+template <int i, typename T>
+inline
+auto my_get(T & container) -> decltype(std::get<i>(container))
+{
+  return std::get<i>(container);
+}
+
+
+template <int i, typename T>
+inline
+auto my_get(T & container) -> decltype(*container.begin())
+{
+  auto fwd_it = container.begin();
+  for (int n_it = 0; n_it < i; ++n_it)
+    ++fwd_it;
+  return *fwd_it;
+}
+
+
+// Need to disambiguate - array has get() and begin()...
+template <int i, typename T, std::size_t N>
+inline
+auto my_get(std::array<T, N> & container) -> decltype(std::get<i>(container))
+{
+  return std::get<i>(container);
+}
+
+
+template <typename T>
+inline void my_resize(T & container, std::size_t size) { container.resize(size); }
+
+template <typename T, typename U>
+inline void my_resize(std::pair<T,U> &, std::size_t) {}
+
+template <typename ... Types>
+inline void my_resize(std::tuple<Types...> &, std::size_t) {}
+
+template <typename T, std::size_t N>
+inline void my_resize(std::array<T,N> &, std::size_t) {}
+
+
 #if __cplusplus > 201402L
 namespace libMesh
 {
@@ -84,22 +126,26 @@ Communicator *TestCommWorld;
   void testGettableStringAllGather()
   {
     std::vector<PairAtLeast> sendv(2);
+    my_resize(sendv[0], 2);
+    my_resize(sendv[1], 2);
 
-    std::get<0>(sendv[0]).assign("Hello");
-    auto & s0 = std::get<1>(sendv[0]);
+    my_get<0>(sendv[0]).assign("Hello");
+    auto & s0 = my_get<1>(sendv[0]);
     s0.assign("Is it me you're looking for?\n");
     for (int i=0; i != 6; ++i)
       s0 = s0+s0;
     timpi_assert_greater(s0.size(), 256);
 
-    std::get<0>(sendv[1]).assign("Goodbye");
-    auto & s1 = std::get<1>(sendv[1]);
+    my_get<0>(sendv[1]).assign("Goodbye");
+    auto & s1 = my_get<1>(sendv[1]);
     s1.assign("to you!  Guess it's better to say, goodbye\n");
     for (int i=0; i != 6; ++i)
       s1 = s1+s1;
     timpi_assert_greater(s1.size(), 256);
 
     std::vector<PairAtLeast> send(1);
+    my_resize(send[0], 2);
+
     if (TestCommWorld->rank() == 0)
       send[0] = sendv[0];
     else
@@ -130,6 +176,18 @@ Communicator *TestCommWorld;
   void testArrayStringAllGather()
   {
     testGettableStringAllGather<std::array<std::string, 4>>();
+  }
+
+
+  void testListStringAllGather()
+  {
+    testGettableStringAllGather<std::list<std::string>>();
+  }
+
+
+  void testVectorStringAllGather()
+  {
+    testGettableStringAllGather<std::vector<std::string>>();
   }
 
 
