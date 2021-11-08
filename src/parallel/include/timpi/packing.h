@@ -565,7 +565,8 @@ Packing<std::tuple<Types...>,
         typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
     packable_size(const std::tuple<Types...> & tup, const Context * ctx)
 {
-  return 1 + tail_packable_size<Context, 0>(tup, ctx);
+  return get_packed_len_entries<buffer_type>() +
+    tail_packable_size<Context, 0>(tup, ctx);
 }
 
 template <typename... Types>
@@ -575,8 +576,8 @@ Packing<std::tuple<Types...>,
         typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
     packed_size(BufferIter iter)
 {
-  // We recorded the size in the first buffer entry
-  return *iter;
+  // We recorded the size in the first buffer entries
+  return get_packed_len<buffer_type>(iter);
 }
 
 template <typename... Types>
@@ -589,7 +590,7 @@ Packing<std::tuple<Types...>,
   unsigned int size = packable_size(tup, ctx);
 
   // First write out info about the buffer size
-  *data_out++ = TIMPI::cast_int<buffer_type>(size);
+  put_packed_len<buffer_type>(size, data_out);
 
   // Now pack the data
   tail_pack_comp<Context, OutputIter, 0>(tup, data_out, ctx);
@@ -604,8 +605,9 @@ Packing<std::tuple<Types...>,
 {
   std::tuple<Types...> tup;
 
-  // We don't care about the size
-  in++;
+  // We ignore total size here but we have to increment past it
+  constexpr int size_bytes = get_packed_len_entries<buffer_type>();
+  in += size_bytes;
 
   // Unpack the data
   tail_unpack_comp<Context, BufferIter, 0>(tup, in, ctx);
