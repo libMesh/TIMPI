@@ -374,7 +374,7 @@ Packing<std::pair<T1, T2>,
         typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
     packed_size(BufferIter iter)
 {
-  // We recorded the size in the first buffer entry
+  // We recorded the size in the first buffer entries
   return get_packed_len<buffer_type>(iter);
 }
 
