@@ -195,6 +195,13 @@ TIMPI_STANDARD_TYPE(long double,MPI_LONG_DOUBLE);
       timpi_call_mpi (MPI_Type_dup (t._datatype, &_datatype));
     }
 
+    StandardType & operator=(StandardType & t)
+    {
+      this->free();
+      timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+      return *this;
+    }
+
     ~StandardType() {
       this->free();
     }
@@ -276,6 +283,13 @@ public:
       (MPI_Type_dup (t._datatype, &_datatype));
   }
 
+  StandardType & operator=(StandardType & t)
+  {
+    this->free();
+    timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+    return *this;
+  }
+
   ~StandardType() { this->free(); }
 
   static const bool is_fixed_type = true;
@@ -348,6 +362,13 @@ public:
   {
     timpi_call_mpi
       (MPI_Type_dup (t._datatype, &_datatype));
+  }
+
+  StandardType & operator=(StandardType & t)
+  {
+    this->free();
+    timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+    return *this;
   }
 
   ~StandardType() { this->free(); }
@@ -504,6 +525,13 @@ public:
   {
     timpi_call_mpi
       (MPI_Type_dup (t._datatype, &_datatype));
+  }
+
+  StandardType & operator=(StandardType & t)
+  {
+    this->free();
+    timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+    return *this;
   }
 
   ~StandardType() { this->free(); }
