@@ -68,7 +68,7 @@ public:
     this->commit();
   }
 
-  ~DataType () = default;
+  virtual ~DataType () = default;
 
   DataType & operator = (const DataType & other) = default;
   DataType & operator = (DataType && other) = default;
