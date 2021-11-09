@@ -77,3 +77,8 @@
 
 1.7
   * Packing<vector> support
+
+1.7.1
+  * Packing size fixes
+  * Update autoconf submodule
+  * Make DataType destructor virtual to avoid leaks
