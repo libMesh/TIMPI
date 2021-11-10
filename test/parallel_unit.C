@@ -849,6 +849,15 @@ void testGather()
     TIMPI_UNIT_ASSERT(subcomm.size() <= TestCommWorld->size());
   }
 
+  template <typename NonBuiltin>
+  void testStandardTypeAssignment()
+  {
+    NonBuiltin ex{};
+    StandardType<NonBuiltin> a(&ex);
+    StandardType<NonBuiltin> b(&ex);
+    a = b;
+  }
+
 
 int main(int argc, const char * const * argv)
 {
@@ -901,6 +910,10 @@ int main(int argc, const char * const * argv)
   testNonblockingSum();
   testNonblockingMin();
   testNonblockingMax();
+  testStandardTypeAssignment<TIMPI_DEFAULT_SCALAR_TYPE>();
+  testStandardTypeAssignment<std::pair<unsigned, unsigned>>();
+  testStandardTypeAssignment<std::array<unsigned, 1>>();
+  testStandardTypeAssignment<std::tuple<unsigned, unsigned, unsigned>>();
 
   return 0;
 }
