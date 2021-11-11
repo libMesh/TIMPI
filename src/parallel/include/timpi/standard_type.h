@@ -195,6 +195,13 @@ TIMPI_STANDARD_TYPE(long double,MPI_LONG_DOUBLE);
       timpi_call_mpi (MPI_Type_dup (t._datatype, &_datatype));
     }
 
+    StandardType & operator=(StandardType & t)
+    {
+      this->free();
+      timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+      return *this;
+    }
+
     ~StandardType() {
       this->free();
     }
@@ -276,6 +283,13 @@ public:
       (MPI_Type_dup (t._datatype, &_datatype));
   }
 
+  StandardType & operator=(StandardType & t)
+  {
+    this->free();
+    timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+    return *this;
+  }
+
   ~StandardType() { this->free(); }
 
   static const bool is_fixed_type = true;
@@ -350,6 +364,13 @@ public:
       (MPI_Type_dup (t._datatype, &_datatype));
   }
 
+  StandardType & operator=(StandardType & t)
+  {
+    this->free();
+    timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+    return *this;
+  }
+
   ~StandardType() { this->free(); }
 
   static const bool is_fixed_type = true;
@@ -386,7 +407,7 @@ void BuildStandardTypeVector<n_minus_i>::build
     ith_type;
 
   out_vec.emplace_back
-    (new StandardType<ith_type>
+    (std::make_unique<StandardType<ith_type>>
      (&std::get<sizeof...(Types)-n_minus_i>(example)));
 
   BuildStandardTypeVector<n_minus_i-1>::build(out_vec, example);
@@ -504,6 +525,13 @@ public:
   {
     timpi_call_mpi
       (MPI_Type_dup (t._datatype, &_datatype));
+  }
+
+  StandardType & operator=(StandardType & t)
+  {
+    this->free();
+    timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+    return *this;
   }
 
   ~StandardType() { this->free(); }
