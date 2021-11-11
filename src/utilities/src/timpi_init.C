@@ -24,7 +24,6 @@
 #include "timpi/timpi_assert.h"
 
 
-
 #ifdef TIMPI_HAVE_MPI
 void TIMPI_MPI_Handler (MPI_Comm *, int *, ...)
 {
@@ -35,6 +34,10 @@ void TIMPI_MPI_Handler (MPI_Comm *, int *, ...)
 
 namespace TIMPI
 {
+
+int TIMPIInit::_ref_count = 0;
+
+std::vector<std::unique_ptr<SemiPermanent>> TIMPIInit::_stuff_to_clean;
 
 #ifdef TIMPI_HAVE_MPI
 TIMPIInit::TIMPIInit (int argc, const char * const * argv,
@@ -99,6 +102,8 @@ TIMPIInit::TIMPIInit (int argc, const char * const * argv,
         (MPI_Comm_set_errhandler(MPI_COMM_WORLD, my_errhandler));
       err_handler_set = true;
     }
+
+  _ref_count++;
 }
 #else
 TIMPIInit::TIMPIInit (int /* argc */, const char * const * /* argv */,
@@ -106,6 +111,7 @@ TIMPIInit::TIMPIInit (int /* argc */, const char * const * /* argv */,
                             bool /* using_threads */)
 {
   this->_comm = new Communicator(); // So comm() doesn't dereference null
+  _ref_count++;
 }
 #endif
 
@@ -122,6 +128,15 @@ TIMPIInit::~TIMPIInit()
   // Even if we're not doing parallel_only debugging, we don't want
   // one processor to try to exit until all others are done working.
   this->comm().barrier();
+
+  // timpi_assert_greater(_ref_count, 0); // Can't throw in destructors
+
+  // We'll do our cleanup before we might be finalizing MPI
+  _ref_count--;
+
+  // Last one to leave turns out the lights
+  if (_ref_count <= 0)
+    _stuff_to_clean.clear();
 
 #ifdef TIMPI_HAVE_MPI
   if (err_handler_set)
@@ -157,6 +172,12 @@ TIMPIInit::~TIMPIInit()
 #else
   delete this->_comm;
 #endif
+}
+
+
+void TIMPIInit::add_semipermanent(std::unique_ptr<SemiPermanent> obj)
+{
+  _stuff_to_clean.push_back(std::move(obj));
 }
 
 } // namespace TIMPI
