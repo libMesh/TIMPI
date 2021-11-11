@@ -21,6 +21,9 @@
 
 #include "timpi/timpi_config.h"
 
+#include "timpi/semipermanent.h"
+#include "timpi/timpi_init.h"
+
 #ifdef TIMPI_HAVE_MPI
 #  include "timpi/ignore_warnings.h"
 #  include "mpi.h"
@@ -42,9 +45,9 @@ namespace TIMPI
 {
 #ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
 # ifdef TIMPI_HAVE_MPI
-# define TIMPI_MPI_BINARY(funcname) \
+# define TIMPI_MPI_QUAD_BINARY(funcname) \
 inline void \
-timpi_mpi_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
+timpi_mpi_quad_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
 { \
   const int size = *len; \
  \
@@ -54,9 +57,9 @@ timpi_mpi_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
     inout[i] = std::funcname(in[i],inout[i]); \
 }
 
-# define TIMPI_MPI_LOCATOR(funcname) \
+# define TIMPI_MPI_QUAD_LOCATOR(funcname) \
 inline void \
-timpi_mpi_##funcname##_location(void * a, void * b, int * len, MPI_Datatype *) \
+timpi_mpi_quad_##funcname##_location(void * a, void * b, int * len, MPI_Datatype *) \
 { \
   const int size = *len; \
  \
@@ -74,9 +77,9 @@ timpi_mpi_##funcname##_location(void * a, void * b, int * len, MPI_Datatype *) \
 }
 
 
-# define TIMPI_MPI_BINARY_FUNCTOR(funcname) \
+# define TIMPI_MPI_QUAD_BINARY_FUNCTOR(funcname) \
 inline void \
-timpi_mpi_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
+timpi_mpi_quad_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
 { \
   const int size = *len; \
  \
@@ -87,12 +90,12 @@ timpi_mpi_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
 }
 
 
-TIMPI_MPI_BINARY(max)
-TIMPI_MPI_BINARY(min)
-TIMPI_MPI_LOCATOR(max)
-TIMPI_MPI_LOCATOR(min)
-TIMPI_MPI_BINARY_FUNCTOR(plus)
-TIMPI_MPI_BINARY_FUNCTOR(multiplies)
+TIMPI_MPI_QUAD_BINARY(max)
+TIMPI_MPI_QUAD_BINARY(min)
+TIMPI_MPI_QUAD_LOCATOR(max)
+TIMPI_MPI_QUAD_LOCATOR(min)
+TIMPI_MPI_QUAD_BINARY_FUNCTOR(plus)
+TIMPI_MPI_QUAD_BINARY_FUNCTOR(multiplies)
 
 # endif // TIMPI_HAVE_MPI
 #endif // TIMPI_DEFAULT_QUADRUPLE_PRECISION
@@ -214,10 +217,20 @@ TIMPI_PARALLEL_FLOAT_OPS(float);
 TIMPI_PARALLEL_FLOAT_OPS(double);
 TIMPI_PARALLEL_FLOAT_OPS(long double);
 
-#ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
-# ifdef TIMPI_HAVE_MPI
+#ifdef TIMPI_HAVE_MPI
+// Helper class to avoid leaking MPI_Op when TIMPI exits
+class FreeOp : public SemiPermanent
+{
+public:
+  FreeOp(MPI_Op * op) : _op(op) {}
+  virtual ~FreeOp() override {
+    MPI_Op_free(_op);
+  }
+private:
+  MPI_Op * _op;
+};
+#endif
 
-// FIXME - we'll still need to free these to keep valgrind happy
 #define TIMPI_MPI_OPFUNCTION(mpiname, funcname) \
   static MPI_Op mpiname() { \
     static MPI_Op TIMPI_MPI_##mpiname = MPI_OP_NULL; \
@@ -225,21 +238,24 @@ TIMPI_PARALLEL_FLOAT_OPS(long double);
       { \
         timpi_call_mpi \
           (MPI_Op_create(timpi_mpi_##funcname, true, &TIMPI_MPI_##mpiname)); \
+        TIMPIInit::add_semipermanent(std::make_unique<FreeOp>(&TIMPI_MPI_##mpiname)); \
       } \
     return TIMPI_MPI_##mpiname;  \
   }
 
+#ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
+# ifdef TIMPI_HAVE_MPI
   template<>
   class OpFunction<TIMPI_DEFAULT_SCALAR_TYPE>
   {
   public:
-    TIMPI_MPI_OPFUNCTION(max, max)
-    TIMPI_MPI_OPFUNCTION(min, min)
-    TIMPI_MPI_OPFUNCTION(sum, plus)
-    TIMPI_MPI_OPFUNCTION(product, multiplies)
+    TIMPI_MPI_OPFUNCTION(max, quad_max)
+    TIMPI_MPI_OPFUNCTION(min, quad_min)
+    TIMPI_MPI_OPFUNCTION(sum, quad_plus)
+    TIMPI_MPI_OPFUNCTION(product, quad_multiplies)
 
-    TIMPI_MPI_OPFUNCTION(max_location, max_location)
-    TIMPI_MPI_OPFUNCTION(min_location, min_location)
+    TIMPI_MPI_OPFUNCTION(max_location, quad_max_location)
+    TIMPI_MPI_OPFUNCTION(min_location, quad_min_location)
   };
 
 # else
