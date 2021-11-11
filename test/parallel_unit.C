@@ -45,6 +45,24 @@ std::vector<std::string> pt_number;
 
 
 
+  template <class Gettable>
+  void testSumOpFunction()
+  {
+    Gettable data;
+
+    int N = TestCommWorld->size();
+
+    std::get<0>(data) = TestCommWorld->rank();
+    std::get<1>(data) = TestCommWorld->rank()*2;
+
+    TestCommWorld->sum(data);
+
+    TIMPI_UNIT_ASSERT(std::get<0>(data) == N*(N-1)/2);
+    TIMPI_UNIT_ASSERT(std::get<1>(data) == N*(N-1));
+  }
+
+
+
   template <class Map>
   void testNonFixedTypeSum()
   {
@@ -859,6 +877,7 @@ int main(int argc, const char * const * argv)
 
   testSum<std::map<int,int>>();
   testSum<std::unordered_map<int,int>>();
+  testSumOpFunction<std::pair<int,int>>();
   testNonFixedTypeSum<std::map<std::string,int>>();
   testNonFixedTypeSum<std::unordered_map<std::string,int>>();
   testGather();
