@@ -263,6 +263,84 @@ private:
 # endif
 #endif // TIMPI_DEFAULT_QUADRUPLE_PRECISION
 
+#ifdef TIMPI_HAVE_MPI
+
+# define TIMPI_MPI_PAIR_BINARY(funcname) \
+static inline void \
+timpi_mpi_pair_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
+{ \
+  const int size = *len; \
+ \
+  const std::pair<T,U> * in = static_cast<std::pair<T,U> *>(a); \
+  std::pair<T,U> * inout = static_cast<std::pair<T,U> *>(b); \
+  for (int i=0; i != size; ++i) \
+    { \
+      inout[i].first = std::funcname(in[i].first,inout[i].first); \
+      inout[i].second = std::funcname(in[i].second,inout[i].second); \
+    } \
+}
+
+# define TIMPI_MPI_PAIR_LOCATOR(funcname) \
+static inline void \
+timpi_mpi_pair_##funcname##_location(void * a, void * b, int * len, MPI_Datatype *) \
+{ \
+  const int size = *len; \
+ \
+  typedef std::pair<std::pair<T,U>, int> dtype; \
+ \
+  dtype *in = static_cast<dtype*>(a); \
+  dtype *inout = static_cast<dtype*>(b); \
+  for (int i=0; i != size; ++i) \
+    { \
+      std::pair<T,U> old_inout = inout[i].first; \
+      inout[i].first.first  = std::funcname(in[i].first.first, inout[i].first.first); \
+      inout[i].first.second = std::funcname(in[i].first.second,inout[i].first.second); \
+      if (old_inout != inout[i].first) \
+        inout[i].second = in[i].second; \
+    } \
+}
+
+
+# define TIMPI_MPI_PAIR_BINARY_FUNCTOR(funcname) \
+static inline void \
+timpi_mpi_pair_##funcname(void * a, void * b, int * len, MPI_Datatype *) \
+{ \
+  const int size = *len; \
+ \
+  const std::pair<T,U> * in = static_cast<std::pair<T,U> *>(a); \
+  std::pair<T,U> * inout = static_cast<std::pair<T,U> *>(b); \
+  for (int i=0; i != size; ++i) \
+    { \
+      inout[i].first  = std::funcname<T>()(in[i].first, inout[i].first); \
+      inout[i].second = std::funcname<T>()(in[i].second,inout[i].second); \
+    } \
+}
+
+
+  template<typename T, typename U>
+  class OpFunction<std::pair<T,U>>
+  {
+    TIMPI_MPI_PAIR_BINARY(max)
+    TIMPI_MPI_PAIR_BINARY(min)
+    TIMPI_MPI_PAIR_LOCATOR(max)
+    TIMPI_MPI_PAIR_LOCATOR(min)
+    TIMPI_MPI_PAIR_BINARY_FUNCTOR(plus)
+    TIMPI_MPI_PAIR_BINARY_FUNCTOR(multiplies)
+
+  public:
+    TIMPI_MPI_OPFUNCTION(max, pair_max)
+    TIMPI_MPI_OPFUNCTION(min, pair_min)
+    TIMPI_MPI_OPFUNCTION(sum, pair_plus)
+    TIMPI_MPI_OPFUNCTION(product, pair_multiplies)
+
+    TIMPI_MPI_OPFUNCTION(max_location, pair_max_location)
+    TIMPI_MPI_OPFUNCTION(min_location, pair_min_location)
+  };
+# else // TIMPI_HAVE_MPI
+  template<typename T, typename U>
+  class OpFunction<std::pair<T,U>> {};
+#endif
+
 } // namespace TIMPI
 
 #endif // TIMPI_OP_FUNCTION_H
