@@ -19,6 +19,8 @@
 // Local includes
 #include "timpi/timpi_init.h"
 
+#include "timpi/semipermanent.h"
+
 // TIMPI includes
 #include "timpi/communicator.h"
 #include "timpi/timpi_assert.h"

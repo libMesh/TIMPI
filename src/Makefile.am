@@ -106,6 +106,7 @@ include_HEADERS += parallel/include/timpi/status.h
 
 # utilities
 include_HEADERS += utilities/include/timpi/ignore_warnings.h
+include_HEADERS += utilities/include/timpi/semipermanent.h
 include_HEADERS += utilities/include/timpi/timpi.h
 include_HEADERS += utilities/include/timpi/timpi_assert.h
 include_HEADERS += utilities/include/timpi/timpi_call_mpi.h

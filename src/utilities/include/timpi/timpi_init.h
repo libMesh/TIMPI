@@ -123,22 +123,6 @@ private:
 #endif
 };
 
-/**
- * The \p SemiPermanent "class" is basically just a place for a
- * destructor vtable.  Derive from it and pass a unique_ptr to your
- * derived object to TIMPIInit::add_semipermanent() whenever you have
- * something that ought to be *almost* permanent: that should be
- * cleaned up eventually to avoid resource leaks, but that should not
- * be cleaned up until the last TIMPIInit object exits, just before
- * the MPI_Finalize call if TIMPI initialized MPI.
- */
-
-struct SemiPermanent
-{
-  SemiPermanent() = default;
-  virtual ~SemiPermanent() = default;
-};
-
 
 } // namespace TIMPI
 
