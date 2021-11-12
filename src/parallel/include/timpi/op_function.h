@@ -219,11 +219,16 @@ TIMPI_PARALLEL_FLOAT_OPS(long double);
 
 #ifdef TIMPI_HAVE_MPI
 // Helper class to avoid leaking MPI_Op when TIMPI exits
-class FreeOp : public SemiPermanent
+class ManageOp : public SemiPermanent
 {
 public:
-  FreeOp(MPI_Op * op) : _op(op) {}
-  virtual ~FreeOp() override {
+  ManageOp(MPI_User_function * func, int commute, MPI_Op * op)
+    : _op(op)
+  {
+    timpi_call_mpi(MPI_Op_create(func, commute, _op));
+  }
+
+  virtual ~ManageOp() override {
     MPI_Op_free(_op);
   }
 private:
@@ -235,11 +240,8 @@ private:
   static MPI_Op mpiname() { \
     static MPI_Op TIMPI_MPI_##mpiname = MPI_OP_NULL; \
     if (TIMPI_MPI_##mpiname == MPI_OP_NULL) \
-      { \
-        timpi_call_mpi \
-          (MPI_Op_create(timpi_mpi_##funcname, true, &TIMPI_MPI_##mpiname)); \
-        TIMPIInit::add_semipermanent(std::make_unique<FreeOp>(&TIMPI_MPI_##mpiname)); \
-      } \
+      TIMPIInit::add_semipermanent \
+        (std::make_unique<ManageOp>(timpi_mpi_##funcname, true, &TIMPI_MPI_##mpiname)); \
     return TIMPI_MPI_##mpiname;  \
   }
 
