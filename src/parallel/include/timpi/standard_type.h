@@ -23,6 +23,7 @@
 #include "timpi/data_type.h"
 #include "timpi/timpi_config.h"
 #include "timpi/standard_type_forward.h"
+#include "timpi/semipermanent.h"
 
 // C/C++ includes
 #ifdef TIMPI_HAVE_MPI
@@ -177,9 +178,30 @@ TIMPI_STANDARD_TYPE(float,MPI_FLOAT);
 TIMPI_STANDARD_TYPE(double,MPI_DOUBLE);
 TIMPI_STANDARD_TYPE(long double,MPI_LONG_DOUBLE);
 
+#ifdef TIMPI_HAVE_MPI
+
+// For non-default data types, we like to be able to construct them on
+// the fly, but we don't like to repeatedly destroy and reconstruct
+// them and we don't like to leak them, so let's keep them until TIMPI
+// exits via SemiPermanent
+class ManageType : public SemiPermanent
+{
+public:
+  ManageType(data_type uncommitted_type) :
+    _type(uncommitted_type) {
+    MPI_Type_commit (&uncommitted_type);
+  }
+
+  virtual ~ManageType() override {
+    MPI_Type_free(&_type);
+  }
+private:
+  data_type _type;
+};
+
+
 // Quad and float128 types aren't standard C++, so only work with them
 // if configure and PETSc encapsulated the non-standard issues.
-#ifdef TIMPI_HAVE_MPI
 # ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
   template<>
   class StandardType<TIMPI_DEFAULT_SCALAR_TYPE> : public DataType
