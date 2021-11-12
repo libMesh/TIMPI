@@ -19,6 +19,7 @@ timpi_SOURCES += parallel/src/message_tag.C
 timpi_SOURCES += parallel/src/request.C
 
 # utilities
+timpi_SOURCES += utilities/src/semipermanent.C
 timpi_SOURCES += utilities/src/timpi_assert.C
 timpi_SOURCES += utilities/src/timpi_init.C
 timpi_SOURCES += utilities/src/timpi_version.C
@@ -106,6 +107,7 @@ include_HEADERS += parallel/include/timpi/status.h
 
 # utilities
 include_HEADERS += utilities/include/timpi/ignore_warnings.h
+include_HEADERS += utilities/include/timpi/semipermanent.h
 include_HEADERS += utilities/include/timpi/timpi.h
 include_HEADERS += utilities/include/timpi/timpi_assert.h
 include_HEADERS += utilities/include/timpi/timpi_call_mpi.h

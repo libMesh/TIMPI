@@ -24,6 +24,8 @@
 // Local includes
 #include "timpi/timpi_config.h"
 
+#include "timpi/semipermanent.h"
+
 // C/C++ includes
 
 #ifdef TIMPI_HAVE_MPI
@@ -31,6 +33,8 @@
 # include <mpi.h>
 # include "timpi/restore_warnings.h"
 #endif // #ifdef TIMPI_HAVE_MPI
+
+#include <memory>
 
 namespace TIMPI
 {
@@ -96,7 +100,10 @@ public:
   Communicator & comm() { return *_comm; }
 
 private:
-  Communicator * _comm;
+  std::unique_ptr<Communicator> _comm;
+
+  // unique_ptr so we can free it *before* we MPI_Finalize
+  std::unique_ptr<SemiPermanent::Ref> _ref;
 
 #ifdef TIMPI_HAVE_MPI
   bool i_initialized_mpi;
@@ -105,6 +112,7 @@ private:
   bool err_handler_set;
 #endif
 };
+
 
 } // namespace TIMPI
 

@@ -19,10 +19,11 @@
 // Local includes
 #include "timpi/timpi_init.h"
 
+#include "timpi/semipermanent.h"
+
 // TIMPI includes
 #include "timpi/communicator.h"
 #include "timpi/timpi_assert.h"
-
 
 
 #ifdef TIMPI_HAVE_MPI
@@ -85,7 +86,10 @@ TIMPIInit::TIMPIInit (int argc, const char * const * argv,
   // Duplicate the input communicator for internal use
   // And get a Communicator copy too, to use
   // as a default for that API
-  this->_comm = new Communicator(COMM_WORLD_IN);
+  this->_comm = std::make_unique<Communicator>(COMM_WORLD_IN);
+
+  // Let SemiPermanent know we need its objects for a while
+  this->_ref = std::make_unique<SemiPermanent::Ref>();
 
   // Set up an MPI error handler if requested.  This helps us get
   // into a debugger with a proper stack when an MPI error occurs.
@@ -105,7 +109,8 @@ TIMPIInit::TIMPIInit (int /* argc */, const char * const * /* argv */,
                             bool /* handle_mpi_errors */,
                             bool /* using_threads */)
 {
-  this->_comm = new Communicator(); // So comm() doesn't dereference null
+  this->_comm = std::make_unique<Communicator>(); // So comm() doesn't dereference null
+  this->_ref = std::make_unique<SemiPermanent::Ref>();
 }
 #endif
 
@@ -123,6 +128,11 @@ TIMPIInit::~TIMPIInit()
   // one processor to try to exit until all others are done working.
   this->comm().barrier();
 
+  // timpi_assert_greater(_ref_count, 0); // Can't throw in destructors
+
+  // Trigger any SemiPermanent cleanup before potentially finalizing MPI
+  _ref.reset();
+
 #ifdef TIMPI_HAVE_MPI
   if (err_handler_set)
     {
@@ -136,8 +146,7 @@ TIMPIInit::~TIMPIInit()
         }
     }
 
-  this->comm().clear();
-  delete this->_comm;
+  this->_comm.reset();
 
   if (this->i_initialized_mpi)
     {
@@ -155,8 +164,9 @@ TIMPIInit::~TIMPIInit()
         }
     }
 #else
-  delete this->_comm;
+  this->_comm.reset();
 #endif
 }
+
 
 } // namespace TIMPI
