@@ -209,23 +209,24 @@ private:
   public:
     explicit
       StandardType(const TIMPI_DEFAULT_SCALAR_TYPE * = nullptr) : DataType() {
-        timpi_call_mpi(MPI_Type_contiguous(2, MPI_DOUBLE, &_datatype));
-        this->commit();
+        static data_type static_type = MPI_DATATYPE_NULL;
+        if (static_type == MPI_DATATYPE_NULL)
+          {
+            timpi_call_mpi(MPI_Type_contiguous(2, MPI_DOUBLE, &static_type));
+            SemiPermanent::add
+              (std::make_unique<ManageType>(static_type));
+          }
+        _datatype = static_type;
       }
 
     StandardType(const StandardType<TIMPI_DEFAULT_SCALAR_TYPE> & t) : DataType() {
-      timpi_call_mpi (MPI_Type_dup (t._datatype, &_datatype));
+      _datatype = t._datatype;
     }
 
     StandardType & operator=(StandardType & t)
     {
-      this->free();
-      timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+      _datatype = t._datatype;
       return *this;
-    }
-
-    ~StandardType() {
-      this->free();
     }
 
     static const bool is_fixed_type = true;
