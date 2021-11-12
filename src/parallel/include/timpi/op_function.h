@@ -240,7 +240,7 @@ private:
   static MPI_Op mpiname() { \
     static MPI_Op TIMPI_MPI_##mpiname = MPI_OP_NULL; \
     if (TIMPI_MPI_##mpiname == MPI_OP_NULL) \
-      TIMPIInit::add_semipermanent \
+      SemiPermanent::add \
         (std::make_unique<ManageOp>(timpi_mpi_##funcname, true, &TIMPI_MPI_##mpiname)); \
     return TIMPI_MPI_##mpiname;  \
   }

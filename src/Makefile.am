@@ -19,6 +19,7 @@ timpi_SOURCES += parallel/src/message_tag.C
 timpi_SOURCES += parallel/src/request.C
 
 # utilities
+timpi_SOURCES += utilities/src/semipermanent.C
 timpi_SOURCES += utilities/src/timpi_assert.C
 timpi_SOURCES += utilities/src/timpi_init.C
 timpi_SOURCES += utilities/src/timpi_version.C

@@ -37,10 +37,6 @@ void TIMPI_MPI_Handler (MPI_Comm *, int *, ...)
 namespace TIMPI
 {
 
-int TIMPIInit::_ref_count = 0;
-
-std::vector<std::unique_ptr<SemiPermanent>> TIMPIInit::_stuff_to_clean;
-
 #ifdef TIMPI_HAVE_MPI
 TIMPIInit::TIMPIInit (int argc, const char * const * argv,
                             bool using_threads,
@@ -90,7 +86,10 @@ TIMPIInit::TIMPIInit (int argc, const char * const * argv,
   // Duplicate the input communicator for internal use
   // And get a Communicator copy too, to use
   // as a default for that API
-  this->_comm = new Communicator(COMM_WORLD_IN);
+  this->_comm = std::make_unique<Communicator>(COMM_WORLD_IN);
+
+  // Let SemiPermanent know we need its objects for a while
+  this->_ref = std::make_unique<SemiPermanent::Ref>();
 
   // Set up an MPI error handler if requested.  This helps us get
   // into a debugger with a proper stack when an MPI error occurs.
@@ -104,16 +103,14 @@ TIMPIInit::TIMPIInit (int argc, const char * const * argv,
         (MPI_Comm_set_errhandler(MPI_COMM_WORLD, my_errhandler));
       err_handler_set = true;
     }
-
-  _ref_count++;
 }
 #else
 TIMPIInit::TIMPIInit (int /* argc */, const char * const * /* argv */,
                             bool /* handle_mpi_errors */,
                             bool /* using_threads */)
 {
-  this->_comm = new Communicator(); // So comm() doesn't dereference null
-  _ref_count++;
+  this->_comm = std::make_unique<Communicator>(); // So comm() doesn't dereference null
+  this->_ref = std::make_unique<SemiPermanent::Ref>();
 }
 #endif
 
@@ -133,12 +130,8 @@ TIMPIInit::~TIMPIInit()
 
   // timpi_assert_greater(_ref_count, 0); // Can't throw in destructors
 
-  // We'll do our cleanup before we might be finalizing MPI
-  _ref_count--;
-
-  // Last one to leave turns out the lights
-  if (_ref_count <= 0)
-    _stuff_to_clean.clear();
+  // Trigger any SemiPermanent cleanup before potentially finalizing MPI
+  _ref.reset();
 
 #ifdef TIMPI_HAVE_MPI
   if (err_handler_set)
@@ -153,8 +146,7 @@ TIMPIInit::~TIMPIInit()
         }
     }
 
-  this->comm().clear();
-  delete this->_comm;
+  this->_comm.reset();
 
   if (this->i_initialized_mpi)
     {
@@ -172,14 +164,9 @@ TIMPIInit::~TIMPIInit()
         }
     }
 #else
-  delete this->_comm;
+  this->_comm.reset();
 #endif
 }
 
-
-void TIMPIInit::add_semipermanent(std::unique_ptr<SemiPermanent> obj)
-{
-  _stuff_to_clean.push_back(std::move(obj));
-}
 
 } // namespace TIMPI

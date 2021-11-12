@@ -24,6 +24,8 @@
 // Local includes
 #include "timpi/timpi_config.h"
 
+#include "timpi/semipermanent.h"
+
 // C/C++ includes
 
 #ifdef TIMPI_HAVE_MPI
@@ -33,14 +35,12 @@
 #endif // #ifdef TIMPI_HAVE_MPI
 
 #include <memory>
-#include <vector>
 
 namespace TIMPI
 {
 
 // Forward declarations
   class Communicator;
-  class SemiPermanent;
 
 /**
  * The \p TIMPIInit class, when constructed, initializes
@@ -99,21 +99,11 @@ public:
 
   Communicator & comm() { return *_comm; }
 
-  /*
-   * Transfer ownership of a pointer to some "SemiPermanent" objects,
-   * to be destroyed (and thereby do any necessary cleanup work)
-   * whenever the last TIMPIInit is destroyed, before MPI is
-   * finalized.
-   */
-  static void add_semipermanent(std::unique_ptr<SemiPermanent> obj);
-
 private:
-  Communicator * _comm;
+  std::unique_ptr<Communicator> _comm;
 
-  // Mechanisms to avoid leaks after every TIMPIInit has been
-  // destroyed
-  static int _ref_count;
-  static std::vector<std::unique_ptr<SemiPermanent>> _stuff_to_clean;
+  // unique_ptr so we can free it *before* we MPI_Finalize
+  std::unique_ptr<SemiPermanent::Ref> _ref;
 
 #ifdef TIMPI_HAVE_MPI
   bool i_initialized_mpi;
