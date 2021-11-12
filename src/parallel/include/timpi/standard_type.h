@@ -493,72 +493,74 @@ public:
   StandardType(const std::tuple<Types...> * example = nullptr)
     : DataType()
   {
-    // We need an example for MPI_Address to use
-    static const std::tuple<Types...> t;
-    if (!example)
-      example = &t;
-
 #ifdef TIMPI_HAVE_MPI
-    MPI_Aint start;
+    static data_type static_type = MPI_DATATYPE_NULL;
+    if (static_type == MPI_DATATYPE_NULL)
+      {
+        // We need an example for MPI_Address to use
+        static const std::tuple<Types...> t;
+        if (!example)
+          example = &t;
 
-    timpi_call_mpi
-      (MPI_Get_address (example, &start));
+        MPI_Aint start;
 
-    const std::size_t tuplesize = sizeof...(Types);
+        timpi_call_mpi
+          (MPI_Get_address (example, &start));
 
-    std::vector<std::unique_ptr<DataType>> subtypes;
-    BuildStandardTypeVector<sizeof...(Types)>::build(subtypes, *example);
+        const std::size_t tuplesize = sizeof...(Types);
 
-    std::array<MPI_Aint, sizeof...(Types)> displs;
-    FillDisplacementArray<sizeof...(Types)>::fill(displs, *example);
+        std::vector<std::unique_ptr<DataType>> subtypes;
+        BuildStandardTypeVector<sizeof...(Types)>::build(subtypes, *example);
 
-    std::array<MPI_Datatype, sizeof...(Types)> types;
-    std::array<int, sizeof...(Types)> blocklengths;
+        std::array<MPI_Aint, sizeof...(Types)> displs;
+        FillDisplacementArray<sizeof...(Types)>::fill(displs, *example);
 
-    for (std::size_t i = 0; i != tuplesize; ++i)
-    {
-      displs[i] -= start;
-      types[i] = (data_type)(*subtypes[i]);
-      blocklengths[i] = 1;
-    }
+        std::array<MPI_Datatype, sizeof...(Types)> types;
+        std::array<int, sizeof...(Types)> blocklengths;
 
-    // create a prototype structure
-    MPI_Datatype tmptype;
-    timpi_call_mpi
-      (MPI_Type_create_struct (tuplesize, blocklengths.data(), displs.data(), types.data(),
-                               &tmptype));
-    timpi_call_mpi
-      (MPI_Type_commit (&tmptype));
+        for (std::size_t i = 0; i != tuplesize; ++i)
+        {
+          displs[i] -= start;
+          types[i] = (data_type)(*subtypes[i]);
+          blocklengths[i] = 1;
+        }
 
-    // resize the structure type to account for padding, if any
-    timpi_call_mpi
-      (MPI_Type_create_resized (tmptype, 0,
-                                sizeof(std::tuple<Types...>),
-                                &_datatype));
-    timpi_call_mpi
-      (MPI_Type_free (&tmptype));
+        // create a prototype structure
+        MPI_Datatype tmptype;
+        timpi_call_mpi
+          (MPI_Type_create_struct (tuplesize, blocklengths.data(), displs.data(), types.data(),
+                                   &tmptype));
+        timpi_call_mpi
+          (MPI_Type_commit (&tmptype));
 
-    this->commit();
+        // resize the structure type to account for padding, if any
+        timpi_call_mpi
+          (MPI_Type_create_resized (tmptype, 0,
+                                    sizeof(std::tuple<Types...>),
+                                    &static_type));
+        timpi_call_mpi
+          (MPI_Type_free (&tmptype));
 
+        SemiPermanent::add
+          (std::make_unique<ManageType>(static_type));
+      }
+    _datatype = static_type;
+#else // #ifdef TIMPI_HAVE_MPI
+    timpi_ignore(example);
 #endif // TIMPI_HAVE_MPI
-
   }
 
-  StandardType(const StandardType<std::tuple<Types...>> & timpi_mpi_var(t))
+  StandardType(const StandardType<std::tuple<Types...>> & t)
     : DataType()
   {
-    timpi_call_mpi
-      (MPI_Type_dup (t._datatype, &_datatype));
+    _datatype = t._datatype;
   }
 
   StandardType & operator=(StandardType & t)
   {
-    this->free();
-    timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+    _datatype = t._datatype;
     return *this;
   }
-
-  ~StandardType() { this->free(); }
 
   static const bool is_fixed_type = CheckAllFixedTypes<Types...>::is_fixed_type;
 };
