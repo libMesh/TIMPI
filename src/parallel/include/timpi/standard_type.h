@@ -331,71 +331,71 @@ public:
   StandardType(const std::array<T, N> * example = nullptr)
     : DataType()
   {
-    // Prevent unused variable warnings when !TIMPI_HAVE_MPI
-    timpi_ignore(example);
-
-    // We need an example for MPI_Address to use
-    std::array<T, N> * ex;
-    std::unique_ptr<std::array<T, N>> temp;
-    if (example)
-      ex = const_cast<std::array<T, N> *>(example);
-    else
-      {
-        temp.reset(new std::array<T, N>());
-        ex = temp.get();
-      }
-
 #ifdef TIMPI_HAVE_MPI
-    static_assert(N > 0, "Zero-length std::array is not supported by TIMPI");
-    StandardType<T> T_type(&((*ex)[0]));
+    static data_type static_type = MPI_DATATYPE_NULL;
+    if (static_type == MPI_DATATYPE_NULL)
+      {
+        // We need an example for MPI_Address to use
+        std::array<T, N> * ex;
+        std::unique_ptr<std::array<T, N>> temp;
+        if (example)
+          ex = const_cast<std::array<T, N> *>(example);
+        else
+          {
+            temp.reset(new std::array<T, N>());
+            ex = temp.get();
+          }
 
-    int blocklength = N;
-    MPI_Aint displs, start;
-    MPI_Datatype tmptype, type = T_type;
+        static_assert(N > 0, "Zero-length std::array is not supported by TIMPI");
+        StandardType<T> T_type(&((*ex)[0]));
 
-    timpi_call_mpi
-      (MPI_Get_address (ex, &start));
-    timpi_call_mpi
-      (MPI_Get_address (&((*ex)[0]), &displs));
+        int blocklength = N;
+        MPI_Aint displs, start;
+        MPI_Datatype tmptype, type = T_type;
 
-    // subtract off offset to first value from the beginning of the structure
-    displs -= start;
+        timpi_call_mpi
+          (MPI_Get_address (ex, &start));
+        timpi_call_mpi
+          (MPI_Get_address (&((*ex)[0]), &displs));
 
-    // create a prototype structure
-    timpi_call_mpi
-      (MPI_Type_create_struct (1, &blocklength, &displs, &type,
-                               &tmptype));
-    timpi_call_mpi
-      (MPI_Type_commit (&tmptype));
+        // subtract off offset to first value from the beginning of the structure
+        displs -= start;
 
-    // resize the structure type to account for padding, if any
-    timpi_call_mpi
-      (MPI_Type_create_resized (tmptype, 0, sizeof(std::array<T,N>),
-                                &_datatype));
+        // create a prototype structure
+        timpi_call_mpi
+          (MPI_Type_create_struct (1, &blocklength, &displs, &type,
+                                   &tmptype));
+        timpi_call_mpi
+          (MPI_Type_commit (&tmptype));
 
-    timpi_call_mpi
-      (MPI_Type_commit (&_datatype));
+        // resize the structure type to account for padding, if any
+        timpi_call_mpi
+          (MPI_Type_create_resized (tmptype, 0, sizeof(std::array<T,N>),
+                                    &static_type));
 
-    timpi_call_mpi
-      (MPI_Type_free (&tmptype));
-#endif // #ifdef TIMPI_HAVE_MPI
+        timpi_call_mpi
+          (MPI_Type_free (&tmptype));
+
+        SemiPermanent::add
+          (std::make_unique<ManageType>(static_type));
+      }
+    _datatype = static_type;
+#else // #ifdef TIMPI_HAVE_MPI
+    timpi_ignore(example);
+#endif
   }
 
-  StandardType(const StandardType<std::array<T, N>> & timpi_mpi_var(t))
+  StandardType(const StandardType<std::array<T, N>> & t)
     : DataType()
   {
-    timpi_call_mpi
-      (MPI_Type_dup (t._datatype, &_datatype));
+    _datatype = t._datatype;
   }
 
   StandardType & operator=(StandardType & t)
   {
-    this->free();
-    timpi_call_mpi(MPI_Type_dup(t._datatype, &_datatype));
+    _datatype = t._datatype;
     return *this;
   }
-
-  ~StandardType() { this->free(); }
 
   static const bool is_fixed_type = true;
 };
