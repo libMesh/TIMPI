@@ -128,8 +128,6 @@ TIMPIInit::~TIMPIInit()
   // one processor to try to exit until all others are done working.
   this->comm().barrier();
 
-  // timpi_assert_greater(_ref_count, 0); // Can't throw in destructors
-
   // Trigger any SemiPermanent cleanup before potentially finalizing MPI
   _ref.reset();
 
