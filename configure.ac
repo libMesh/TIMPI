@@ -70,12 +70,15 @@ dnl------------------------------
 TIMPI_SET_COMPILERS
 
 # --------------------------------------------------------------
-# Standard autoconf macro for determining the proper -std=c++11
-# flag for the current compiler.  Adds the result to CXXFLAGS if
-# one is found.  See ax_cxx_compile_stdcxx_11.m4 for details.
+# Autoconf macro for determining the proper -std=c++??
+# flag, for the current compiler, for the user's requested C++
+# standards level.  Adds the required flag to CXXFLAGS if
+# one is found.  Exits if no acceptable flag is found.
+#
+# We've started using C++14 code in TIMPI; we'll be requiring C++17
+# too shortly so we might as well enable it when it's found.
 # --------------------------------------------------------------
-enablecxx11=yes
-AX_CXX_COMPILE_STDCXX_11([],[mandatory])
+ACSM_CXX_COMPILER_STANDARD([2014], [2017])
 
 #-----------------------------------------------------
 # Set compiler flags for devel, opt, etc. methods
