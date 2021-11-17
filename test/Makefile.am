@@ -212,5 +212,12 @@ if BUILD_PROF_MODE
   check_PROGRAMS += dispatch_to_packed_unit-prof
 endif
 
+######################################################################
+#
+# Don't leave code coverage outputs lying around
+if CODE_COVERAGE_ENABLED
+  CLEANFILES = *.gcda *.gcno
+endif
+
 # Required for AX_AM_MACROS
 ###@INC_AMINCLUDE@

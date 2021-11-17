@@ -85,6 +85,14 @@ ACSM_CXX_COMPILER_STANDARD([2014], [2017])
 #-----------------------------------------------------
 TIMPI_SET_CXX_FLAGS
 
+#------------------------------------------------------
+# Checks for code coverage
+# this must be done after we look for our own compilers
+#------------------------------------------------------
+ACSM_CODE_COVERAGE
+timpi_CFLAGS="$GCOV_FLAGS $timpi_CFLAGS"
+timpi_CXXFLAGS="$GCOV_FLAGS $timpi_CXXFLAGS"
+
 SET_BUILD_METHODS
 
 ACSM_ENABLE_PARANOID
