@@ -82,3 +82,6 @@
   * Packing size fixes
   * Update autoconf submodule
   * Make DataType destructor virtual to avoid leaks
+
+1.7.2
+  * Implement copy assignment operators for StandardType
