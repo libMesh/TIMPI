@@ -57,7 +57,10 @@ lcov-reset:
 	@find . -name "*.gcda" -exec rm {} \;
 	lcov --directory . --zerocounters
 
-coverage: lcov-reset check lcov-report
+coverage:
+	$(MAKE) lcov-reset
+	$(MAKE) check
+	$(MAKE) lcov-report
 
 CLEANFILES = src/apps/*.gcda src/apps/*.gcno
 
