@@ -50,7 +50,7 @@ lcov-report:
 	lcov -q -r $(lcov_dir)/lcov.info `cat $(lcov_dir)/remove` > $(lcov_dir)/lcov.cleaned.info
 	@rm $(lcov_dir)/remove
 	@mv -f $(lcov_dir)/lcov.cleaned.info $(lcov_dir)/lcov.info
-	genhtml -t "libMesh" -o $(lcov_dir) $(lcov_dir)/lcov.info
+	genhtml -t "TIMPI" -o $(lcov_dir) $(lcov_dir)/lcov.info
 
 lcov-reset:
 	@rm -rf $(lcov_dir)
