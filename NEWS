@@ -82,3 +82,12 @@
   * Packing size fixes
   * Update autoconf submodule
   * Make DataType destructor virtual to avoid leaks
+
+1.7.2
+  * Implement copy assignment operators for StandardType
+
+1.8.0
+  * Expanded OpFunction capabilities
+  * Use SemiPermanent for derived StandardType classes
+  * Update compiler requirements from C++11 to C++14
+  * Code coverage support
