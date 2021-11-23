@@ -23,6 +23,7 @@
 
 #include "timpi/semipermanent.h"
 #include "timpi/timpi_init.h"
+#include "timpi/timpi_call_mpi.h"
 
 #ifdef TIMPI_HAVE_MPI
 #  include "timpi/ignore_warnings.h"
