@@ -609,9 +609,9 @@ int main(int argc, const char * const * argv)
   // partitioned into M parts with M > N, then subpartition p belongs
   // to processor p%N.  Let's make M > N for these tests.
   testPushOversized();
-  // testPullOversized();
+  testPullOversized();
   testPushVecVecOversized();
-  // testPullVecVecOversized();
+  testPullVecVecOversized();
   testPushMultimapOversized();
   testPushMultimapVecVecOversized();
 

@@ -28,7 +28,6 @@
 #include <iterator>    // inserter
 #include <list>
 #include <map>         // map, multimap, pair
-#include <memory>      // shared_ptr, make_shared
 #include <type_traits> // remove_reference, remove_const
 #include <utility>     // move
 #include <vector>
@@ -225,66 +224,65 @@ push_parallel_nbx_helper(const Communicator & comm,
   // Request for the nonblocking barrier
   Request barrier_request;
 
-  // The pair of src_pid and requests
-  std::list<std::pair<unsigned int, std::shared_ptr<Request>>> receive_requests;
-  auto current_request = std::make_shared<Request>();
+  struct IncomingInfo
+  {
+    unsigned int src_pid = any_source;
+    Request request;
+    container_type data;
+  };
 
-  // Storage for the incoming data
-  std::multimap<processor_id_type, std::shared_ptr<container_type>> incoming_data;
-  auto current_incoming_data = std::make_shared<container_type>();
-
-  unsigned int current_src_proc = 0;
+  // Storage for the incoming requests and data
+  // The last entry in this list will _always_ be an invalid entry
+  // that is available for use for processing the next incoming
+  // request. That is, its size will always be >= 1
+  std::list<IncomingInfo> incoming;
+  incoming.emplace_back(); // add the first invalid entry for receives
 
   // Keep looking for receives
   while (true)
     {
-      // Look for data from anywhere
-      current_src_proc = any_source;
+      timpi_assert(incoming.size() > 0);
 
       // Check if there is a message and start receiving it
-      if (possibly_receive_functor(current_src_proc,
-                                   *current_incoming_data,
-                                   *current_request, tag))
+      auto & current_incoming = incoming.back();
+      timpi_assert_equal_to(current_incoming.src_pid, any_source);
+      if (possibly_receive_functor(current_incoming.src_pid,
+                                   current_incoming.data,
+                                   current_incoming.request, tag))
         {
-          receive_requests.emplace_back(current_src_proc,
-                                        current_request);
-          current_request = std::make_shared<Request>();
+          timpi_assert(current_incoming.src_pid != any_source);
 
-          // current_src_proc will now hold the src pid for this receive
-          incoming_data.emplace(current_src_proc,
-                                current_incoming_data);
-          current_incoming_data = std::make_shared<container_type>();
+          // Insert another entry so that the next poll has something
+          // to fill into if needed
+          incoming.emplace_back();
         }
 
-        // Clean up outstanding receive requests
-      receive_requests.remove_if
-        ([&act_on_data, &incoming_data]
-         (std::pair<unsigned int, std::shared_ptr<Request>> & pid_req_pair)
-         {
-           auto & pid = pid_req_pair.first;
-           auto & req = pid_req_pair.second;
+        // Work through the incoming requests and act on them if they're ready
+        // We purposely do not check the last entry because it contains
+        // the invalid entry for use in processing the next incoming request
+        const auto incoming_at_invalid = std::prev(incoming.end());
+        incoming.erase(std::remove_if
+                       (incoming.begin(), incoming_at_invalid,
+                        [&act_on_data](IncomingInfo & info)
+                         {
+                           timpi_assert(info.src_pid != any_source);
 
-           // If it's finished - let's act on it
-           if (req->test())
-             {
-               // Do any post-wait work
-               req->wait();
+                           // If it's finished - let's act on it
+                           if (info.request.test())
+                             {
+                               // Do any post-wait work
+                               info.request.wait();
 
-               auto it = incoming_data.find(pid);
-               timpi_assert(it != incoming_data.end());
+                               // Act on the data
+                               act_on_data(info.src_pid, info.data);
 
-               act_on_data(pid, *it->second);
+                               // This removes it from the list
+                               return true;
+                             }
 
-               // Don't need this data anymore
-               incoming_data.erase(it);
-
-               // This removes it from the list
-               return true;
-             }
-
-             // Not finished yet
-             return false;
-           });
+                             // Not finished yet
+                             return false;
+                           }), incoming_at_invalid);
 
       requests.remove_if
         ([](Request & req)
@@ -313,7 +311,10 @@ push_parallel_nbx_helper(const Communicator & comm,
         }
 
       // Must fully receive everything before being allowed to move on!
-      if (receive_requests.empty())
+      // We reserve a single value in incoming for filling within the
+      // next poll loop, so if incoming is a size of one we have nothing
+      // to process
+      if (incoming.size() == 1)
         // See if all proessors have finished all sends (i.e. _done_!)
         if (started_barrier)
           if (barrier_request.test())
