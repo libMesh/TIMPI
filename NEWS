@@ -91,3 +91,6 @@
   * Use SemiPermanent for derived StandardType classes
   * Update compiler requirements from C++11 to C++14
   * Code coverage support
+
+1.8.1
+  * Simplify logic in parallel_sync (fixing oversized pulls)
