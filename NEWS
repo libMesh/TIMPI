@@ -94,3 +94,6 @@
 
 1.8.1
   * Simplify logic in parallel_sync (fixing oversized pulls)
+
+1.8.2
+  * Fix new bug in parallel_sync (possible vector<vector> corruption)
