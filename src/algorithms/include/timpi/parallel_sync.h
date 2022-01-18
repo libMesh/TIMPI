@@ -258,31 +258,37 @@ push_parallel_nbx_helper(const Communicator & comm,
         }
 
         // Work through the incoming requests and act on them if they're ready
-        // We purposely do not check the last entry because it contains
-        // the invalid entry for use in processing the next incoming request
-        const auto incoming_at_invalid = std::prev(incoming.end());
-        incoming.erase(std::remove_if
-                       (incoming.begin(), incoming_at_invalid,
-                        [&act_on_data](IncomingInfo & info)
-                         {
-                           timpi_assert(info.src_pid != any_source);
+        incoming.remove_if
+          ([&act_on_data
+#ifndef NDEBUG
+            ,&incoming
+#endif
+           ](IncomingInfo & info)
+           {
+             // The last entry (marked by an invalid src pid) should be skipped;
+             // it needs to remain in the list for potential filling in the next poll
+             const bool is_invalid_entry = info.src_pid == any_source;
+             timpi_assert_equal_to(is_invalid_entry, &info == &incoming.back());
 
-                           // If it's finished - let's act on it
-                           if (info.request.test())
-                             {
-                               // Do any post-wait work
-                               info.request.wait();
+             if (is_invalid_entry)
+               return false;
 
-                               // Act on the data
-                               act_on_data(info.src_pid, info.data);
+             // If it's finished - let's act on it
+             if (info.request.test())
+               {
+                 // Do any post-wait work
+                 info.request.wait();
 
-                               // This removes it from the list
-                               return true;
-                             }
+                 // Act on the data
+                 act_on_data(info.src_pid, info.data);
 
-                             // Not finished yet
-                             return false;
-                           }), incoming_at_invalid);
+                 // This removes it from the list
+                 return true;
+               }
+
+               // Not finished yet
+               return false;
+             });
 
       requests.remove_if
         ([](Request & req)
