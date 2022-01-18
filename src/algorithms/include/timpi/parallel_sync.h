@@ -268,7 +268,8 @@ push_parallel_nbx_helper(const Communicator & comm,
              // The last entry (marked by an invalid src pid) should be skipped;
              // it needs to remain in the list for potential filling in the next poll
              const bool is_invalid_entry = info.src_pid == any_source;
-             timpi_assert_equal_to(is_invalid_entry, &info == &incoming.end());
+             timpi_assert_equal_to(is_invalid_entry, &info == &incoming.back());
+
              if (is_invalid_entry)
                return false;
 
