@@ -213,7 +213,9 @@ void testGather()
   {
     using std::array;
     typedef array<array<int, 3>, 2> aa;
-    std::vector<aa> src(3), dest(3);
+
+    aa x;
+    std::vector<aa> src(3), dest(3,x);
 
     src[0][0][0] = 0;
     src[0][0][1] = -1;
