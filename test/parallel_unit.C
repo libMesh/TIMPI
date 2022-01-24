@@ -214,6 +214,8 @@ void testGather()
     using std::array;
     typedef array<array<int, 3>, 2> aa;
 
+    // Workaround for spurious warning from operator=
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100366
     aa x;
     std::vector<aa> src(3), dest(3,x);
 
