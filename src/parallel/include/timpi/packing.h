@@ -33,7 +33,7 @@
 #include <map>
 #include <set>
 #include <tuple>
-#include <type_traits> // enable_if, is_same
+#include <type_traits> // enable_if, is_same, is_trivial*
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>     // pair
@@ -268,7 +268,16 @@ struct PackingMixedType
             typename std::enable_if<IsFixed<T3>::value, int>::type = 0>
   static void unpack_comp(T3 & comp, BufferIter in, Context *)
   {
-    std::memcpy(&comp, &(*in), sizeof(T3));
+    // memcpy is only safe to use with classes that are trivial to
+    // copy construct
+    static_assert(std::is_trivially_copyable<T3>::value,
+                  "Fixed data types must be is_trivially_copyable");
+
+    // But gcc wrongly checks is_trivial instead, so we need to work
+    // around that
+    // https://gcc.gnu.org/legacy-ml/gcc-patches/2017-07/msg00299.html
+    char * comp_bytes = reinterpret_cast<char *>(&comp);
+    std::memcpy(comp_bytes, &(*in), sizeof(T3));
   }
 
   template <typename T1, typename T2,
