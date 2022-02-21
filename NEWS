@@ -97,3 +97,8 @@
 
 1.8.2
   * Fix new bug in parallel_sync (possible vector<vector> corruption)
+
+1.8.3
+  * Prevent gcc spurious warnings in unit test
+  * Add Intel(R) icc 21 support
+  * Avoid overzealous gcc memcpy warnings, do our own checks
