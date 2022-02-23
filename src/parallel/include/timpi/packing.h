@@ -33,7 +33,7 @@
 #include <map>
 #include <set>
 #include <tuple>
-#include <type_traits> // enable_if, is_same, is_trivial*
+#include <type_traits> // enable_if, is_same
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>     // pair
@@ -270,11 +270,14 @@ struct PackingMixedType
   {
     // memcpy is only safe to use with classes that are trivial to
     // copy construct
-    static_assert(std::is_trivially_copyable<T3>::value,
-                  "Fixed data types must be is_trivially_copyable");
-
-    // But gcc wrongly checks is_trivial instead, so we need to work
-    // around that
+    //
+    // In this function overload, the enable_if<IsFixed> has already
+    // determined that we're safe in that respect.
+    //
+    // But the C++ standards don't mandate that important types like
+    // std::tuple ever satisfy is_trivially_copyable, and gcc goes so
+    // far as to emit warnings based on is_trivial instead, so we need
+    // to work around that here.
     // https://gcc.gnu.org/legacy-ml/gcc-patches/2017-07/msg00299.html
     char * comp_bytes = reinterpret_cast<char *>(&comp);
     std::memcpy(comp_bytes, &(*in), sizeof(T3));
