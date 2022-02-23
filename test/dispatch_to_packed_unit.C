@@ -62,6 +62,27 @@ Container createMapContainer(std::size_t size)
 }
 
 
+template <typename T, template<typename> class S>
+void set_inserter(S<T> & s, int i)
+{
+  T datum(1);
+  std::get<0>(datum[0]) = i;
+  std::get<1>(datum[0]) = 2*i;
+  s.insert(datum);
+}
+
+
+template <typename T, template<typename> class S>
+void set_tester(const S<T> & s, int i)
+{
+  T datum(1);
+  std::get<0>(datum[0]) = i;
+  std::get<1>(datum[0]) = 2*i;
+  TIMPI_UNIT_ASSERT(s.count(datum) == std::size_t(1));
+}
+
+
+
   template <typename Container>
   void testContainerAllGather()
   {
@@ -114,6 +135,26 @@ Container createMapContainer(std::size_t size)
           TIMPI_UNIT_ASSERT(it->second == n*50);
         }
     }
+  }
+
+  void testPackedSetUnion()
+  {
+    std::set<std::vector<std::tuple<int,int>>> data;
+    const int N = TestCommWorld->size();
+
+    set_inserter(data, TestCommWorld->rank());
+    set_inserter(data, 2*N);
+    set_inserter(data, 3*N + TestCommWorld->rank());
+
+    TestCommWorld->set_union(data);
+
+    TIMPI_UNIT_ASSERT( data.size() == std::size_t(2*N+1) );
+    set_tester(data, 2*N);
+    for (int p=0; p<N; ++p)
+      {
+        set_tester(data, p);
+        set_tester(data, 3*N+p);
+      }
   }
 
   void testVectorOfContainersAllGather()
@@ -416,6 +457,7 @@ int main(int argc, const char * const * argv)
   testMapContainerAllGather<std::unordered_map<unsigned int, unsigned int>>();
   testMapContainerAllGather<std::multimap<unsigned int, unsigned int>>();
   testMapContainerAllGather<std::unordered_multimap<unsigned int, unsigned int>>();
+  testPackedSetUnion();
   testVectorOfContainersAllGather();
   testContainerBroadcast();
   testVectorOfContainersBroadcast();
