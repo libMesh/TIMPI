@@ -2821,7 +2821,8 @@ inline void Communicator::gather(const unsigned int root_id,
 
 
 
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::gather(const unsigned int root_id,
                                  std::vector<T,A> & r) const
 {
@@ -2872,6 +2873,20 @@ inline void Communicator::gather(const unsigned int root_id,
                   StandardType<T>(), r.empty() ? nullptr : r.data(),
                   sendlengths.data(), displacements.data(),
                   StandardType<T>(), root_id, this->get()));
+}
+
+
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline void Communicator::gather(const unsigned int root_id,
+                                 std::vector<T,A> & r) const
+{
+  std::vector<T,A> gathered;
+  this->gather_packed_range(root_id, (void *)(nullptr),
+                            r.begin(), r.end(),
+                            std::inserter(gathered, gathered.end()));
+
+  gathered.swap(r);
 }
 
 
