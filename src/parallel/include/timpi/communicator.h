@@ -998,8 +998,18 @@ public:
    *
    * on processor root_id. This function is collective and therefore
    * must be called by all processors in the Communicator.
+   *
+   * If the type T is a standard (fixed-size) type then we use a
+   * standard MPI_Gatherv; if it is a packable variable-size type then
+   * we dispatch to gather_packed_range.
    */
-  template <typename T, typename A>
+  template <typename T, typename A,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
+  inline void gather(const unsigned int root_id,
+                     std::vector<T,A> & r) const;
+
+  template <typename T, typename A,
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
   inline void gather(const unsigned int root_id,
                      std::vector<T,A> & r) const;
 
