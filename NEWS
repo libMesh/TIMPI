@@ -102,3 +102,7 @@
   * Prevent gcc spurious warnings in unit test
   * Add Intel(R) icc 21 support
   * Avoid overzealous gcc memcpy warnings, do our own checks
+
+1.8.4
+  * Avoid our *own* overzealous checks before memcpy
+  * Dispatch to packed range for gather of dynamic size types
