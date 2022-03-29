@@ -129,7 +129,7 @@ get_packed_len (typename std::vector<buffer_type>::const_iterator in)
 
   // We may have a small signed buffer type into which we stuffed
   // an unsigned value
-  if (n_bits < 32)
+  if (n_bits < sizeof(unsigned int) * CHAR_BIT)
     {
       const int n_size_entries = get_packed_len_entries<buffer_type>();
       unsigned int packed_len = 0;
