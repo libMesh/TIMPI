@@ -71,6 +71,27 @@ void tester(const std::unordered_map<int, std::vector<int>> & m, int i)
 }
 
 
+  template <class Set>
+  void testBigUnion()
+  {
+    Set data;
+
+    const int N = TestCommWorld->size();
+
+    my_inserter(data, 150*N + TestCommWorld->rank());
+
+    TestCommWorld->set_union(data);
+
+    // The real assertions here are the internal ones in that
+    // set_union
+    TIMPI_UNIT_ASSERT( data.size() == std::size_t(N) );
+    for (int p=0; p<N; ++p)
+      {
+        tester(data, 150*N + p);
+      }
+  }
+
+
 
   template <class Set>
   void testUnion()
@@ -99,6 +120,11 @@ int main(int argc, const char * const * argv)
 {
   TIMPI::TIMPIInit init(argc, argv);
   TestCommWorld = &init.comm();
+
+  testBigUnion<std::set<int>>();
+  testBigUnion<std::unordered_set<int>>();
+  testBigUnion<std::map<int, int>>();
+  testBigUnion<std::unordered_map<int, int>>();
 
   testUnion<std::set<int>>();
   testUnion<std::unordered_set<int>>();
