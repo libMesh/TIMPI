@@ -143,7 +143,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/src/parallel/include
 AM_CPPFLAGS += -I$(top_srcdir)/src/utilities/include
 AM_CPPFLAGS += -I$(top_builddir)/src/utilities/include #timpi_version.h, timpi_config.h
 
-LIBS         = $(timpi_optional_LIBS)
+LIBS        += $(timpi_optional_LIBS)
 
 
 # Note that for "make test_headers" this DEFAULT_HEADERS_TO_TEST business allows us
