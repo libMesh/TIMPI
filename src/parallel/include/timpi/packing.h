@@ -102,19 +102,37 @@ get_packed_len_entries ()
 }
 
 
-template <typename T, typename Iter>
+template <typename buffer_type, typename Iter>
 inline
 void
 put_packed_len (unsigned int len, Iter data_out)
 {
-  // I hoped decltype(*data_out) would always be T, but no dice
-  constexpr int size_bytes = get_packed_len_entries<T>();
+  // I hoped decltype(*data_out) would always be buffer_type, but no dice
 
-  for (unsigned int i=0; i != size_bytes; ++i)
+  // If we're using 2-byte or 1-byte buffer type then we have to split
+  // into multiple entries
+  constexpr int n_bits = (sizeof(buffer_type) * CHAR_BIT);
+
+  // We may have a small signed buffer type into which we stuffed
+  // an unsigned value
+  if (n_bits < sizeof(unsigned int) * CHAR_BIT)
     {
-      *data_out++ = (len % 256);
-      len /= 256;
+      constexpr int size_entries = get_packed_len_entries<buffer_type>();
+
+      const std::size_t max_entry = std::size_t(1) << n_bits;
+
+      for (unsigned int i=0; i != size_entries; ++i)
+        {
+          *data_out++ = (len % max_entry);
+          len /= max_entry;
+        }
+
+      return;
     }
+
+  // With 32 bits or more this is trivial
+  timpi_assert_equal_to(get_packed_len_entries<buffer_type>(), 1);
+  *data_out++ = len;
 }
 
 
@@ -129,7 +147,7 @@ get_packed_len (typename std::vector<buffer_type>::const_iterator in)
 
   // We may have a small signed buffer type into which we stuffed
   // an unsigned value
-  if (n_bits < 32)
+  if (n_bits < sizeof(unsigned int) * CHAR_BIT)
     {
       const int n_size_entries = get_packed_len_entries<buffer_type>();
       unsigned int packed_len = 0;
