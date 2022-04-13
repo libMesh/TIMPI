@@ -62,6 +62,12 @@ public:
   // typedef char buffer_type;
   // typedef unsigned int buffer_type;
 
+  // The following methods should be defined in every specialization,
+  // but there's no good generic definition we can fall back on.
+  // Leaving undefined generic methods declared here would turn
+  // missing-header bugs into link-time failures rather than
+  // compile-time failures - accordingly harder to diagnose.
+#if 0
   // Should copy an encoding of the provided object into the provided
   // output iterator (which is of type buffer_type)
   template <typename OutputIter, typename Context>
@@ -85,6 +91,7 @@ public:
   // data array, returning a heap-allocated pointer to the result.
   template <typename BufferIter, typename Context>
   static T unpack(BufferIter in, Context * ctx);
+#endif
 };
 
 
