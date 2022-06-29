@@ -256,6 +256,15 @@ struct PackingMixedType
     return Packing<T3>::packable_size(comp, ctx);
   }
 
+// g++ 11.2.0 gives "not protecting ... less than 8 bytes long" here,
+// and that's more paranoid than we wanted --enable-paranoid-warnings
+// to be...
+
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
+
   template <typename T3,
             typename OutputIter,
             typename Context,
@@ -267,6 +276,10 @@ struct PackingMixedType
     for (unsigned int i = 0; i != BufferTypesPer<T3>::value; ++i)
       *data_out++ = T3_as_buffer_types[i];
   }
+
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
   template <typename T1, typename T2,
             typename OutputIter,
@@ -286,6 +299,11 @@ struct PackingMixedType
   {
     Packing<T3>::pack(comp, data_out, ctx);
   }
+
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstack-protector"
+#endif
 
   template <typename T3,
             typename BufferIter,
@@ -307,6 +325,10 @@ struct PackingMixedType
     char * comp_bytes = reinterpret_cast<char *>(&comp);
     std::memcpy(comp_bytes, &(*in), sizeof(T3));
   }
+
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
   template <typename T1, typename T2,
             typename BufferIter,
