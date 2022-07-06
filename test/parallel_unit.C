@@ -430,6 +430,34 @@ void testGather()
   }
 
 
+  void testMPIULongMin()
+  {
+    unsigned long min = 1;
+    if (TestCommWorld->rank() % 2)
+      min = std::numeric_limits<unsigned long>::max();
+
+    timpi_call_mpi
+      (MPI_Allreduce (MPI_IN_PLACE, &min, 1,
+                      MPI_UNSIGNED_LONG, MPI_MIN,
+                      TestCommWorld->get()));
+
+    TIMPI_UNIT_ASSERT (min == 1);
+  }
+
+  template <typename T>
+  void testMinLarge ()
+  {
+    T min = 1;
+
+    if (TestCommWorld->rank() % 2)
+      min = std::numeric_limits<T>::max();
+
+    TestCommWorld->min(min);
+
+    TIMPI_UNIT_ASSERT (min == 1);
+  }
+
+
 
   void testNonblockingMax ()
   {
@@ -828,7 +856,7 @@ void testGather()
 
 
 
-  void testSemiVerify ()
+  void testSemiVerifyInf ()
   {
     double inf = std::numeric_limits<double>::infinity();
 
@@ -839,6 +867,17 @@ void testGather()
     inf = -std::numeric_limits<double>::infinity();
 
     TIMPI_UNIT_ASSERT (TestCommWorld->semiverify(infptr));
+  }
+
+
+  template<typename T>
+  void testSemiVerifyType ()
+  {
+    const T one = 1;
+
+    const T * tptr = TestCommWorld->rank()%2 ? NULL : &one;
+
+    TIMPI_UNIT_ASSERT (TestCommWorld->semiverify(tptr));
   }
 
 
@@ -913,6 +952,20 @@ int main(int argc, const char * const * argv)
   testBarrier();
   testMin();
   testMax();
+  testMPIULongMin();
+  testMinLarge<char>();
+  testMinLarge<unsigned char>();
+  testMinLarge<short>();
+  testMinLarge<unsigned short>();
+  testMinLarge<int>();
+  testMinLarge<unsigned int>();
+  testMinLarge<long>();
+  testMinLarge<unsigned long>();
+  testMinLarge<long long>();
+  testMinLarge<unsigned long long>();
+  testMinLarge<float>();
+  testMinLarge<double>();
+  testMinLarge<long double>();
   testMapMax<std::map<int, int>>();
   testMapMax<std::unordered_map<int, int>>();
   testNonFixedTypeMapMax<std::map<std::string,int>>();
@@ -928,7 +981,20 @@ int main(int argc, const char * const * argv)
   testRecvIsendSets();
   testRecvIsendVecVecs();
   testSendRecvVecVecs();
-  testSemiVerify();
+  testSemiVerifyInf();
+  testSemiVerifyType<char>();
+  testSemiVerifyType<unsigned char>();
+  testSemiVerifyType<short>();
+  testSemiVerifyType<unsigned short>();
+  testSemiVerifyType<int>();
+  testSemiVerifyType<unsigned int>();
+  testSemiVerifyType<long>();
+  testSemiVerifyType<unsigned long>();
+  testSemiVerifyType<long long>();
+  testSemiVerifyType<unsigned long long>();
+  testSemiVerifyType<float>();
+  testSemiVerifyType<double>();
+  testSemiVerifyType<long double>();
   testSplit();
   testNonblockingSum();
   testNonblockingMin();

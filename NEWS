@@ -106,3 +106,9 @@
 1.8.4
   * Avoid our *own* overzealous checks before memcpy
   * Dispatch to packed range for gather of dynamic size types
+
+1.8.5
+  * Fixes for packed range specializations
+  * Avoid overwriting user-specified $LIBS
+  * More parallel unit testing
+  * Disable overzealous compiler warning
