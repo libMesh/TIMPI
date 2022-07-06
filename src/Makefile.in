@@ -593,7 +593,7 @@ timpi_optional_LIBS = @timpi_optional_LIBS@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_LDFLAGS = -version-info 10:0:0
+AM_LDFLAGS = -version-info 11:0:0
 
 #----------------------------------------------
 # List of source files to build dynamic library
