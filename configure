@@ -15014,6 +15014,20 @@ fi
 
     if test "x$compiler_brand_detected" = "xno"; then :
 
+          is_nvcc="`($CXX -V 2>&1) | grep 'NVIDIA'`"
+          if test "x$is_nvcc" != "x"; then :
+
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is NVIDIA C++ >>>" >&5
+$as_echo "<<< C++ compiler is NVIDIA C++ >>>" >&6; }
+            ACSM_GXX_VERSION=nvidia
+            compiler_brand_detected=yes
+
+fi
+
+fi
+
+    if test "x$compiler_brand_detected" = "xno"; then :
+
           is_pgcc="`($CXX -V 2>&1) | grep 'Portland Group\|PGI'`"
           if test "x$is_pgcc" != "x"; then :
 
@@ -15317,6 +15331,26 @@ else
 $as_echo "Unknown Intel compiler" >&6; } ;;
 esac
                         ;; #(
+  nvidia) :
+
+
+                                                                                    ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -O0 --display_error_number -g -pedantic -Wno-long-long -Wunused -Wuninitialized --diag_suppress=11,111,177,445,1676"
+                                ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -O2 --display_error_number -g -pedantic -Wno-long-long -Wunused -Wuninitialized --diag_suppress=11,111,177,445,1676"
+                                ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 --display_error_number --diag_suppress=11,111,177,445,1676"
+
+                                ACSM_NODEPRECATEDFLAG="-Wno-deprecated-declarations"
+
+                                ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG -O0 -g"
+                                ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DEVEL -O2 -g"
+                                ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O2"
+
+                                                                if test "$enableexceptions" = no; then :
+
+                                        ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG --no_exceptions"
+                                        ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT --no_exceptions"
+
+fi
+                               ;; #(
   portland_group) :
 
                                 ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -g --no_using_std"
