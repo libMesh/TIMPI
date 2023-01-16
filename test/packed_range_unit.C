@@ -237,6 +237,44 @@ Communicator *TestCommWorld;
 
 
 
+  // We should be able to nest containers in other containers in the
+  // first containers etc.
+  void testNestingAllGather()
+  {
+    typedef std::tuple<unsigned int, std::vector<std::tuple<char,int,std::size_t>>, unsigned int> send_type;
+    std::vector<send_type> sendv(2);
+
+    std::get<0>(sendv[0]) = 100;
+    std::get<1>(sendv[0]) = {{'a', -4, 1000},{'b', -5, 2000}};
+    std::get<2>(sendv[0]) = 3000;
+
+    std::get<0>(sendv[1]) = 200;
+    std::get<1>(sendv[1]) = {{'c', -6, 4000},{'d', -7, 5000}};
+    std::get<2>(sendv[1]) = 6000;
+
+    std::vector<send_type> send(1);
+    if (TestCommWorld->rank() == 0)
+      send[0] = sendv[0];
+    else
+      send[0] = sendv[1];
+
+    std::vector<send_type> recv;
+
+    TestCommWorld->allgather_packed_range
+      ((void *)(NULL), send.begin(), send.end(),
+       std::back_inserter(recv));
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = recv.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    TIMPI_UNIT_ASSERT(sendv[0] == recv[0]);
+    for (std::size_t i=1; i < vec_size; ++i)
+      TIMPI_UNIT_ASSERT(sendv[1] == recv[i]);
+  }
+
+
+
   void testNullSendReceive()
   {
     std::vector<std::string> send(1);
@@ -504,6 +542,7 @@ int main(int argc, const char * const * argv)
   testPairStringAllGather();
   testArrayStringAllGather();
   testTupleStringAllGather();
+  testNestingAllGather();
   testNullSendReceive();
   testContainerAllGather();
   testContainerSendReceive();
