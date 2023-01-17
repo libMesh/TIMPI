@@ -454,6 +454,86 @@ Communicator *TestCommWorld;
     testPushPackedImpl((TestCommWorld->size() + 4) * 2);
   }
 
+  void testPushPackedNested()
+  {
+    const int size = TestCommWorld->size(),
+              rank = TestCommWorld->rank();
+
+    typedef std::tuple<unsigned int, std::vector<char>, unsigned int, unsigned int, unsigned int, unsigned int> tuple_type;
+    typedef std::vector<tuple_type> vec_type;
+    std::map<processor_id_type, vec_type> data, received_data;
+
+    auto fake_stringy_number = [] (int number)
+      {
+        std::string digit_strings [10] = {"zero", "one", "two",
+            "three", "four", "five", "six", "seven", "eight", "nine"};
+
+        std::string returnval = "done";
+        while (number)
+          {
+            returnval = digit_strings[number%10]+" "+returnval;
+            number = number/10;
+          };
+
+        return std::vector<char>(returnval.begin(), returnval.end());
+      };
+
+    auto tuple_type_of = [fake_stringy_number] (int n)
+      {
+        return tuple_type(n, fake_stringy_number(n), n, n, n, n);
+      };
+
+    for (int d=0; d != size; ++d)
+      {
+        int diffsize = std::abs(d-rank);
+        int diffsqrt = std::sqrt(diffsize);
+        if (diffsqrt*diffsqrt == diffsize)
+          for (int i=-1; i != diffsqrt; ++i)
+            data[d].push_back(tuple_type_of(d));
+      }
+
+    auto collect_data =
+      [&received_data]
+      (processor_id_type pid,
+       const vec_type & vec_received)
+      {
+        auto & received = received_data[pid];
+        received = vec_received;
+      };
+
+    // Ensure that no const_cast perfidy in parallel_sync.h messes up
+    // our original data
+    std::map<processor_id_type, vec_type> preserved_data {data};
+
+    // Do the push
+    void * context = nullptr;
+    TIMPI::push_parallel_packed_range(*TestCommWorld, data, context, collect_data);
+
+    // Test the sent data, which shouldn't have changed
+    TIMPI_UNIT_ASSERT(preserved_data == data);
+
+    // Test the received results, for each processor id p we're in
+    // charge of.
+    std::vector<std::size_t> checked_sizes(size, 0);
+    for (int srcp=0; srcp != size; ++srcp)
+      {
+        int diffsize = std::abs(srcp-rank);
+        int diffsqrt = std::sqrt(diffsize);
+        if (diffsqrt*diffsqrt != diffsize)
+          {
+            TIMPI_UNIT_ASSERT(!received_data.count(srcp));
+            continue;
+          }
+
+        TIMPI_UNIT_ASSERT(received_data.count(srcp));
+        const auto & rec = received_data[srcp];
+        TIMPI_UNIT_ASSERT(rec.size() == std::size_t(diffsqrt+1));
+
+        for (const tuple_type & tup : rec)
+          TIMPI_UNIT_ASSERT(tup == tuple_type_of(rank));
+      }
+  }
+
 #if __cplusplus > 201402L
   void testPushPackedImplMove(int M)
   {
