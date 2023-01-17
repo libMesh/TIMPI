@@ -192,10 +192,11 @@ Communicator *TestCommWorld;
 
 
   // Make sure we don't have problems with strings of length above 256
-  // inside other containers either
+  // inside other containers either.  Also test mixing strings with
+  // other types.
   void testTupleStringAllGather()
   {
-    std::vector<std::tuple<std::string, std::string, std::string>> sendv(2);
+    std::vector<std::tuple<std::string, std::string, int>> sendv(2);
 
     auto & s0 = std::get<1>(sendv[0]);
     std::get<0>(sendv[0]).assign("Hello");
@@ -203,7 +204,7 @@ Communicator *TestCommWorld;
     for (int i=0; i != 6; ++i)
       s0 = s0+s0;
     timpi_assert_greater(s0.size(), 256);
-    std::get<2>(sendv[0]).assign("I can see it in your eyes.\n");
+    std::get<2>(sendv[0]) = 257;
 
     auto & s1 = std::get<1>(sendv[1]);
     std::get<0>(sendv[1]).assign("Goodbye");
@@ -211,15 +212,53 @@ Communicator *TestCommWorld;
     for (int i=0; i != 6; ++i)
       s1 = s1+s1;
     timpi_assert_greater(s1.size(), 256);
-    std::get<2>(sendv[1]).assign("'Cause baby it's over now.\n");
+    std::get<2>(sendv[1]) = 258;
 
-    std::vector<std::tuple<std::string, std::string, std::string>> send(1);
+    std::vector<std::tuple<std::string, std::string, int>> send(1);
     if (TestCommWorld->rank() == 0)
       send[0] = sendv[0];
     else
       send[0] = sendv[1];
 
-    std::vector<std::tuple<std::string, std::string, std::string>> recv;
+    std::vector<std::tuple<std::string, std::string, int>> recv;
+
+    TestCommWorld->allgather_packed_range
+      ((void *)(NULL), send.begin(), send.end(),
+       std::back_inserter(recv));
+
+    const std::size_t comm_size = TestCommWorld->size();
+    const std::size_t vec_size = recv.size();
+    TIMPI_UNIT_ASSERT(comm_size == vec_size);
+
+    TIMPI_UNIT_ASSERT(sendv[0] == recv[0]);
+    for (std::size_t i=1; i < vec_size; ++i)
+      TIMPI_UNIT_ASSERT(sendv[1] == recv[i]);
+  }
+
+
+
+  // We should be able to nest containers in other containers in the
+  // first containers etc.
+  void testNestingAllGather()
+  {
+    typedef std::tuple<unsigned int, std::vector<std::tuple<char,int,std::size_t>>, unsigned int> send_type;
+    std::vector<send_type> sendv(2);
+
+    std::get<0>(sendv[0]) = 100;
+    std::get<1>(sendv[0]) = {{'a', -4, 1000},{'b', -5, 2000}};
+    std::get<2>(sendv[0]) = 3000;
+
+    std::get<0>(sendv[1]) = 200;
+    std::get<1>(sendv[1]) = {{'c', -6, 4000},{'d', -7, 5000}};
+    std::get<2>(sendv[1]) = 6000;
+
+    std::vector<send_type> send(1);
+    if (TestCommWorld->rank() == 0)
+      send[0] = sendv[0];
+    else
+      send[0] = sendv[1];
+
+    std::vector<send_type> recv;
 
     TestCommWorld->allgather_packed_range
       ((void *)(NULL), send.begin(), send.end(),
@@ -415,6 +454,86 @@ Communicator *TestCommWorld;
     testPushPackedImpl((TestCommWorld->size() + 4) * 2);
   }
 
+  void testPushPackedNested()
+  {
+    const int size = TestCommWorld->size(),
+              rank = TestCommWorld->rank();
+
+    typedef std::tuple<unsigned int, std::vector<char>, unsigned int, unsigned int, unsigned int, unsigned int> tuple_type;
+    typedef std::vector<tuple_type> vec_type;
+    std::map<processor_id_type, vec_type> data, received_data;
+
+    auto fake_stringy_number = [] (int number)
+      {
+        std::string digit_strings [10] = {"zero", "one", "two",
+            "three", "four", "five", "six", "seven", "eight", "nine"};
+
+        std::string returnval = "done";
+        while (number)
+          {
+            returnval = digit_strings[number%10]+" "+returnval;
+            number = number/10;
+          };
+
+        return std::vector<char>(returnval.begin(), returnval.end());
+      };
+
+    auto tuple_type_of = [fake_stringy_number] (int n)
+      {
+        return tuple_type(n, fake_stringy_number(n), n, n, n, n);
+      };
+
+    for (int d=0; d != size; ++d)
+      {
+        int diffsize = std::abs(d-rank);
+        int diffsqrt = std::sqrt(diffsize);
+        if (diffsqrt*diffsqrt == diffsize)
+          for (int i=-1; i != diffsqrt; ++i)
+            data[d].push_back(tuple_type_of(d));
+      }
+
+    auto collect_data =
+      [&received_data]
+      (processor_id_type pid,
+       const vec_type & vec_received)
+      {
+        auto & received = received_data[pid];
+        received = vec_received;
+      };
+
+    // Ensure that no const_cast perfidy in parallel_sync.h messes up
+    // our original data
+    std::map<processor_id_type, vec_type> preserved_data {data};
+
+    // Do the push
+    void * context = nullptr;
+    TIMPI::push_parallel_packed_range(*TestCommWorld, data, context, collect_data);
+
+    // Test the sent data, which shouldn't have changed
+    TIMPI_UNIT_ASSERT(preserved_data == data);
+
+    // Test the received results, for each processor id p we're in
+    // charge of.
+    std::vector<std::size_t> checked_sizes(size, 0);
+    for (int srcp=0; srcp != size; ++srcp)
+      {
+        int diffsize = std::abs(srcp-rank);
+        int diffsqrt = std::sqrt(diffsize);
+        if (diffsqrt*diffsqrt != diffsize)
+          {
+            TIMPI_UNIT_ASSERT(!received_data.count(srcp));
+            continue;
+          }
+
+        TIMPI_UNIT_ASSERT(received_data.count(srcp));
+        const auto & rec = received_data[srcp];
+        TIMPI_UNIT_ASSERT(rec.size() == std::size_t(diffsqrt+1));
+
+        for (const tuple_type & tup : rec)
+          TIMPI_UNIT_ASSERT(tup == tuple_type_of(rank));
+      }
+  }
+
 #if __cplusplus > 201402L
   void testPushPackedImplMove(int M)
   {
@@ -503,6 +622,7 @@ int main(int argc, const char * const * argv)
   testPairStringAllGather();
   testArrayStringAllGather();
   testTupleStringAllGather();
+  testNestingAllGather();
   testNullSendReceive();
   testContainerAllGather();
   testContainerSendReceive();
