@@ -343,7 +343,7 @@ void push_parallel_packed_range(const Communicator & comm,
                                 Context * context,
                                 const ActionFunctor & act_on_data)
 {
-  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type container_type;
+  typedef typename std::remove_reference<MapToContainers>::type::mapped_type container_type;
   typedef typename container_type::value_type nonref_type;
   typename std::remove_const<nonref_type>::type * output_type = nullptr;
 
@@ -378,9 +378,8 @@ void push_parallel_vector_data(const Communicator & comm,
                                MapToVectors && data,
                                const ActionFunctor & act_on_data)
 {
-  typedef typename std::remove_reference<MapToVectors>::type::value_type::second_type container_type;
-  typedef decltype(data.begin()->second.front()) ref_type;
-  typedef typename std::remove_reference<ref_type>::type nonref_type;
+  typedef typename std::remove_reference<MapToVectors>::type::mapped_type container_type;
+  typedef typename container_type::value_type nonref_type;
   typedef typename std::remove_const<nonref_type>::type nonconst_nonref_type;
 
   // We'll construct the StandardType once rather than inside a loop.
