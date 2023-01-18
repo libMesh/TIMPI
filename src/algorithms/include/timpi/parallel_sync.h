@@ -53,10 +53,38 @@ namespace TIMPI {
  *
  * If you wish to use move semantics within the data received in \p
  * act_on_data, pass data itself as an rvalue reference.
+ *
+ * This overload should be automatically selected for data which has a
+ * \p StandardType specialization defined, so that we can directly
+ * send it without serializing it into buffers beforehand.
  */
  ///@{
 template <typename MapToVectors,
-          typename ActionFunctor>
+          typename ActionFunctor,
+          typename std::enable_if< std::is_base_of<DataType, StandardType<
+            typename InnermostType<typename std::remove_const<
+              typename std::remove_reference<MapToVectors>::type::mapped_type::value_type
+            >::type>::type>>::value, int>::type = 0>
+void push_parallel_vector_data(const Communicator & comm,
+                               MapToVectors && data,
+                               const ActionFunctor & act_on_data);
+ ///@}
+
+//------------------------------------------------------------------------
+/**
+ * Send and receive and act on vectors of data.
+ *
+ * This overload should be automatically selected for data which has a
+ * \p Packing specialization defined, where we must serialize it into
+ * buffers before sending.
+ */
+ ///@{
+template <typename MapToVectors,
+          typename ActionFunctor,
+          typename std::enable_if<Has_buffer_type<Packing<
+            typename InnermostType<typename std::remove_const<
+              typename std::remove_reference<MapToVectors>::type::mapped_type::value_type
+            >::type>::type>>::value, int>::type = 0>
 void push_parallel_vector_data(const Communicator & comm,
                                MapToVectors && data,
                                const ActionFunctor & act_on_data);
@@ -343,7 +371,7 @@ void push_parallel_packed_range(const Communicator & comm,
                                 Context * context,
                                 const ActionFunctor & act_on_data)
 {
-  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type container_type;
+  typedef typename std::remove_reference<MapToContainers>::type::mapped_type container_type;
   typedef typename container_type::value_type nonref_type;
   typename std::remove_const<nonref_type>::type * output_type = nullptr;
 
@@ -373,14 +401,17 @@ void push_parallel_packed_range(const Communicator & comm,
 
 
 template <typename MapToVectors,
-          typename ActionFunctor>
+          typename ActionFunctor,
+          typename std::enable_if< std::is_base_of<DataType, StandardType<
+            typename InnermostType<typename std::remove_const<
+              typename std::remove_reference<MapToVectors>::type::mapped_type::value_type
+            >::type>::type>>::value, int>::type>
 void push_parallel_vector_data(const Communicator & comm,
                                MapToVectors && data,
                                const ActionFunctor & act_on_data)
 {
-  typedef typename std::remove_reference<MapToVectors>::type::value_type::second_type container_type;
-  typedef decltype(data.begin()->second.front()) ref_type;
-  typedef typename std::remove_reference<ref_type>::type nonref_type;
+  typedef typename std::remove_reference<MapToVectors>::type::mapped_type container_type;
+  typedef typename container_type::value_type nonref_type;
   typedef typename std::remove_const<nonref_type>::type nonconst_nonref_type;
 
   // We'll construct the StandardType once rather than inside a loop.
@@ -406,6 +437,22 @@ void push_parallel_vector_data(const Communicator & comm,
 
   detail::push_parallel_nbx_helper
     (comm, data, send_functor, possibly_receive_functor, act_on_data);
+}
+
+
+
+template <typename MapToVectors,
+          typename ActionFunctor,
+          typename std::enable_if<Has_buffer_type<Packing<
+            typename InnermostType<typename std::remove_const<
+              typename std::remove_reference<MapToVectors>::type::mapped_type::value_type
+            >::type>::type>>::value, int>::type>
+void push_parallel_vector_data(const Communicator & comm,
+                               MapToVectors && data,
+                               const ActionFunctor & act_on_data)
+{
+  void * context = nullptr;
+  push_parallel_packed_range(comm, data, context, act_on_data);
 }
 
 

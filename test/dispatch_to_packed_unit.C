@@ -317,6 +317,40 @@ void testVectorOfContainersBroadcast()
       }
   }
 
+  void fill_data
+  (std::map<processor_id_type, std::vector<std::set<std::string>>> & data,
+     int M)
+  {
+    auto stringy_number = [] (int number)
+      {
+        std::string digit_strings [10] = {"zero", "one", "two",
+            "three", "four", "five", "six", "seven", "eight", "nine"};
+
+        std::string returnval = "done";
+        while (number)
+          {
+            returnval = digit_strings[number%10]+" "+returnval;
+            number = number/10;
+          };
+
+        return returnval;
+      };
+
+    const int rank = TestCommWorld->rank();
+    for (int d=0; d != M; ++d)
+      {
+        const int diffsize = std::abs(d-rank);
+        const int diffsqrt = std::sqrt(diffsize);
+        if (diffsqrt*diffsqrt == diffsize)
+          for (int i=-1; i != diffsqrt; ++i)
+            {
+              data[d].push_back(std::set<std::string>());
+              for (int j=0; j!=d+1; ++j)
+                data[d].back().insert(stringy_number(j));
+            }
+      }
+  }
+
   void testPush()
   {
     const int size = TestCommWorld->size(),
@@ -439,6 +473,78 @@ void testVectorOfContainersBroadcast()
       }
   }
 
+  void testPullPacked()
+  {
+    const int size = TestCommWorld->size();
+
+    std::map<processor_id_type, std::vector<std::set<std::string>> > data, received_data;
+
+    fill_data(data, size);
+
+    auto compose_replies =
+      []
+      (processor_id_type /* pid */,
+       const std::vector<std::set<std::string>> & query,
+       std::vector<std::set<std::string>> & response)
+      {
+        const std::size_t query_size = query.size();
+        response.resize(query_size);
+        for (unsigned int i=0; i != query_size; ++i)
+        {
+          const auto & query_set = query[i];
+          for (const std::string & elem : query_set)
+            response[i].insert(elem+elem);
+        }
+      };
+
+
+    auto collect_replies =
+      [&received_data]
+      (processor_id_type pid,
+       const std::vector<std::set<std::string>> & query,
+       const std::vector<std::set<std::string>> & response)
+      {
+        const std::size_t query_size = query.size();
+        TIMPI_UNIT_ASSERT(query_size == response.size());
+        for (unsigned int i=0; i != query_size; ++i)
+          {
+            TIMPI_UNIT_ASSERT(query[i].size() == response[i].size());
+
+            auto query_set_it = query[i].begin(), response_set_it = response[i].begin();
+
+            for (; query_set_it != query[i].end(); ++query_set_it, ++response_set_it)
+            {
+              const auto query_elem = *query_set_it, response_elem = *response_set_it;
+              TIMPI_UNIT_ASSERT(query_elem + query_elem == response_elem);
+            }
+          }
+        received_data[pid] = response;
+      };
+
+    // Do the pull
+    std::set<std::string> * ex = nullptr;
+    TIMPI::pull_parallel_vector_data
+      (*TestCommWorld, data, compose_replies, collect_replies, ex);
+
+    // Test the received results, for each query we sent.
+    for (int p=0; p != size; ++p)
+      {
+        TIMPI_UNIT_ASSERT(data[p].size() == received_data[p].size());
+        for (std::size_t i = 0; i != data[p].size(); ++i)
+        {
+          TIMPI_UNIT_ASSERT(data[p][i].size() == received_data[p][i].size());
+
+          auto data_set_it = data[p][i].begin(), received_set_it = received_data[p][i].begin();
+
+          for (; data_set_it != data[p][i].end(); ++data_set_it, ++received_set_it)
+          {
+            const auto data_elem = *data_set_it, received_elem = *received_set_it;
+            TIMPI_UNIT_ASSERT(data_elem + data_elem == received_elem);
+          }
+        }
+      }
+  }
+
 int main(int argc, const char * const * argv)
 {
   TIMPI::TIMPIInit init(argc, argv);
@@ -463,6 +569,7 @@ int main(int argc, const char * const * argv)
 
   testPush();
   testPull();
+  testPullPacked();
 
   return 0;
 }
