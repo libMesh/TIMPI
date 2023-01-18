@@ -628,6 +628,7 @@ int main(int argc, const char * const * argv)
   testContainerSendReceive();
   testPushPacked();
   testPushPackedOversized();
+  testPushPackedNested();
 #if __cplusplus > 201402L
   testPushPackedMove();
   testPushPackedMoveOversized();
