@@ -39,10 +39,15 @@
 
 #include <array>
 #include <complex>
+#include <list>
+#include <map>
 #include <memory>
 #include <numeric>
+#include <set>
 #include <tuple>
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -101,6 +106,69 @@ struct InnermostType
 
 template <typename T, typename A>
 struct InnermostType<std::vector<T, A>>
+{
+  typedef typename InnermostType<T>::type type;
+};
+
+
+template <typename T, typename A>
+struct InnermostType<std::list<T, A>>
+{
+  typedef typename InnermostType<T>::type type;
+};
+
+
+template <typename K, typename T, typename C, typename A>
+struct InnermostType<std::map<K, T, C, A>>
+{
+  typedef typename InnermostType<std::pair<const K,T>>::type type;
+};
+
+
+template <typename K, typename T, typename C, typename A>
+struct InnermostType<std::multimap<K, T, C, A>>
+{
+  typedef typename InnermostType<std::pair<const K,T>>::type type;
+};
+
+
+template <typename T, typename C, typename A>
+struct InnermostType<std::multiset<T, C, A>>
+{
+  typedef typename InnermostType<T>::type type;
+};
+
+
+template <typename T, typename C, typename A>
+struct InnermostType<std::set<T, C, A>>
+{
+  typedef typename InnermostType<T>::type type;
+};
+
+
+template <typename K, typename T, typename C, typename A>
+struct InnermostType<std::unordered_map<K, T, C, A>>
+{
+  typedef typename InnermostType<std::pair<const K,T>>::type type;
+};
+
+
+template <typename K, typename T, typename C, typename A>
+struct InnermostType<std::unordered_multimap<K, T, C, A>>
+{
+  typedef typename InnermostType<std::pair<const K,T>>::type type;
+};
+
+
+template <typename T, typename C, typename A>
+struct InnermostType<std::unordered_multiset<T, C, A>>
+{
+  typedef typename InnermostType<T>::type type;
+};
+
+
+template <typename T, typename C, typename A>
+struct InnermostType<std::unordered_set<T, C, A>>
 {
   typedef typename InnermostType<T>::type type;
 };
