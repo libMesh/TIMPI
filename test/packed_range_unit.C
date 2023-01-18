@@ -454,7 +454,8 @@ Communicator *TestCommWorld;
     testPushPackedImpl((TestCommWorld->size() + 4) * 2);
   }
 
-  void testPushPackedNested()
+  template <typename Functor>
+  void testPushPackedNestedImpl(Functor push_functor)
   {
     const int size = TestCommWorld->size(),
               rank = TestCommWorld->rank();
@@ -506,8 +507,7 @@ Communicator *TestCommWorld;
     std::map<processor_id_type, vec_type> preserved_data {data};
 
     // Do the push
-    void * context = nullptr;
-    TIMPI::push_parallel_packed_range(*TestCommWorld, data, context, collect_data);
+    push_functor(data, collect_data);
 
     // Test the sent data, which shouldn't have changed
     TIMPI_UNIT_ASSERT(preserved_data == data);
@@ -533,6 +533,30 @@ Communicator *TestCommWorld;
           TIMPI_UNIT_ASSERT(tup == tuple_type_of(rank));
       }
   }
+
+
+  void testPushPackedNested()
+  {
+    // Do the push explicitly with a packed_range function
+    auto explicitly_packed_push = [](auto & data, auto & collect_data) {
+      void * context = nullptr;
+      TIMPI::push_parallel_packed_range(*TestCommWorld, data, context, collect_data);
+    };
+
+    testPushPackedNestedImpl(explicitly_packed_push);
+  }
+
+
+  void testPushPackedDispatch()
+  {
+    // Do the push implicitly with an auto-dispatching function
+    auto implicitly_packed_push = [](auto & data, auto & collect_data) {
+      TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
+    };
+
+    testPushPackedNestedImpl(implicitly_packed_push);
+  }
+
 
 #if __cplusplus > 201402L
   void testPushPackedImplMove(int M)
@@ -629,6 +653,7 @@ int main(int argc, const char * const * argv)
   testPushPacked();
   testPushPackedOversized();
   testPushPackedNested();
+  testPushPackedDispatch();
 #if __cplusplus > 201402L
   testPushPackedMove();
   testPushPackedMoveOversized();
