@@ -56,7 +56,11 @@ namespace TIMPI {
  */
  ///@{
 template <typename MapToVectors,
-          typename ActionFunctor>
+          typename ActionFunctor,
+          typename std::enable_if< std::is_base_of<DataType, StandardType<
+            typename InnermostType<typename std::remove_const<
+              typename std::remove_reference<MapToVectors>::type::mapped_type::value_type
+            >::type>::type>>::value, int>::type = 0>
 void push_parallel_vector_data(const Communicator & comm,
                                MapToVectors && data,
                                const ActionFunctor & act_on_data);
@@ -373,7 +377,11 @@ void push_parallel_packed_range(const Communicator & comm,
 
 
 template <typename MapToVectors,
-          typename ActionFunctor>
+          typename ActionFunctor,
+          typename std::enable_if< std::is_base_of<DataType, StandardType<
+            typename InnermostType<typename std::remove_const<
+              typename std::remove_reference<MapToVectors>::type::mapped_type::value_type
+            >::type>::type>>::value, int>::type = 0>
 void push_parallel_vector_data(const Communicator & comm,
                                MapToVectors && data,
                                const ActionFunctor & act_on_data)
