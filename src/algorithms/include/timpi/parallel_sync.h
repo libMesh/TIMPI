@@ -405,7 +405,7 @@ template <typename MapToVectors,
           typename std::enable_if< std::is_base_of<DataType, StandardType<
             typename InnermostType<typename std::remove_const<
               typename std::remove_reference<MapToVectors>::type::mapped_type::value_type
-            >::type>::type>>::value, int>::type = 0>
+            >::type>::type>>::value, int>::type>
 void push_parallel_vector_data(const Communicator & comm,
                                MapToVectors && data,
                                const ActionFunctor & act_on_data)
@@ -446,7 +446,7 @@ template <typename MapToVectors,
           typename std::enable_if<Has_buffer_type<Packing<
             typename InnermostType<typename std::remove_const<
               typename std::remove_reference<MapToVectors>::type::mapped_type::value_type
-            >::type>::type>>::value, int>::type = 0>
+            >::type>::type>>::value, int>::type>
 void push_parallel_vector_data(const Communicator & comm,
                                MapToVectors && data,
                                const ActionFunctor & act_on_data)
