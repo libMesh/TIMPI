@@ -87,6 +87,7 @@ include_HEADERS += parallel/include/timpi/communicator.h
 include_HEADERS += parallel/include/timpi/data_type.h
 include_HEADERS += parallel/include/timpi/message_tag.h
 include_HEADERS += parallel/include/timpi/op_function.h
+include_HEADERS += parallel/include/timpi/packing_decl.h
 include_HEADERS += parallel/include/timpi/packing_forward.h
 include_HEADERS += parallel/include/timpi/packing.h
 include_HEADERS += parallel/include/timpi/parallel_communicator_specializations
