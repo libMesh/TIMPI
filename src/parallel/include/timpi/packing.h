@@ -20,24 +20,15 @@
 #define TIMPI_PACKING_H
 
 // TIMPI Includes
+#include "timpi/packing_decl.h"
+
 #include "timpi/timpi_assert.h"
-#include "timpi/packing_forward.h"
-#include "timpi/standard_type.h"
 
 // C++ includes
-#include <array>
 #include <climits>     // CHAR_BIT
 #include <cstring>     // memcpy
 #include <iterator>
-#include <list>
-#include <map>
-#include <set>
-#include <tuple>
-#include <type_traits> // enable_if, is_same
-#include <unordered_map>
-#include <unordered_set>
-#include <utility>     // pair
-#include <vector>
+#include <type_traits> // is_same
 
 
 // FIXME: This *should* be in TIMPI namespace but we have libMesh
@@ -180,29 +171,6 @@ get_packed_len (typename std::vector<buffer_type>::const_iterator in)
 
   return *in;
 }
-
-
-// Idiom taken from https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Member_Detector
-template <typename T>
-class Has_buffer_type
-{
-  using Yes = char[2];
-  using No = char[1];
-
-  struct Fallback {
-    struct buffer_type {};
-  };
-  struct Derived : T, Fallback {};
-
-  template <typename U> static Yes &test(U *);
-
-  // this template must be more specialized in general than the Yes version because it involves a
-  // type-dependent expression...?
-  template <typename U> static No &test(typename U::buffer_type *);
-
-public:
-  static constexpr bool value = sizeof(test<Derived>(nullptr)) == sizeof(Yes);
-};
 
 
 // Metafunction to get a value_type from map and unordered_map with
@@ -905,8 +873,6 @@ public:                                                   \
 }
 
 
-#define TIMPI_P_COMMA ,
-
 template <typename T, typename A>
 TIMPI_PACKING_RANGE_SUBCLASS(std::vector<T TIMPI_P_COMMA A>);
 
@@ -937,9 +903,6 @@ TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_multiset<K TIMPI_P_COMMA H TIMPI_P_C
 template <typename K, typename H, typename KE, typename A>
 TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_set<K TIMPI_P_COMMA H TIMPI_P_COMMA KE TIMPI_P_COMMA A>);
 
-
-
-#define TIMPI_HAVE_STRING_PACKING
 
 template <typename T>
 class Packing<std::basic_string<T>> {
@@ -1004,41 +967,6 @@ public:
 namespace TIMPI {
 
 using libMesh::Parallel::Packing;
-
-/**
- * Decode a range of potentially-variable-size objects from a data
- * array.
- */
-template <typename Context, typename buffertype,
-          typename OutputIter, typename T>
-inline void unpack_range (const typename std::vector<buffertype> & buffer,
-                          Context * context,
-                          OutputIter out,
-                          const T * output_type /* used only to infer T */);
-
-/**
- * Encode a range of potentially-variable-size objects to a data
- * array.
- *
- * The data will be buffered in vectors with lengths that do not
- * exceed the sum of \p approx_buffer_size and the size of an
- * individual packed object.
- */
-template <typename Context, typename buffertype, typename Iter>
-inline Iter pack_range (const Context * context,
-                        Iter range_begin,
-                        const Iter range_end,
-                        typename std::vector<buffertype> & buffer,
-                        std::size_t approx_buffer_size = 1000000);
-
-/**
- * Return the total buffer size needed to encode a range of
- * potentially-variable-size objects to a data array.
- */
-template <typename Context, typename Iter>
-inline std::size_t packed_range_size (const Context * context,
-                                      Iter range_begin,
-                                      const Iter range_end);
 
 // ------------------------------------------------------------
 // Packing member functions, global functions
