@@ -641,6 +641,7 @@ include_HEADERS = algorithms/include/timpi/parallel_sync.h \
 	parallel/include/timpi/data_type.h \
 	parallel/include/timpi/message_tag.h \
 	parallel/include/timpi/op_function.h \
+	parallel/include/timpi/packing_decl.h \
 	parallel/include/timpi/packing_forward.h \
 	parallel/include/timpi/packing.h \
 	parallel/include/timpi/parallel_communicator_specializations \
