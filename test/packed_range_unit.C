@@ -192,10 +192,11 @@ Communicator *TestCommWorld;
 
 
   // Make sure we don't have problems with strings of length above 256
-  // inside other containers either
+  // inside other containers either.  Also test mixing strings with
+  // other types.
   void testTupleStringAllGather()
   {
-    std::vector<std::tuple<std::string, std::string, std::string>> sendv(2);
+    std::vector<std::tuple<std::string, std::string, int>> sendv(2);
 
     auto & s0 = std::get<1>(sendv[0]);
     std::get<0>(sendv[0]).assign("Hello");
@@ -203,7 +204,7 @@ Communicator *TestCommWorld;
     for (int i=0; i != 6; ++i)
       s0 = s0+s0;
     timpi_assert_greater(s0.size(), 256);
-    std::get<2>(sendv[0]).assign("I can see it in your eyes.\n");
+    std::get<2>(sendv[0]) = 257;
 
     auto & s1 = std::get<1>(sendv[1]);
     std::get<0>(sendv[1]).assign("Goodbye");
@@ -211,15 +212,15 @@ Communicator *TestCommWorld;
     for (int i=0; i != 6; ++i)
       s1 = s1+s1;
     timpi_assert_greater(s1.size(), 256);
-    std::get<2>(sendv[1]).assign("'Cause baby it's over now.\n");
+    std::get<2>(sendv[1]) = 258;
 
-    std::vector<std::tuple<std::string, std::string, std::string>> send(1);
+    std::vector<std::tuple<std::string, std::string, int>> send(1);
     if (TestCommWorld->rank() == 0)
       send[0] = sendv[0];
     else
       send[0] = sendv[1];
 
-    std::vector<std::tuple<std::string, std::string, std::string>> recv;
+    std::vector<std::tuple<std::string, std::string, int>> recv;
 
     TestCommWorld->allgather_packed_range
       ((void *)(NULL), send.begin(), send.end(),

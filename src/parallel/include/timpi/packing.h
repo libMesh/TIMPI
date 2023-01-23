@@ -945,19 +945,25 @@ template <typename T>
 class Packing<std::basic_string<T>> {
 public:
 
-  typedef T buffer_type;
+  typedef unsigned int buffer_type;
+
+  static_assert(sizeof(T) <= sizeof(buffer_type),
+                "We don't support strings with larger characters than unsigned int");
+
+  static constexpr int T_per_buffer_type = (sizeof(buffer_type) + sizeof(T) - 1)/sizeof(T);
 
   static unsigned int
-  packed_size (typename std::vector<T>::const_iterator in)
+  packed_size (typename std::vector<buffer_type>::const_iterator in)
   {
-    return get_packed_len<T>(in) + get_packed_len_entries<T>();
+    // One entry for size, then pack the data tightly.
+    return 1 + (*in+T_per_buffer_type-1)/T_per_buffer_type;
   }
 
   static unsigned int packable_size
   (const std::basic_string<T> & s,
    const void *)
   {
-    return s.size() + get_packed_len_entries<T>();
+    return 1 + (s.size()+T_per_buffer_type-1)/T_per_buffer_type;
   }
 
 
@@ -965,23 +971,27 @@ public:
   static void pack (const std::basic_string<T> & b, Iter data_out,
                     const void *)
   {
-    put_packed_len<T>(b.size(), data_out);
-    std::copy(b.begin(), b.end(), data_out);
+    *data_out++ = b.size();
+    std::size_t i = 0;
+    for (; i + T_per_buffer_type < b.size(); i += T_per_buffer_type)
+      *data_out++ = *reinterpret_cast<const buffer_type *>(&b[i]);
+    if (i != b.size())
+      {
+        T with_padding[T_per_buffer_type] = {};
+        std::copy(b.begin()+i, b.end(), &with_padding[0]);
+        *data_out++ = *reinterpret_cast<const buffer_type *>(&with_padding[0]);
+      }
   }
 
   static std::basic_string<T>
-  unpack (typename std::vector<T>::const_iterator in, void *)
+  unpack (typename std::vector<buffer_type>::const_iterator in, void *)
   {
-    const unsigned int string_len = get_packed_len<T>(in);
-    constexpr int size_bytes = get_packed_len_entries<T>();
+    const unsigned int string_len = *in++;
 
-    std::ostringstream oss;
-    for (unsigned int i = 0; i < string_len; ++i)
-      oss << reinterpret_cast<const unsigned char &>(in[i+size_bytes]);
-
-    in += size_bytes + string_len;
-
-    return oss.str();
+    const T * buf =
+      reinterpret_cast<const T *>(&(*in));
+    in += string_len / T_per_buffer_type;
+    return {buf, buf+string_len};
   }
 
 };
