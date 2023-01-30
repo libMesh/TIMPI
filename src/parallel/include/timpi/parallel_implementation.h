@@ -2811,6 +2811,12 @@ inline void Communicator::set_union(std::map<T1,T2,C,A> & data,
     {
       std::vector<std::pair<T1,T2>> vecdata(data.begin(), data.end());
       this->gather(root_id, vecdata);
+
+      // If we have a non-zero root_id, we still want to let pid 0's
+      // values take precedence in the event we have duplicate keys
+      if (root_id)
+        data.clear();
+
       if (this->rank() == root_id)
         data.insert(vecdata.begin(), vecdata.end());
     }
@@ -2825,6 +2831,11 @@ inline void Communicator::set_union(std::map<T1,T2,C,A> & data) const
     {
       std::vector<std::pair<T1,T2>> vecdata(data.begin(), data.end());
       this->allgather(vecdata, false);
+
+      // We want values on lower pids to take precedence in the event
+      // we have duplicate keys
+      data.clear();
+
       data.insert(vecdata.begin(), vecdata.end());
     }
 }
@@ -2866,6 +2877,12 @@ inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data,
     {
       std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
       this->gather(root_id, vecdata);
+
+      // If we have a non-zero root_id, we still want to let pid 0's
+      // values take precedence in the event we have duplicate keys
+      if (root_id)
+        data.clear();
+
       if (this->rank() == root_id)
         data.insert(vecdata.begin(), vecdata.end());
     }
@@ -2880,6 +2897,11 @@ inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data) const
     {
       std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
       this->allgather(vecdata, false);
+
+      // We want values on lower pids to take precedence in the event
+      // we have duplicate keys
+      data.clear();
+
       data.insert(vecdata.begin(), vecdata.end());
     }
 }
