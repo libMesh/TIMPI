@@ -1527,6 +1527,69 @@ inline void Communicator::allgather(const std::basic_string<T> & sendval,
     recv[i] = r.substr(displacements[i], sendlengths[i]);
 }
 
+
+template <typename T, typename A1, typename A2,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
+inline void Communicator::allgather(const std::vector<T,A1> & send,
+                                    std::vector<std::vector<T,A1>,A2> & recv,
+                                    const bool identical_buffer_sizes) const
+{
+  TIMPI_LOG_SCOPE ("allgather()","Parallel");
+
+  timpi_assert(this->size());
+  recv.clear();
+  recv.resize(this->size());
+
+  // serial case
+  if (this->size() < 2)
+    {
+      recv.resize(1);
+      recv[0] = send;
+      return;
+    }
+
+  std::vector<int>
+    sendlengths  (this->size(), 0),
+    displacements(this->size(), 0);
+
+  const int mysize = static_cast<int>(send.size());
+
+  if (identical_buffer_sizes)
+    sendlengths.assign(this->size(), mysize);
+  else
+    // first comm step to determine buffer sizes from all processors
+    this->allgather(mysize, sendlengths);
+
+  // Find the total size of the final array and
+  // set up the displacement offsets for each processor
+  unsigned int globalsize = 0;
+  for (unsigned int i=0; i != this->size(); ++i)
+    {
+      displacements[i] = globalsize;
+      globalsize += sendlengths[i];
+    }
+
+  // Check for quick return
+  if (globalsize == 0)
+    return;
+
+  // monolithic receive buffer
+  std::vector<T,A1> r(globalsize, 0);
+
+  // and get the data from the remote processors.
+  timpi_call_mpi
+    (MPI_Allgatherv (const_cast<T*>(mysize ? send.data() : nullptr),
+                     mysize, StandardType<T>(),
+                     &r[0], sendlengths.data(), displacements.data(),
+                     StandardType<T>(), this->get()));
+
+  // slice receive buffer up
+  for (unsigned int i=0; i != this->size(); ++i)
+    recv[i].assign(r.begin()+displacements[i],
+                   r.begin()+displacements[i]+sendlengths[i]);
+}
+
+
 inline void Communicator::broadcast (bool & data,
                                      const unsigned int root_id,
                                      const bool /* identical_sizes */) const
