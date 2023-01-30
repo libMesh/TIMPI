@@ -1087,6 +1087,16 @@ public:
                         const bool identical_buffer_sizes = false) const;
 
   /**
+   * Take a vector of dynamic-size local variables and collect similar
+   * vectors from all processors.
+   */
+  template <typename T, typename A1, typename A2,
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+  inline void allgather(const std::vector<T,A1> & send,
+                        std::vector<std::vector<T,A1>, A2> & recv,
+                        const bool identical_buffer_sizes = false) const;
+
+  /**
    * Take a vector of possibly dynamically sized local variables and expand it
    * to include values from all processors. By default, each processor is
    * allowed to have its own unique input buffer length. If it is known that all

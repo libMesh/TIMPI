@@ -1590,6 +1590,37 @@ inline void Communicator::allgather(const std::vector<T,A1> & send,
 }
 
 
+
+template <typename T, typename A1, typename A2,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+inline void Communicator::allgather(const std::vector<T,A1> & send,
+                                    std::vector<std::vector<T,A1>,A2> & recv,
+                                    const bool /* identical_buffer_sizes */) const
+{
+  TIMPI_LOG_SCOPE ("allgather()","Parallel");
+
+  typedef typename Packing<T>::buffer_type buffer_t;
+
+  std::vector<buffer_t> buffer;
+  pack_range ((void *)nullptr, send.begin(), send.end(), buffer,
+              std::numeric_limits<int>::max());
+
+  std::vector<std::vector<buffer_t>> allbuffers;
+
+  timpi_assert(this->size());
+  recv.clear();
+  recv.resize(this->size());
+
+  // Even if our vector sizes were identical, the variable-sized
+  // data's buffer sizes might not be.
+  this->allgather(buffer, allbuffers, false);
+
+  for (processor_id_type i=0; i != this->size(); ++i)
+    unpack_range(allbuffers[i], (void *)nullptr,
+                 std::back_inserter(recv[i]), (T*)nullptr);
+}
+
+
 inline void Communicator::broadcast (bool & data,
                                      const unsigned int root_id,
                                      const bool /* identical_sizes */) const
