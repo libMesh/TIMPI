@@ -152,7 +152,37 @@ void testGather()
       }
   }
 
+  void testAllGatherVectorVector()
+  {
+    std::vector<int> vals;
+    for (processor_id_type i = 0, iend = TestCommWorld->rank()%10; i != iend; ++i)
+      vals.push_back(3*i);
+    std::vector<std::vector<int>> allvals;
+    TestCommWorld->allgather(vals,allvals);
 
+    for (processor_id_type i = 0, iend = TestCommWorld->rank(); i != iend; ++i)
+      {
+        TIMPI_UNIT_ASSERT(allvals[i].size() == i%10);
+        for (processor_id_type j = 0, jend = i%10; j != jend; ++j)
+          TIMPI_UNIT_ASSERT(allvals[i][j] == int(3*j));
+      }
+  }
+
+  void testAllGatherVectorVectorPacked()
+  {
+    std::vector<std::string> vals;
+    for (processor_id_type i = 0, iend = TestCommWorld->rank()%10; i != iend; ++i)
+      vals.push_back(pt_number[i]);
+    std::vector<std::vector<std::string>> allvals;
+    TestCommWorld->allgather(vals,allvals);
+
+    for (processor_id_type i = 0, iend = TestCommWorld->rank(); i != iend; ++i)
+      {
+        TIMPI_UNIT_ASSERT(allvals[i].size() == i%10);
+        for (processor_id_type j = 0, jend = i%10; j != jend; ++j)
+          TIMPI_UNIT_ASSERT(allvals[i][j] == pt_number[j]);
+      }
+  }
 
   void testAllGatherEmptyVectorString()
   {
@@ -938,6 +968,8 @@ int main(int argc, const char * const * argv)
   testGatherString2();
   testAllGatherString();
   testAllGatherVectorString();
+  testAllGatherVectorVector();
+  testAllGatherVectorVectorPacked();
   testAllGatherEmptyVectorString();
   testAllGatherHalfEmptyVectorString();
   testBroadcast<std::vector<unsigned int>>({0,1,2});
