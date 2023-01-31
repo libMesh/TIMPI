@@ -2685,7 +2685,7 @@ inline void Communicator::sum(std::unordered_map<K,V,H,E,A> & data) const
 
 template <typename T, typename A1, typename A2,
           typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
-inline void Communicator::allgather(const std::vector<T,A1> & send,
+inline void Communicator::allgather(const std::vector<T,A1> & sendval,
                                     std::vector<std::vector<T,A1>,A2> & recv,
                                     const bool identical_buffer_sizes) const
 {
@@ -2697,7 +2697,7 @@ inline void Communicator::allgather(const std::vector<T,A1> & send,
   if (this->size() < 2)
     {
       recv.resize(1);
-      recv[0] = send;
+      recv[0] = sendval;
       return;
     }
 
@@ -2708,7 +2708,7 @@ inline void Communicator::allgather(const std::vector<T,A1> & send,
     sendlengths  (this->size(), 0),
     displacements(this->size(), 0);
 
-  const int mysize = static_cast<int>(send.size());
+  const int mysize = static_cast<int>(sendval.size());
 
   if (identical_buffer_sizes)
     sendlengths.assign(this->size(), mysize);
@@ -2734,7 +2734,7 @@ inline void Communicator::allgather(const std::vector<T,A1> & send,
 
   // and get the data from the remote processors.
   timpi_call_mpi
-    (MPI_Allgatherv (const_cast<T*>(mysize ? send.data() : nullptr),
+    (MPI_Allgatherv (const_cast<T*>(mysize ? sendval.data() : nullptr),
                      mysize, StandardType<T>(),
                      &r[0], sendlengths.data(), displacements.data(),
                      StandardType<T>(), this->get()));
@@ -2749,7 +2749,7 @@ inline void Communicator::allgather(const std::vector<T,A1> & send,
 
 template <typename T, typename A1, typename A2,
           typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
-inline void Communicator::allgather(const std::vector<T,A1> & send,
+inline void Communicator::allgather(const std::vector<T,A1> & sendval,
                                     std::vector<std::vector<T,A1>,A2> & recv,
                                     const bool /* identical_buffer_sizes */) const
 {
@@ -2758,7 +2758,7 @@ inline void Communicator::allgather(const std::vector<T,A1> & send,
   typedef typename Packing<T>::buffer_type buffer_t;
 
   std::vector<buffer_t> buffer;
-  pack_range ((void *)nullptr, send.begin(), send.end(), buffer,
+  pack_range ((void *)nullptr, sendval.begin(), sendval.end(), buffer,
               std::numeric_limits<int>::max());
 
   std::vector<std::vector<buffer_t>> allbuffers;
