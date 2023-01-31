@@ -216,6 +216,16 @@ struct PackingMixedType
     return BufferTypesPer<T3>::value;
   }
 
+  // By not just doing memcpy here we can drop any padding
+  template <typename T1, typename T2,
+            typename Context,
+            typename std::enable_if<IsFixed<std::pair<T1, T2>>::value, int>::type = 0>
+  static unsigned int packable_size_comp(const std::pair<T1, T2> & comp, const Context * ctx)
+  {
+    return packable_size_comp(comp.first, ctx) +
+           packable_size_comp(comp.second, ctx);
+  }
+
   template <typename T3,
             typename Context,
             typename std::enable_if<!IsFixed<T3>::value, int>::type = 0>
@@ -249,6 +259,7 @@ struct PackingMixedType
 #pragma GCC diagnostic pop
 #endif
 
+  // By not just doing memcpy here we can drop any padding
   template <typename T1, typename T2,
             typename OutputIter,
             typename Context,
