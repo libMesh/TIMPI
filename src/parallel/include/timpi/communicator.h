@@ -439,9 +439,13 @@ public:
   void sum(T & r, T & o, Request & req) const;
 
   /**
-   * Take a container of local variables on each processor, and
-   * collect their union over all processors, replacing the set on
-   * processor 0.
+   * Take a container (set, map, unordered_set, multimap, etc) of
+   * local variables on each processor, and collect their union over
+   * all processors, replacing the original on processor 0.
+   *
+   * If the \p data is a map or unordered_map and entries exist on
+   * different processors with the same key and different values, then
+   * the value with the lowest processor id takes precedence.
    */
   template <typename T>
   inline
@@ -449,7 +453,8 @@ public:
 
   /**
    * Take a container of local variables on each processor, and
-   * replace it with their union over all processors.
+   * replace it with their union over all processors, replacing the
+   * original on all processors.
    */
   template <typename T>
   inline
