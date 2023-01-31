@@ -2684,7 +2684,7 @@ inline void Communicator::sum(std::unordered_map<K,V,H,E,A> & data) const
 
 
 template <typename T, typename A1, typename A2,
-          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type>
 inline void Communicator::allgather(const std::vector<T,A1> & sendval,
                                     std::vector<std::vector<T,A1>,A2> & recv,
                                     const bool identical_buffer_sizes) const
@@ -2748,7 +2748,7 @@ inline void Communicator::allgather(const std::vector<T,A1> & sendval,
 
 
 template <typename T, typename A1, typename A2,
-          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
 inline void Communicator::allgather(const std::vector<T,A1> & sendval,
                                     std::vector<std::vector<T,A1>,A2> & recv,
                                     const bool /* identical_buffer_sizes */) const
