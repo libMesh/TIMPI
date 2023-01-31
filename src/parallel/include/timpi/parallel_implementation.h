@@ -1527,6 +1527,8 @@ inline void Communicator::allgather(const std::basic_string<T> & sendval,
     recv[i] = r.substr(displacements[i], sendlengths[i]);
 }
 
+
+
 inline void Communicator::broadcast (bool & data,
                                      const unsigned int root_id,
                                      const bool /* identical_sizes */) const
@@ -2681,6 +2683,101 @@ inline void Communicator::sum(std::unordered_map<K,V,H,E,A> & data) const
 
 
 
+template <typename T, typename A1, typename A2,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
+inline void Communicator::allgather(const std::vector<T,A1> & send,
+                                    std::vector<std::vector<T,A1>,A2> & recv,
+                                    const bool identical_buffer_sizes) const
+{
+  TIMPI_LOG_SCOPE ("allgather()","Parallel");
+
+  timpi_assert(this->size());
+
+  // serial case
+  if (this->size() < 2)
+    {
+      recv.resize(1);
+      recv[0] = send;
+      return;
+    }
+
+  recv.clear();
+  recv.resize(this->size());
+
+  std::vector<int>
+    sendlengths  (this->size(), 0),
+    displacements(this->size(), 0);
+
+  const int mysize = static_cast<int>(send.size());
+
+  if (identical_buffer_sizes)
+    sendlengths.assign(this->size(), mysize);
+  else
+    // first comm step to determine buffer sizes from all processors
+    this->allgather(mysize, sendlengths);
+
+  // Find the total size of the final array and
+  // set up the displacement offsets for each processor
+  unsigned int globalsize = 0;
+  for (unsigned int i=0; i != this->size(); ++i)
+    {
+      displacements[i] = globalsize;
+      globalsize += sendlengths[i];
+    }
+
+  // Check for quick return
+  if (globalsize == 0)
+    return;
+
+  // monolithic receive buffer
+  std::vector<T,A1> r(globalsize, 0);
+
+  // and get the data from the remote processors.
+  timpi_call_mpi
+    (MPI_Allgatherv (const_cast<T*>(mysize ? send.data() : nullptr),
+                     mysize, StandardType<T>(),
+                     &r[0], sendlengths.data(), displacements.data(),
+                     StandardType<T>(), this->get()));
+
+  // slice receive buffer up
+  for (unsigned int i=0; i != this->size(); ++i)
+    recv[i].assign(r.begin()+displacements[i],
+                   r.begin()+displacements[i]+sendlengths[i]);
+}
+
+
+
+template <typename T, typename A1, typename A2,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+inline void Communicator::allgather(const std::vector<T,A1> & send,
+                                    std::vector<std::vector<T,A1>,A2> & recv,
+                                    const bool /* identical_buffer_sizes */) const
+{
+  TIMPI_LOG_SCOPE ("allgather()","Parallel");
+
+  typedef typename Packing<T>::buffer_type buffer_t;
+
+  std::vector<buffer_t> buffer;
+  pack_range ((void *)nullptr, send.begin(), send.end(), buffer,
+              std::numeric_limits<int>::max());
+
+  std::vector<std::vector<buffer_t>> allbuffers;
+
+  timpi_assert(this->size());
+  recv.clear();
+  recv.resize(this->size());
+
+  // Even if our vector sizes were identical, the variable-sized
+  // data's buffer sizes might not be.
+  this->allgather(buffer, allbuffers, false);
+
+  for (processor_id_type i=0; i != this->size(); ++i)
+    unpack_range(allbuffers[i], (void *)nullptr,
+                 std::back_inserter(recv[i]), (T*)nullptr);
+}
+
+
+
 template <typename T, typename C, typename A>
 inline void Communicator::set_union(std::set<T,C,A> & data,
                                     const unsigned int root_id) const
@@ -2717,6 +2814,12 @@ inline void Communicator::set_union(std::map<T1,T2,C,A> & data,
     {
       std::vector<std::pair<T1,T2>> vecdata(data.begin(), data.end());
       this->gather(root_id, vecdata);
+
+      // If we have a non-zero root_id, we still want to let pid 0's
+      // values take precedence in the event we have duplicate keys
+      if (root_id)
+        data.clear();
+
       if (this->rank() == root_id)
         data.insert(vecdata.begin(), vecdata.end());
     }
@@ -2731,6 +2834,11 @@ inline void Communicator::set_union(std::map<T1,T2,C,A> & data) const
     {
       std::vector<std::pair<T1,T2>> vecdata(data.begin(), data.end());
       this->allgather(vecdata, false);
+
+      // We want values on lower pids to take precedence in the event
+      // we have duplicate keys
+      data.clear();
+
       data.insert(vecdata.begin(), vecdata.end());
     }
 }
@@ -2772,6 +2880,12 @@ inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data,
     {
       std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
       this->gather(root_id, vecdata);
+
+      // If we have a non-zero root_id, we still want to let pid 0's
+      // values take precedence in the event we have duplicate keys
+      if (root_id)
+        data.clear();
+
       if (this->rank() == root_id)
         data.insert(vecdata.begin(), vecdata.end());
     }
@@ -2786,6 +2900,11 @@ inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data) const
     {
       std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
       this->allgather(vecdata, false);
+
+      // We want values on lower pids to take precedence in the event
+      // we have duplicate keys
+      data.clear();
+
       data.insert(vecdata.begin(), vecdata.end());
     }
 }

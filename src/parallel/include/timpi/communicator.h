@@ -439,9 +439,13 @@ public:
   void sum(T & r, T & o, Request & req) const;
 
   /**
-   * Take a container of local variables on each processor, and
-   * collect their union over all processors, replacing the set on
-   * processor 0.
+   * Take a container (set, map, unordered_set, multimap, etc) of
+   * local variables on each processor, and collect their union over
+   * all processors, replacing the original on processor 0.
+   *
+   * If the \p data is a map or unordered_map and entries exist on
+   * different processors with the same key and different values, then
+   * the value with the lowest processor id takes precedence.
    */
   template <typename T>
   inline
@@ -449,7 +453,8 @@ public:
 
   /**
    * Take a container of local variables on each processor, and
-   * replace it with their union over all processors.
+   * replace it with their union over all processors, replacing the
+   * original on all processors.
    */
   template <typename T>
   inline
@@ -1071,6 +1076,29 @@ public:
   template <typename T, typename A,
             typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
   inline void allgather(std::vector<T,A> & r,
+                        const bool identical_buffer_sizes = false) const;
+
+  /**
+   * Take a vector of fixed size local variables and collect similar
+   * vectors from all processors. By default, each processor is
+   * allowed to have its own unique input buffer length. If
+   * it is known that all processors have the same input sizes
+   * additional communication can be avoided.
+   */
+  template <typename T, typename A1, typename A2,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
+  inline void allgather(const std::vector<T,A1> & send,
+                        std::vector<std::vector<T,A1>, A2> & recv,
+                        const bool identical_buffer_sizes = false) const;
+
+  /**
+   * Take a vector of dynamic-size local variables and collect similar
+   * vectors from all processors.
+   */
+  template <typename T, typename A1, typename A2,
+            typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+  inline void allgather(const std::vector<T,A1> & send,
+                        std::vector<std::vector<T,A1>, A2> & recv,
                         const bool identical_buffer_sizes = false) const;
 
   /**

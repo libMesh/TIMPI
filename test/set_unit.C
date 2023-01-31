@@ -116,6 +116,75 @@ void tester(const std::unordered_map<int, std::vector<int>> & m, int i)
   }
 
 
+  void testMapSet()
+  {
+    std::map<unsigned int, std::set<unsigned short>> mapset;
+
+    // Values on all procs
+    mapset[0].insert(20201);
+
+    // Insert extra values on procs 0 and 2
+    switch (TestCommWorld->rank())
+      {
+      case 0:
+      case 2:
+        mapset[0].insert(60201);
+        break;
+      default:
+        break;
+      }
+
+    TestCommWorld->set_union(mapset);
+
+    // Check results on all procs. In a broken 4-processor run what we
+    // saw was:
+    // key = 0, surface_ids = 20201 60201
+    // key = 0, surface_ids = 20201
+    // key = 0, surface_ids = 20201 60201
+    // key = 0, surface_ids = 20201
+    // whereas what we expect to see is that all procs have the
+    // same surface_ids, the ones from pid 0.
+    TIMPI_UNIT_ASSERT( mapset.size() == 1 );
+    const std::set<unsigned short> goodset {20201, 60201};
+    for (const auto & [key, boundary_id_set] : mapset)
+    {
+      TIMPI_UNIT_ASSERT( key == 0 );
+      TIMPI_UNIT_ASSERT( boundary_id_set == goodset );
+    }
+  }
+
+
+  void testMapMap()
+  {
+    std::map<unsigned int, std::map<unsigned short, double>> mapmap;
+
+    // Values on all procs
+    mapmap[0].emplace(20201, 0.8);
+
+    // Insert extra values on procs 0 and 2
+    switch (TestCommWorld->rank())
+      {
+      case 0:
+      case 2:
+        mapmap[0].emplace(60201, 1.);
+        break;
+      default:
+        break;
+      }
+
+    TestCommWorld->set_union(mapmap);
+
+    TIMPI_UNIT_ASSERT( mapmap.size() == 1 );
+    const std::map<unsigned short, double> goodmap {{20201, 0.8},
+                                                    {60201, 1}};
+    for (const auto & [key, boundary_id_map] : mapmap)
+    {
+      TIMPI_UNIT_ASSERT( key == 0 );
+      TIMPI_UNIT_ASSERT( boundary_id_map == goodmap );
+    }
+  }
+
+
 int main(int argc, const char * const * argv)
 {
   TIMPI::TIMPIInit init(argc, argv);
@@ -139,6 +208,9 @@ int main(int argc, const char * const * argv)
 
   testUnion<std::map<int, std::vector<int>>>();
   testUnion<std::unordered_map<int, std::vector<int>>>();
+
+  testMapSet();
+  testMapMap();
 
   return 0;
 }
