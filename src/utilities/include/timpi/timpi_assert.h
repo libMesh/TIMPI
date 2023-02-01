@@ -201,7 +201,7 @@ struct casting_compare {
                      "Different ranks are at different timpi_parallel_only points"); \
     timpi_assert_msg((comm_obj).verify(std::string(__FILE__)),                       \
                      "Different ranks are at different timpi_parallel_only points"); \
-    timpi_assert_msg((comm_obj).verify(std::to_string(__LINE__)),                    \
+    timpi_assert_msg((comm_obj).verify(__LINE__),                                    \
                      "Different ranks are at different timpi_parallel_only points"); \
   } while (0)
 #else
