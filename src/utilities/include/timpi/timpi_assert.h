@@ -196,9 +196,14 @@ struct casting_compare {
 // parallel on every processor at once
 
 #ifndef NDEBUG
-#define timpi_parallel_only(comm_obj) do {                            \
-    timpi_assert((comm_obj).verify(std::string(__FILE__)));           \
-    timpi_assert((comm_obj).verify(std::to_string(__LINE__))); } while (0)
+#define timpi_parallel_only(comm_obj) do {                                           \
+    timpi_assert_msg((comm_obj).verify(std::string(__FILE__).length()),              \
+                     "Different ranks are at different timpi_parallel_only points"); \
+    timpi_assert_msg((comm_obj).verify(std::string(__FILE__)),                       \
+                     "Different ranks are at different timpi_parallel_only points"); \
+    timpi_assert_msg((comm_obj).verify(std::to_string(__LINE__)),                    \
+                     "Different ranks are at different timpi_parallel_only points"); \
+  } while (0)
 #else
 #define timpi_parallel_only(comm_obj)  ((void) 0)
 #endif
