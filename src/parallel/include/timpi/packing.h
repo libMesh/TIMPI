@@ -496,8 +496,17 @@ struct TupleBufferTypeHelper<false, true, T1, MoreTypes...> {
 template <typename... Types>
 struct TupleBufferType;
 
+
+template <typename T1>
+struct TupleBufferType<T1>
+{
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+
 template <typename T1, typename... MoreTypes>
-struct TupleBufferType<T1, MoreTypes...> {
+struct TupleBufferType<T1, MoreTypes...>
+{
   typedef typename
     TupleBufferTypeHelper<Has_buffer_type<Packing<T1>>::value,
                           Has_buffer_type<Packing<std::tuple<MoreTypes...>>>::value,
