@@ -63,6 +63,12 @@ Communicator *TestCommWorld;
         TIMPI::MessageTag manual_tag =
           TestCommWorld->get_unique_tag(i);
         TIMPI_UNIT_ASSERT(i == manual_tag.value());
+
+        TIMPI::MessageTag tag_copy = manual_tag;
+        TIMPI_UNIT_ASSERT(i == tag_copy.value());
+
+        TIMPI::MessageTag tag_move = std::move(tag_copy);
+        TIMPI_UNIT_ASSERT(i == tag_move.value());
       }
   }
 
@@ -83,6 +89,12 @@ Communicator *TestCommWorld;
         TIMPI::MessageTag dup_manual_tag =
           TestCommWorld->get_unique_tag(i);
         TIMPI_UNIT_ASSERT(i != dup_manual_tag.value());
+
+        TIMPI::MessageTag tag_copy = manual_tag;
+        TIMPI_UNIT_ASSERT(i == tag_copy.value());
+
+        TIMPI::MessageTag tag_move = std::move(tag_copy);
+        TIMPI_UNIT_ASSERT(i == tag_move.value());
       }
   }
 
