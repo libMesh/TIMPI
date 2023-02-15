@@ -417,6 +417,65 @@ void testGather()
   }
 
 
+  void testNonblockingTest ()
+  {
+    const unsigned int local_val = TestCommWorld->rank() + 3;
+    unsigned int min = std::numeric_limits<unsigned int>::max();
+
+    Request req;
+    TestCommWorld->min(local_val, min, req);
+
+    // not sure what I can safely test here; test() could return true
+    // immediately or could loop an arbitrarily long time first...
+    while(!req.test()) {}
+
+    TIMPI_UNIT_ASSERT (min == static_cast<unsigned int>(3));
+
+    // We'll let the destructor do the wait this time
+  }
+
+
+  void testNonblockingWaitany ()
+  {
+    constexpr std::size_t N=5;
+    std::vector<unsigned int> local_vals(N),
+                              min_vals(N, std::numeric_limits<unsigned int>::max());
+    std::iota(local_vals.begin(), local_vals.end(), TestCommWorld->rank()+4);
+
+    std::size_t tests_done = 0;
+
+    std::vector<Request> reqs;
+    for (std::size_t i=0; i != N; ++i)
+    {
+      Request req;
+      TestCommWorld->min(local_vals[i], min_vals[i], req);
+
+#ifdef TIMPI_HAVE_MPI
+      // We might have finished immediately, e.g. if we're on one
+      // processor
+      if (*req.get() == MPI_REQUEST_NULL)
+      {
+        TIMPI_UNIT_ASSERT (min_vals[i] == static_cast<unsigned int>(4+i));
+        ++tests_done;
+      }
+#endif
+      reqs.push_back(req);
+    }
+
+    std::size_t i = std::size_t(-1);
+    if (tests_done != N)
+      i = waitany(reqs);
+    while (i != std::size_t(-1))
+    {
+      TIMPI_UNIT_ASSERT (min_vals[i] == static_cast<unsigned int>(4+i));
+      ++tests_done;
+      i = waitany(reqs);
+    }
+
+    TIMPI_UNIT_ASSERT (tests_done == N);
+  }
+
+
 
   void testNonblockingSum ()
   {
@@ -439,7 +498,7 @@ void testGather()
   void testNonblockingMin ()
   {
     unsigned int local_val = TestCommWorld->rank();
-    processor_id_type min = std::numeric_limits<processor_id_type>::max();
+    unsigned int min = std::numeric_limits<unsigned int>::max();
 
     Request req;
     TestCommWorld->min(local_val, min, req);
@@ -1029,6 +1088,8 @@ int main(int argc, const char * const * argv)
   testSemiVerifyType<long double>();
   testSplit();
   testSplitByType();
+  testNonblockingTest();
+  testNonblockingWaitany();
   testNonblockingSum();
   testNonblockingMin();
   testNonblockingMax();
