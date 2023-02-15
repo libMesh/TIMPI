@@ -40,11 +40,7 @@ namespace TIMPI
 // ------------------------------------------------------------
 // Request member functions
 Request::Request () :
-#ifdef TIMPI_HAVE_MPI
-  _request(MPI_REQUEST_NULL),
-#else
-  _request(),
-#endif
+  _request(null_request),
   post_wait_work(nullptr)
 {}
 
@@ -158,7 +154,7 @@ bool Request::test ()
 
   if (val)
     {
-      timpi_assert          (_request == MPI_REQUEST_NULL);
+      timpi_assert          (_request == null_request);
       timpi_assert_equal_to (val, 1);
     }
 
@@ -218,10 +214,9 @@ std::size_t waitany (std::vector<Request> & r)
 {
   timpi_assert(!r.empty());
 
-  int index = 0;
   int r_size = cast_int<int>(r.size());
   std::vector<request> raw(r_size);
-  bool all_null = true;
+  int non_null = r_size;
   for (int i=0; i != r_size; ++i)
     {
       Request * root = &r[i];
@@ -231,25 +226,25 @@ std::size_t waitany (std::vector<Request> & r)
         root = root->_prior_request.get();
       raw[i] = *root->get();
 
-      if (raw[i] != MPI_REQUEST_NULL)
-        all_null = false;
+      if (raw[i] != Request::null_request)
+        non_null = std::min(non_null,i);
     }
 
-  if (all_null)
+  if (non_null == r_size)
     return std::size_t(-1);
 
-  bool only_priors_completed = false;
+  int index = non_null;
 
+#ifdef TIMPI_HAVE_MPI
+  bool only_priors_completed = false;
   Request * next;
 
   do
     {
-#ifdef TIMPI_HAVE_MPI
       timpi_call_mpi
         (MPI_Waitany(r_size, raw.data(), &index, MPI_STATUS_IGNORE));
 
       timpi_assert_not_equal_to(index, MPI_UNDEFINED);
-#endif
 
       timpi_assert_less(index, r_size);
 
@@ -285,6 +280,9 @@ std::size_t waitany (std::vector<Request> & r)
       raw[index] = *next->get();
 
     } while(only_priors_completed);
+#else
+  r[index]._request = Request::null_request;
+#endif
 
   return index;
 }
