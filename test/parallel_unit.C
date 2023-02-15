@@ -959,6 +959,16 @@ void testGather()
   }
 
 
+  void testSemiVerifyString()
+  {
+    const std::string s = "Violin"; // Test requires a string instrument
+
+    const std::string *sptr = TestCommWorld->rank()%2 ? NULL : &s;
+
+    TIMPI_UNIT_ASSERT (TestCommWorld->semiverify(sptr));
+  }
+
+
   template<typename T>
   void testSemiVerifyType ()
   {
@@ -1073,6 +1083,8 @@ int main(int argc, const char * const * argv)
   testRecvIsendVecVecs();
   testSendRecvVecVecs();
   testSemiVerifyInf();
+  testSemiVerifyString();
+  testSemiVerifyType<bool>();
   testSemiVerifyType<char>();
   testSemiVerifyType<unsigned char>();
   testSemiVerifyType<short>();
