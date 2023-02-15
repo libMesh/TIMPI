@@ -930,7 +930,7 @@ void testGather()
     unsigned int rank = TestCommWorld->rank();
     TIMPI::info i = 0;
     int type = 0;
-#ifdef LIBMESH_HAVE_MPI
+#ifdef TIMPI_HAVE_MPI
     type = MPI_COMM_TYPE_SHARED;
     i = MPI_INFO_NULL;
 #endif
@@ -1028,6 +1028,7 @@ int main(int argc, const char * const * argv)
   testSemiVerifyType<double>();
   testSemiVerifyType<long double>();
   testSplit();
+  testSplitByType();
   testNonblockingSum();
   testNonblockingMin();
   testNonblockingMax();
