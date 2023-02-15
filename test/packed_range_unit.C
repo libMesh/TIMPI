@@ -13,6 +13,28 @@
   if (!(expr)) \
     timpi_error()
 
+std::string stringy_number(int number)
+{
+  std::string digit_strings [10] = {"zero", "one", "two",
+      "three", "four", "five", "six", "seven", "eight", "nine"};
+
+  std::string returnval = "done";
+  while (number)
+    {
+      returnval = digit_strings[number%10]+" "+returnval;
+      number = number/10;
+    };
+
+  return returnval;
+}
+
+
+std::vector<char> fake_stringy_number(int number)
+{
+  const std::string returnval = stringy_number(number);
+  return std::vector<char>(returnval.begin(), returnval.end());
+}
+
 template <typename T>
 struct null_output_iterator
   : std::iterator<std::output_iterator_tag, T>
@@ -454,35 +476,16 @@ Communicator *TestCommWorld;
     testPushPackedImpl((TestCommWorld->size() + 4) * 2);
   }
 
-  template <typename Functor>
-  void testPushPackedNestedImpl(Functor push_functor)
+  template <typename FillFunctor, typename PushFunctor>
+  void testPushPackedNestedImpl(FillFunctor fill_functor, PushFunctor push_functor)
   {
     const int size = TestCommWorld->size(),
               rank = TestCommWorld->rank();
 
-    typedef std::tuple<unsigned int, std::vector<char>, unsigned int, unsigned int, unsigned int, unsigned int> tuple_type;
-    typedef std::vector<tuple_type> vec_type;
+    typedef decltype(fill_functor(0)) fill_type;
+
+    typedef std::vector<fill_type> vec_type;
     std::map<processor_id_type, vec_type> data, received_data;
-
-    auto fake_stringy_number = [] (int number)
-      {
-        std::string digit_strings [10] = {"zero", "one", "two",
-            "three", "four", "five", "six", "seven", "eight", "nine"};
-
-        std::string returnval = "done";
-        while (number)
-          {
-            returnval = digit_strings[number%10]+" "+returnval;
-            number = number/10;
-          };
-
-        return std::vector<char>(returnval.begin(), returnval.end());
-      };
-
-    auto tuple_type_of = [fake_stringy_number] (int n)
-      {
-        return tuple_type(n, fake_stringy_number(n), n, n, n, n);
-      };
 
     for (int d=0; d != size; ++d)
       {
@@ -490,7 +493,7 @@ Communicator *TestCommWorld;
         int diffsqrt = std::sqrt(diffsize);
         if (diffsqrt*diffsqrt == diffsize)
           for (int i=-1; i != diffsqrt; ++i)
-            data[d].push_back(tuple_type_of(d));
+            data[d].push_back(fill_functor(d));
       }
 
     auto collect_data =
@@ -529,8 +532,8 @@ Communicator *TestCommWorld;
         const auto & rec = received_data[srcp];
         TIMPI_UNIT_ASSERT(rec.size() == std::size_t(diffsqrt+1));
 
-        for (const tuple_type & tup : rec)
-          TIMPI_UNIT_ASSERT(tup == tuple_type_of(rank));
+        for (auto & tup : rec)
+          TIMPI_UNIT_ASSERT(tup == fill_functor(rank));
       }
   }
 
@@ -543,7 +546,13 @@ Communicator *TestCommWorld;
       TIMPI::push_parallel_packed_range(*TestCommWorld, data, context, collect_data);
     };
 
-    testPushPackedNestedImpl(explicitly_packed_push);
+    typedef std::tuple<unsigned int, std::vector<char>, unsigned int,
+            unsigned int, unsigned int, unsigned int> tuple_type;
+    auto fill_tuple= [] (int n) {
+      return tuple_type(n, fake_stringy_number(n), n, n, n, n);
+    };
+
+    testPushPackedNestedImpl(fill_tuple, explicitly_packed_push);
   }
 
 
@@ -554,7 +563,56 @@ Communicator *TestCommWorld;
       TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
     };
 
-    testPushPackedNestedImpl(implicitly_packed_push);
+    typedef std::tuple<unsigned int, std::vector<char>, unsigned int,
+            unsigned int, unsigned int, unsigned int> tuple_type;
+    auto fill_tuple= [] (int n) {
+      return tuple_type(n, fake_stringy_number(n), n, n, n, n);
+    };
+
+    testPushPackedNestedImpl(fill_tuple, implicitly_packed_push);
+  }
+
+
+  void testPushPackedOneTuple()
+  {
+    typedef std::tuple<std::unordered_map<unsigned int, std::string>> tuple_type;
+
+    auto fill_tuple = [] (int n)
+      {
+        tuple_type returnval;
+        (std::get<0>(returnval))[n] = stringy_number(n);
+        (std::get<0>(returnval))[n+1] = stringy_number(n+1);
+        return returnval;
+      };
+
+    auto implicitly_packed_push = [](auto & data, auto & collect_data) {
+      TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
+    };
+
+    testPushPackedNestedImpl(fill_tuple, implicitly_packed_push);
+  }
+
+
+// A failure case I caught downstream
+  void testPushPackedFailureCase()
+  {
+    typedef std::tuple<std::size_t, int, std::unordered_map<unsigned int, std::string>> tuple_type;
+
+    auto fill_tuple = [] (int n)
+      {
+        tuple_type returnval;
+        std::get<0>(returnval) = n;
+        std::get<1>(returnval) = n;
+        (std::get<2>(returnval))[n] = stringy_number(n);
+        (std::get<2>(returnval))[n+1] = stringy_number(n+1);
+        return returnval;
+      };
+
+    auto implicitly_packed_push = [](auto & data, auto & collect_data) {
+      TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
+    };
+
+    testPushPackedNestedImpl(fill_tuple, implicitly_packed_push);
   }
 
 
@@ -654,6 +712,8 @@ int main(int argc, const char * const * argv)
   testPushPackedOversized();
   testPushPackedNested();
   testPushPackedDispatch();
+  testPushPackedOneTuple();
+  testPushPackedFailureCase();
 #if __cplusplus > 201402L
   testPushPackedMove();
   testPushPackedMoveOversized();
