@@ -450,15 +450,13 @@ void testGather()
       Request req;
       TestCommWorld->min(local_vals[i], min_vals[i], req);
 
-#ifdef TIMPI_HAVE_MPI
       // We might have finished immediately, e.g. if we're on one
       // processor
-      if (*req.get() == MPI_REQUEST_NULL)
+      if (*req.get() == Request::null_request)
       {
         TIMPI_UNIT_ASSERT (min_vals[i] == static_cast<unsigned int>(4+i));
         ++tests_done;
       }
-#endif
       reqs.push_back(req);
     }
 
