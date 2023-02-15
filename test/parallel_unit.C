@@ -995,6 +995,16 @@ void testGather()
   }
 
 
+  void testSemiVerifyVector()
+  {
+    const std::vector<int> v = {1, 2, 3};
+
+    const std::vector<int> *vptr = TestCommWorld->rank()%2 ? NULL : &v;
+
+    TIMPI_UNIT_ASSERT (TestCommWorld->semiverify(vptr));
+  }
+
+
   template<typename T>
   void testSemiVerifyType ()
   {
@@ -1112,6 +1122,7 @@ int main(int argc, const char * const * argv)
   testSendRecvVecVecs();
   testSemiVerifyInf();
   testSemiVerifyString();
+  testSemiVerifyVector();
   testSemiVerifyType<bool>();
   testSemiVerifyType<char>();
   testSemiVerifyType<unsigned char>();
