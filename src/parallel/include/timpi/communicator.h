@@ -356,7 +356,7 @@ public:
    */
   template <typename T>
   inline
-  void min(T & r, T & o, Request & req) const;
+  void min(const T & r, T & o, Request & req) const;
 
   /**
    * Take a local variable and replace it with the minimum of it's values
@@ -392,7 +392,7 @@ public:
    */
   template <typename T>
   inline
-  void max(T & r, T & o, Request & req) const;
+  void max(const T & r, T & o, Request & req) const;
 
   /**
    * Take a local variable and replace it with the maximum of it's values
@@ -436,7 +436,7 @@ public:
    */
   template <typename T>
   inline
-  void sum(T & r, T & o, Request & req) const;
+  void sum(const T & r, T & o, Request & req) const;
 
   /**
    * Take a container (set, map, unordered_set, multimap, etc) of
