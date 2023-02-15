@@ -644,6 +644,19 @@ void testGather()
 
 
 
+  void testMinlocBool ()
+  {
+    bool min = ((TestCommWorld->rank() + TestCommWorld->size()-1) % 2);
+    unsigned int minid = 0;
+
+    TestCommWorld->minloc(min, minid);
+
+    TIMPI_UNIT_ASSERT (min == static_cast<int>(0));
+    TIMPI_UNIT_ASSERT (minid == static_cast<unsigned int>((TestCommWorld->size()-1)%2));
+  }
+
+
+
   void testMinlocDouble ()
   {
     double min = (TestCommWorld->rank() + 1) % TestCommWorld->size();
@@ -653,6 +666,19 @@ void testGather()
 
     TIMPI_UNIT_ASSERT (min == double(0));
     TIMPI_UNIT_ASSERT (minid == static_cast<unsigned int>(TestCommWorld->size()-1));
+  }
+
+
+
+  void testMaxlocBool ()
+  {
+    bool max = ((TestCommWorld->rank() + TestCommWorld->size()) % 2);
+    unsigned int maxid = 0;
+
+    TestCommWorld->maxloc(max, maxid);
+
+    TIMPI_UNIT_ASSERT (max == static_cast<int>(1));
+    TIMPI_UNIT_ASSERT (maxid == static_cast<unsigned int>((TestCommWorld->size()-1)%2));
   }
 
 
@@ -1073,6 +1099,8 @@ int main(int argc, const char * const * argv)
   testNonFixedTypeMapMax<std::unordered_map<std::string,int>>();
   testMinloc();
   testMaxloc();
+  testMinlocBool();
+  testMaxlocBool();
   testMinlocDouble();
   testMaxlocDouble();
   testInfinityMin();
