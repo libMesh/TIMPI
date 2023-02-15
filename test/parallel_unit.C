@@ -417,6 +417,63 @@ void testGather()
   }
 
 
+  void testNonblockingTest ()
+  {
+    const unsigned int local_val = TestCommWorld->rank() + 3;
+    unsigned int min = std::numeric_limits<unsigned int>::max();
+
+    Request req;
+    TestCommWorld->min(local_val, min, req);
+
+    // not sure what I can safely test here; test() could return true
+    // immediately or could loop an arbitrarily long time first...
+    while(!req.test()) {}
+
+    TIMPI_UNIT_ASSERT (min == static_cast<unsigned int>(3));
+
+    // We'll let the destructor do the wait this time
+  }
+
+
+  void testNonblockingWaitany ()
+  {
+    constexpr std::size_t N=5;
+    std::vector<unsigned int> local_vals(N),
+                              min_vals(N, std::numeric_limits<unsigned int>::max());
+    std::iota(local_vals.begin(), local_vals.end(), TestCommWorld->rank()+4);
+
+    std::size_t tests_done = 0;
+
+    std::vector<Request> reqs;
+    for (std::size_t i=0; i != N; ++i)
+    {
+      Request req;
+      TestCommWorld->min(local_vals[i], min_vals[i], req);
+
+      // We might have finished immediately, e.g. if we're on one
+      // processor
+      if (*req.get() == Request::null_request)
+      {
+        TIMPI_UNIT_ASSERT (min_vals[i] == static_cast<unsigned int>(4+i));
+        ++tests_done;
+      }
+      reqs.push_back(req);
+    }
+
+    std::size_t i = std::size_t(-1);
+    if (tests_done != N)
+      i = waitany(reqs);
+    while (i != std::size_t(-1))
+    {
+      TIMPI_UNIT_ASSERT (min_vals[i] == static_cast<unsigned int>(4+i));
+      ++tests_done;
+      i = waitany(reqs);
+    }
+
+    TIMPI_UNIT_ASSERT (tests_done == N);
+  }
+
+
 
   void testNonblockingSum ()
   {
@@ -439,7 +496,7 @@ void testGather()
   void testNonblockingMin ()
   {
     unsigned int local_val = TestCommWorld->rank();
-    processor_id_type min = std::numeric_limits<processor_id_type>::max();
+    unsigned int min = std::numeric_limits<unsigned int>::max();
 
     Request req;
     TestCommWorld->min(local_val, min, req);
@@ -585,6 +642,19 @@ void testGather()
 
 
 
+  void testMinlocBool ()
+  {
+    bool min = ((TestCommWorld->rank() + TestCommWorld->size()-1) % 2);
+    unsigned int minid = 0;
+
+    TestCommWorld->minloc(min, minid);
+
+    TIMPI_UNIT_ASSERT (min == static_cast<int>(0));
+    TIMPI_UNIT_ASSERT (minid == static_cast<unsigned int>((TestCommWorld->size()-1)%2));
+  }
+
+
+
   void testMinlocDouble ()
   {
     double min = (TestCommWorld->rank() + 1) % TestCommWorld->size();
@@ -594,6 +664,19 @@ void testGather()
 
     TIMPI_UNIT_ASSERT (min == double(0));
     TIMPI_UNIT_ASSERT (minid == static_cast<unsigned int>(TestCommWorld->size()-1));
+  }
+
+
+
+  void testMaxlocBool ()
+  {
+    bool max = ((TestCommWorld->rank() + TestCommWorld->size()) % 2);
+    unsigned int maxid = 0;
+
+    TestCommWorld->maxloc(max, maxid);
+
+    TIMPI_UNIT_ASSERT (max == static_cast<int>(1));
+    TIMPI_UNIT_ASSERT (maxid == static_cast<unsigned int>((TestCommWorld->size()-1)%2));
   }
 
 
@@ -900,6 +983,26 @@ void testGather()
   }
 
 
+  void testSemiVerifyString()
+  {
+    const std::string s = "Violin"; // Test requires a string instrument
+
+    const std::string *sptr = TestCommWorld->rank()%2 ? NULL : &s;
+
+    TIMPI_UNIT_ASSERT (TestCommWorld->semiverify(sptr));
+  }
+
+
+  void testSemiVerifyVector()
+  {
+    const std::vector<int> v = {1, 2, 3};
+
+    const std::vector<int> *vptr = TestCommWorld->rank()%2 ? NULL : &v;
+
+    TIMPI_UNIT_ASSERT (TestCommWorld->semiverify(vptr));
+  }
+
+
   template<typename T>
   void testSemiVerifyType ()
   {
@@ -930,7 +1033,7 @@ void testGather()
     unsigned int rank = TestCommWorld->rank();
     TIMPI::info i = 0;
     int type = 0;
-#ifdef LIBMESH_HAVE_MPI
+#ifdef TIMPI_HAVE_MPI
     type = MPI_COMM_TYPE_SHARED;
     i = MPI_INFO_NULL;
 #endif
@@ -1004,6 +1107,8 @@ int main(int argc, const char * const * argv)
   testNonFixedTypeMapMax<std::unordered_map<std::string,int>>();
   testMinloc();
   testMaxloc();
+  testMinlocBool();
+  testMaxlocBool();
   testMinlocDouble();
   testMaxlocDouble();
   testInfinityMin();
@@ -1014,6 +1119,9 @@ int main(int argc, const char * const * argv)
   testRecvIsendVecVecs();
   testSendRecvVecVecs();
   testSemiVerifyInf();
+  testSemiVerifyString();
+  testSemiVerifyVector();
+  testSemiVerifyType<bool>();
   testSemiVerifyType<char>();
   testSemiVerifyType<unsigned char>();
   testSemiVerifyType<short>();
@@ -1028,6 +1136,9 @@ int main(int argc, const char * const * argv)
   testSemiVerifyType<double>();
   testSemiVerifyType<long double>();
   testSplit();
+  testSplitByType();
+  testNonblockingTest();
+  testNonblockingWaitany();
   testNonblockingSum();
   testNonblockingMin();
   testNonblockingMax();
