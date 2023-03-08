@@ -211,12 +211,13 @@ template <typename MapToContainers,
           typename ActionFunctor>
 void
 push_parallel_nbx_helper(const Communicator & comm,
-                         MapToContainers & data,
+                         MapToContainers && data,
                          const SendFunctor & send_functor,
                          const PossiblyReceiveFunctor & possibly_receive_functor,
                          const ActionFunctor & act_on_data)
 {
-  typedef typename MapToContainers::value_type::second_type container_type;
+  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type
+    container_type;
 
   // This function must be run on all processors at once
   timpi_parallel_only(comm);
@@ -249,7 +250,7 @@ push_parallel_nbx_helper(const Communicator & comm,
 
       // Just act on data if the user requested a send-to-self
       if (dest_pid == comm.rank())
-        act_on_data(dest_pid, datum);
+        act_on_data(dest_pid, std::move(datum));
       else
         {
           requests.emplace_back();
@@ -325,7 +326,7 @@ push_parallel_nbx_helper(const Communicator & comm,
                  info.request.wait();
 
                  // Act on the data
-                 act_on_data(info.src_pid, info.data);
+                 act_on_data(info.src_pid, std::move(info.data));
 
                  // This removes it from the list
                  return true;
