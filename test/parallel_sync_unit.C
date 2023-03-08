@@ -183,7 +183,7 @@ Communicator *TestCommWorld;
     auto collect_data =
       [&received_data]
       (processor_id_type pid,
-       typename std::vector<unsigned int> & vec_received)
+       typename std::vector<unsigned int> && vec_received)
       {
         auto & vec = received_data[pid];
         for (auto & val : vec_received)
