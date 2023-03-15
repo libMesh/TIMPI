@@ -45,7 +45,7 @@ namespace TIMPI {
  * map entry; this will avoid any unnecessary communication.
  *
  * Data which is received from other processors will be operated on by
- * act_on_data(processor_id_type pid, const std::vector<datum> & data)
+ * act_on_data(processor_id_type pid, std::vector<datum> && data)
  *
  * If data exists for the local processor in the map, it will be acted
  * on directly, without any network operations.
@@ -110,7 +110,7 @@ void push_parallel_vector_data(const Communicator & comm,
  *
  * Answer data from each query will be operated on by
  * act_on_data(processor_id_type pid, const std::vector<id> & ids,
- *             const std::vector<datum> & data);
+ *             std::vector<datum> && data);
  *
  * If a query vector exists for the local processor in the map,
  * gather_data will be called on it directly, and act_on_data will be
@@ -148,7 +148,7 @@ void pull_parallel_vector_data(const Communicator & comm,
  * map entry; this will avoid any unnecessary communication.
  *
  * Data which is received from other processors will be operated on by
- * act_on_data(processor_id_type pid, const std::vector<datum> & data)
+ * act_on_data(processor_id_type pid, std::vector<datum> && data)
  *
  * If data exists for the local processor in the map, it will be acted
  * on directly, without any network operations.  This *also* avoids
