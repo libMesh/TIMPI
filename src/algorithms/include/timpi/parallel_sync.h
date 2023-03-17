@@ -45,7 +45,7 @@ namespace TIMPI {
  * map entry; this will avoid any unnecessary communication.
  *
  * Data which is received from other processors will be operated on by
- * act_on_data(processor_id_type pid, const std::vector<datum> & data)
+ * act_on_data(processor_id_type pid, std::vector<datum> && data)
  *
  * If data exists for the local processor in the map, it will be acted
  * on directly, without any network operations.
@@ -110,7 +110,7 @@ void push_parallel_vector_data(const Communicator & comm,
  *
  * Answer data from each query will be operated on by
  * act_on_data(processor_id_type pid, const std::vector<id> & ids,
- *             const std::vector<datum> & data);
+ *             std::vector<datum> && data);
  *
  * If a query vector exists for the local processor in the map,
  * gather_data will be called on it directly, and act_on_data will be
@@ -148,7 +148,7 @@ void pull_parallel_vector_data(const Communicator & comm,
  * map entry; this will avoid any unnecessary communication.
  *
  * Data which is received from other processors will be operated on by
- * act_on_data(processor_id_type pid, const std::vector<datum> & data)
+ * act_on_data(processor_id_type pid, std::vector<datum> && data)
  *
  * If data exists for the local processor in the map, it will be acted
  * on directly, without any network operations.  This *also* avoids
@@ -211,12 +211,13 @@ template <typename MapToContainers,
           typename ActionFunctor>
 void
 push_parallel_nbx_helper(const Communicator & comm,
-                         MapToContainers & data,
+                         MapToContainers && data,
                          const SendFunctor & send_functor,
                          const PossiblyReceiveFunctor & possibly_receive_functor,
                          const ActionFunctor & act_on_data)
 {
-  typedef typename MapToContainers::value_type::second_type container_type;
+  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type
+    container_type;
 
   // This function must be run on all processors at once
   timpi_parallel_only(comm);
@@ -249,7 +250,7 @@ push_parallel_nbx_helper(const Communicator & comm,
 
       // Just act on data if the user requested a send-to-self
       if (dest_pid == comm.rank())
-        act_on_data(dest_pid, datum);
+        act_on_data(dest_pid, std::move(datum));
       else
         {
           requests.emplace_back();
@@ -325,7 +326,7 @@ push_parallel_nbx_helper(const Communicator & comm,
                  info.request.wait();
 
                  // Act on the data
-                 act_on_data(info.src_pid, info.data);
+                 act_on_data(info.src_pid, std::move(info.data));
 
                  // This removes it from the list
                  return true;
