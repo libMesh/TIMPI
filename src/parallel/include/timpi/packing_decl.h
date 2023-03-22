@@ -75,23 +75,59 @@ public:
 
 // specialization for std::pair
 template <typename T1, typename T2>
+struct PairHasPacking
+{
+  typedef typename std::remove_const<T1>::type cT1;
+
+  static const bool value =
+    !TIMPI::StandardType<std::pair<cT1, T2>>::is_fixed_type &&
+    (Has_buffer_type<Packing<cT1>>::value ||
+     TIMPI::StandardType<cT1>::is_fixed_type) &&
+    (Has_buffer_type<Packing<T2>>::value ||
+     TIMPI::StandardType<T2>::is_fixed_type);
+};
+
+
+template <typename T1, typename T2>
 class Packing<std::pair<T1, T2>,
-              typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>;
+              typename std::enable_if<PairHasPacking<T1,T2>::value>::type>;
 
 
 // specializations for std::tuple
+
+template <typename... Types>
+struct TupleHasPacking;
+
+template <>
+struct TupleHasPacking<>
+{
+  static const bool value = true;
+};
+
+template <typename T, typename... Types>
+struct TupleHasPacking<T, Types...>
+{
+  static const bool value =
+    !TIMPI::StandardType<std::tuple<T, Types...>>::is_fixed_type &&
+    (Has_buffer_type<Packing<T>>::value ||
+     TIMPI::StandardType<T>::is_fixed_type) &&
+    (TupleHasPacking<Types...>::value ||
+     TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type);
+};
+
+
 template <typename Enable>
 class Packing<std::tuple<>, Enable>;
 
-template <typename... Types>
-class Packing<std::tuple<Types...>,
-              typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>;
+template <typename T, typename... Types>
+class Packing<std::tuple<T, Types...>,
+              typename std::enable_if<TupleHasPacking<T, Types...>::value>::type>;
 
 
 // specialization for std::array
 template <typename T, std::size_t N>
 class Packing<std::array<T, N>,
-              typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>;
+              typename std::enable_if<Has_buffer_type<Packing<T>>::value>::type>;
 
 
 // helper class for any homogeneous-type variable-size containers
@@ -100,9 +136,10 @@ template <typename Container>
 class PackingRange;
 
 
-#define TIMPI_DECL_PACKING_RANGE_SUBCLASS(Container)      \
-class Packing<Container>
-
+#define TIMPI_DECL_PACKING_RANGE_SUBCLASS(Container) \
+class Packing<Container,                             \
+              typename std::enable_if<Has_buffer_type<Packing<typename Container::value_type>>::value || \
+                                      TIMPI::StandardType<typename Container::value_type>::is_fixed_type>::type>
 
 #define TIMPI_P_COMMA ,
 
@@ -141,7 +178,8 @@ TIMPI_DECL_PACKING_RANGE_SUBCLASS(std::unordered_set<K TIMPI_P_COMMA H TIMPI_P_C
 #define TIMPI_HAVE_STRING_PACKING
 
 template <typename T>
-class Packing<std::basic_string<T>>;
+class Packing<std::basic_string<T>,
+              typename std::enable_if<TIMPI::StandardType<T>::is_fixed_type>::type>;
 
 } // namespace Parallel
 
