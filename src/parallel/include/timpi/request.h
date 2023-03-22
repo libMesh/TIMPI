@@ -53,7 +53,10 @@ typedef MPI_Request request;
 // This shouldn't actually be needed, but must be
 // a unique type for function overloading to work
 // properly.
-struct request      { /* unsigned int r; */ };
+//
+// We'll want some actual data in here, to make it possible for
+// waitany() to be used in loops that degrade cleanly.
+typedef unsigned int request;
 #endif // TIMPI_HAVE_MPI
 
 
@@ -104,6 +107,12 @@ public:
   // and will be deleted once \p this Request and any Request copies
   // made from \p this have been cleaned up.
   void add_post_wait_work(PostWaitWork * work);
+
+#ifdef TIMPI_HAVE_MPI
+  static constexpr request null_request = MPI_REQUEST_NULL;
+#else
+  static constexpr request null_request = 0;
+#endif
 
 private:
   request _request;

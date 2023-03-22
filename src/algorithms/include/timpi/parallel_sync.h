@@ -41,9 +41,14 @@ namespace TIMPI {
  *
  * The \p data map is indexed by processor ids as keys, and for each
  * processor id in the map there should be a vector of data to send.
+ * For processors to which no data should be sent, there should be no
+ * map entry; this will avoid any unnecessary communication.
  *
  * Data which is received from other processors will be operated on by
- * act_on_data(processor_id_type pid, const std::vector<datum> & data)
+ * act_on_data(processor_id_type pid, std::vector<datum> && data)
+ *
+ * If data exists for the local processor in the map, it will be acted
+ * on directly, without any network operations.
  *
  * No guarantee about operation ordering is made - this function will
  * attempt to act on data in the order in which it is received.
@@ -96,15 +101,20 @@ void push_parallel_vector_data(const Communicator & comm,
  *
  * The \p data map is indexed by processor ids as keys, and for each
  * processor id in the map there should be a vector of query ids to send.
+ * For processors to which no data should be sent, there should be no
+ * map entry; this will avoid any unnecessary communication.
  *
- * Query data which is received from other processors will be operated
- * on by
+ * Queries will be operated on by the queried processor by
  * gather_data(processor_id_type pid, const std::vector<id> & ids,
  *             std::vector<datum> & data)
  *
- * Answer data which is received from other processors will be operated on by
+ * Answer data from each query will be operated on by
  * act_on_data(processor_id_type pid, const std::vector<id> & ids,
- *             const std::vector<datum> & data);
+ *             std::vector<datum> && data);
+ *
+ * If a query vector exists for the local processor in the map,
+ * gather_data will be called on it directly, and act_on_data will be
+ * called on the response directly, without any network operations.
  *
  * The example pointer may be null; it merely needs to be of the
  * correct type.  It's just here because function overloading in C++
@@ -128,26 +138,33 @@ void pull_parallel_vector_data(const Communicator & comm,
                                const datum * example);
 
 /**
-* Send and receive and act on vectors of data. Similar to
-* push_parallel_vector_data, except the vectors are packed and unpacked
-* using the Parallel::Packing routines.
-*
-* The \p data map is indexed by processor ids as keys, and for each
-* processor id in the map there should be a vector of data to send.
-*
-* Data which is received from other processors will be operated on by
-* act_on_data(processor_id_type pid, const std::vector<datum> & data)
-*
-* No guarantee about operation ordering is made - this function will
-* attempt to act on data in the order in which it is received.
-*
-* All receives and actions are completed before this function
-* returns.
-*
-* If you wish to use move semantics within the data received in \p
-* act_on_data, pass data itself as an rvalue reference.
-*
-*/
+ * Send and receive and act on vectors of data. Similar to
+ * push_parallel_vector_data, except the vectors are packed and unpacked
+ * using the Parallel::Packing routines.
+ *
+ * The \p data map is indexed by processor ids as keys, and for each
+ * processor id in the map there should be a vector of data to send.
+ * For processors to which no data should be sent, there should be no
+ * map entry; this will avoid any unnecessary communication.
+ *
+ * Data which is received from other processors will be operated on by
+ * act_on_data(processor_id_type pid, std::vector<datum> && data)
+ *
+ * If data exists for the local processor in the map, it will be acted
+ * on directly, without any network operations.  This *also* avoids
+ * packing and unpacking the data, so no side effects of those
+ * operations should be assumed.
+ *
+ * No guarantee about operation ordering is made - this function will
+ * attempt to act on data in the order in which it is received.
+ *
+ * All receives and actions are completed before this function
+ * returns.
+ *
+ * If you wish to use move semantics within the data received in \p
+ * act_on_data, pass data itself as an rvalue reference.
+ *
+ */
 ///@{
 template <typename MapToVectors,
           typename ActionFunctor,
@@ -194,12 +211,13 @@ template <typename MapToContainers,
           typename ActionFunctor>
 void
 push_parallel_nbx_helper(const Communicator & comm,
-                         MapToContainers & data,
+                         MapToContainers && data,
                          const SendFunctor & send_functor,
                          const PossiblyReceiveFunctor & possibly_receive_functor,
                          const ActionFunctor & act_on_data)
 {
-  typedef typename MapToContainers::value_type::second_type container_type;
+  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type
+    container_type;
 
   // This function must be run on all processors at once
   timpi_parallel_only(comm);
@@ -232,7 +250,7 @@ push_parallel_nbx_helper(const Communicator & comm,
 
       // Just act on data if the user requested a send-to-self
       if (dest_pid == comm.rank())
-        act_on_data(dest_pid, datum);
+        act_on_data(dest_pid, std::move(datum));
       else
         {
           requests.emplace_back();
@@ -308,7 +326,7 @@ push_parallel_nbx_helper(const Communicator & comm,
                  info.request.wait();
 
                  // Act on the data
-                 act_on_data(info.src_pid, info.data);
+                 act_on_data(info.src_pid, std::move(info.data));
 
                  // This removes it from the list
                  return true;

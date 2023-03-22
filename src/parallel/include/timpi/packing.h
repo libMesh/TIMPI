@@ -371,11 +371,13 @@ struct PairBufferTypeHelper<T1, false, T2, false>
 // specialization for std::pair
 template <typename T1, typename T2>
 class Packing<std::pair<T1, T2>,
-              typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>
+              typename std::enable_if<PairHasPacking<T1,T2>::value>::type>
 {
 public:
+  typedef typename std::remove_const<T1>::type cT1;
+
   typedef typename PairBufferTypeHelper
-      <T1, Has_buffer_type<Packing<T1>>::value,
+      <cT1, Has_buffer_type<Packing<cT1>>::value,
        T2, Has_buffer_type<Packing<T2>>::value>::buffer_type buffer_type;
 
   typedef PackingMixedType<buffer_type> Mixed;
@@ -397,7 +399,7 @@ template <typename T1, typename T2>
 template <typename Context>
 unsigned int
 Packing<std::pair<T1, T2>,
-        typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
+        typename std::enable_if<PairHasPacking<T1,T2>::value>::type>::
     packable_size(const std::pair<T1, T2> & pr, const Context * ctx)
 {
   return get_packed_len_entries<buffer_type>() +
@@ -409,7 +411,7 @@ template <typename T1, typename T2>
 template <typename BufferIter>
 unsigned int
 Packing<std::pair<T1, T2>,
-        typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
+        typename std::enable_if<PairHasPacking<T1,T2>::value>::type>::
     packed_size(BufferIter iter)
 {
   // We recorded the size in the first buffer entries
@@ -420,7 +422,7 @@ template <typename T1, typename T2>
 template <typename OutputIter, typename Context>
 void
 Packing<std::pair<T1, T2>,
-        typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
+        typename std::enable_if<PairHasPacking<T1,T2>::value>::type>::
     pack(const std::pair<T1, T2> & pr, OutputIter data_out, const Context * ctx)
 {
   unsigned int size = packable_size(pr, ctx);
@@ -443,7 +445,7 @@ template <typename T1, typename T2>
 template <typename BufferIter, typename Context>
 std::pair<T1, T2>
 Packing<std::pair<T1, T2>,
-        typename std::enable_if<!TIMPI::StandardType<std::pair<T1, T2>>::is_fixed_type>::type>::
+        typename std::enable_if<PairHasPacking<T1,T2>::value>::type>::
     unpack(BufferIter in, Context * ctx)
 {
   std::pair<T1, T2> pr;
@@ -496,8 +498,17 @@ struct TupleBufferTypeHelper<false, true, T1, MoreTypes...> {
 template <typename... Types>
 struct TupleBufferType;
 
+
+template <typename T1>
+struct TupleBufferType<T1>
+{
+  typedef typename Packing<T1>::buffer_type buffer_type;
+};
+
+
 template <typename T1, typename... MoreTypes>
-struct TupleBufferType<T1, MoreTypes...> {
+struct TupleBufferType<T1, MoreTypes...>
+{
   typedef typename
     TupleBufferTypeHelper<Has_buffer_type<Packing<T1>>::value,
                           Has_buffer_type<Packing<std::tuple<MoreTypes...>>>::value,
@@ -510,38 +521,38 @@ struct TupleBufferType<T1, MoreTypes...> {
 template <typename Enable>
 class Packing<std::tuple<>, Enable> {};
 
-template <typename... Types>
-class Packing<std::tuple<Types...>,
-              typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>
+template <typename T, typename... Types>
+class Packing<std::tuple<T, Types...>,
+              typename std::enable_if<TupleHasPacking<T, Types...>::value>::type>
 {
 public:
-  typedef typename TupleBufferType<Types...>::buffer_type buffer_type;
+  typedef typename TupleBufferType<T, Types...>::buffer_type buffer_type;
 
   typedef PackingMixedType<buffer_type> Mixed;
 
   template <typename OutputIter, typename Context>
-  static void pack(const std::tuple<Types...> & tup, OutputIter data_out, const Context * context);
+  static void pack(const std::tuple<T, Types...> & tup, OutputIter data_out, const Context * context);
 
   template <typename Context>
-  static unsigned int packable_size(const std::tuple<Types...> & tup, const Context * context);
+  static unsigned int packable_size(const std::tuple<T, Types...> & tup, const Context * context);
 
   template <typename BufferIter>
   static unsigned int packed_size(BufferIter iter);
 
   template <typename BufferIter, typename Context>
-  static std::tuple<Types...> unpack(BufferIter in, Context * ctx);
+  static std::tuple<T, Types...> unpack(BufferIter in, Context * ctx);
 
   template <typename Context,
             std::size_t I>
-  static typename std::enable_if<I == sizeof...(Types), unsigned int>::type
-  tail_packable_size(const std::tuple<Types...> &,
+  static typename std::enable_if<I == sizeof...(Types)+1, unsigned int>::type
+  tail_packable_size(const std::tuple<T, Types...> &,
                      const Context *)
   { return 0; }
 
   template <typename Context,
             std::size_t I>
-  static typename std::enable_if<I < sizeof...(Types), unsigned int>::type
-  tail_packable_size(const std::tuple<Types...> &tup,
+  static typename std::enable_if<I < sizeof...(Types)+1, unsigned int>::type
+  tail_packable_size(const std::tuple<T, Types...> &tup,
                      const Context * ctx)
   {
     return Mixed::packable_size_comp(std::get<I>(tup), ctx) +
@@ -551,16 +562,16 @@ public:
   template <typename Context,
             typename OutputIter,
             std::size_t I>
-  static typename std::enable_if<I == sizeof...(Types), void>::type
-  tail_pack_comp(const std::tuple<Types...> &,
+  static typename std::enable_if<I == sizeof...(Types)+1, void>::type
+  tail_pack_comp(const std::tuple<T, Types...> &,
                  OutputIter,
                  const Context *) {}
 
   template <typename Context,
             typename OutputIter,
             std::size_t I>
-  static typename std::enable_if<I < sizeof...(Types), void>::type
-  tail_pack_comp(const std::tuple<Types...> &tup,
+  static typename std::enable_if<I < sizeof...(Types)+1, void>::type
+  tail_pack_comp(const std::tuple<T, Types...> &tup,
                  OutputIter data_out,
                  const Context * ctx)
   {
@@ -571,16 +582,16 @@ public:
   template <typename Context,
             typename BufferIter,
             std::size_t I>
-  static typename std::enable_if<I == sizeof...(Types), void>::type
-  tail_unpack_comp(std::tuple<Types...> &,
+  static typename std::enable_if<I == sizeof...(Types)+1, void>::type
+  tail_unpack_comp(std::tuple<T, Types...> &,
                    BufferIter &,
                    Context *) {}
 
   template <typename Context,
             typename BufferIter,
             std::size_t I>
-  static typename std::enable_if<I < sizeof...(Types), void>::type
-  tail_unpack_comp(std::tuple<Types...> &tup,
+  static typename std::enable_if<I < sizeof...(Types)+1, void>::type
+  tail_unpack_comp(std::tuple<T, Types...> &tup,
                    BufferIter & in,
                    Context * ctx)
   {
@@ -596,34 +607,34 @@ public:
 };
 
 
-template <typename... Types>
+template <typename T, typename... Types>
 template <typename Context>
 unsigned int
-Packing<std::tuple<Types...>,
-        typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
-    packable_size(const std::tuple<Types...> & tup, const Context * ctx)
+Packing<std::tuple<T, Types...>,
+        typename std::enable_if<TupleHasPacking<T, Types...>::value>::type>::
+    packable_size(const std::tuple<T, Types...> & tup, const Context * ctx)
 {
   return get_packed_len_entries<buffer_type>() +
     tail_packable_size<Context, 0>(tup, ctx);
 }
 
-template <typename... Types>
+template <typename T, typename... Types>
 template <typename BufferIter>
 unsigned int
-Packing<std::tuple<Types...>,
-        typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
+Packing<std::tuple<T, Types...>,
+        typename std::enable_if<TupleHasPacking<T, Types...>::value>::type>::
     packed_size(BufferIter iter)
 {
   // We recorded the size in the first buffer entries
   return get_packed_len<buffer_type>(iter);
 }
 
-template <typename... Types>
+template <typename T, typename... Types>
 template <typename OutputIter, typename Context>
 void
-Packing<std::tuple<Types...>,
-        typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
-    pack(const std::tuple<Types...> & tup, OutputIter data_out, const Context * ctx)
+Packing<std::tuple<T, Types...>,
+        typename std::enable_if<TupleHasPacking<T, Types...>::value>::type>::
+    pack(const std::tuple<T, Types...> & tup, OutputIter data_out, const Context * ctx)
 {
   unsigned int size = packable_size(tup, ctx);
 
@@ -634,14 +645,14 @@ Packing<std::tuple<Types...>,
   tail_pack_comp<Context, OutputIter, 0>(tup, data_out, ctx);
 }
 
-template <typename... Types>
+template <typename T, typename... Types>
 template <typename BufferIter, typename Context>
-std::tuple<Types...>
-Packing<std::tuple<Types...>,
-        typename std::enable_if<!TIMPI::StandardType<std::tuple<Types...>>::is_fixed_type>::type>::
+std::tuple<T, Types...>
+Packing<std::tuple<T, Types...>,
+        typename std::enable_if<TupleHasPacking<T, Types...>::value>::type>::
     unpack(BufferIter in, Context * ctx)
 {
-  std::tuple<Types...> tup;
+  std::tuple<T, Types...> tup;
 
   // We ignore total size here but we have to increment past it
   constexpr int size_bytes = get_packed_len_entries<buffer_type>();
@@ -658,7 +669,7 @@ Packing<std::tuple<Types...>,
 // specialization for std::array
 template <typename T, std::size_t N>
 class Packing<std::array<T, N>,
-              typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>
+              typename std::enable_if<Has_buffer_type<Packing<T>>::value>::type>
 {
 public:
   typedef typename Packing<T>::buffer_type buffer_type;
@@ -682,7 +693,7 @@ template <typename T, std::size_t N>
 template <typename Context>
 unsigned int
 Packing<std::array<T, N>,
-        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+        typename std::enable_if<Has_buffer_type<Packing<T>>::value>::type>::
     packable_size(const std::array<T, N> & a, const Context * ctx)
 {
   unsigned int returnval = get_packed_len_entries<buffer_type>(); // size
@@ -695,7 +706,7 @@ template <typename T, std::size_t N>
 template <typename BufferIter>
 unsigned int
 Packing<std::array<T, N>,
-        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+        typename std::enable_if<Has_buffer_type<Packing<T>>::value>::type>::
     packed_size(BufferIter iter)
 {
   // We recorded the size in the first buffer entries
@@ -706,7 +717,7 @@ template <typename T, std::size_t N>
 template <typename OutputIter, typename Context>
 void
 Packing<std::array<T, N>,
-        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+        typename std::enable_if<Has_buffer_type<Packing<T>>::value>::type>::
     pack(const std::array<T, N> & a, OutputIter data_out, const Context * ctx)
 {
   unsigned int size = packable_size(a, ctx);
@@ -723,7 +734,7 @@ template <typename T, std::size_t N>
 template <typename BufferIter, typename Context>
 std::array<T, N>
 Packing<std::array<T, N>,
-        typename std::enable_if<!TIMPI::StandardType<T>::is_fixed_type>::type>::
+        typename std::enable_if<Has_buffer_type<Packing<T>>::value>::type>::
     unpack(BufferIter in, Context * ctx)
 {
   std::array<T, N> a;
@@ -870,7 +881,10 @@ PackingRange<Container>::unpack(BufferIter in, Context * ctx)
 
 
 #define TIMPI_PACKING_RANGE_SUBCLASS(Container)           \
-class Packing<Container> : public PackingRange<Container> \
+class Packing<Container, \
+              typename std::enable_if<Has_buffer_type<Packing<typename Container::value_type>>::value || \
+                                      TIMPI::StandardType<typename Container::value_type>::is_fixed_type>::type> : \
+  public PackingRange<Container> \
 {                                                         \
 public:                                                   \
   using typename PackingRange<Container>::buffer_type;    \
@@ -916,7 +930,9 @@ TIMPI_PACKING_RANGE_SUBCLASS(std::unordered_set<K TIMPI_P_COMMA H TIMPI_P_COMMA 
 
 
 template <typename T>
-class Packing<std::basic_string<T>> {
+class Packing<std::basic_string<T>,
+              typename std::enable_if<TIMPI::StandardType<T>::is_fixed_type>::type>
+{
 public:
 
   typedef unsigned int buffer_type;

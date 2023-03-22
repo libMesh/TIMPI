@@ -63,6 +63,38 @@ Communicator *TestCommWorld;
         TIMPI::MessageTag manual_tag =
           TestCommWorld->get_unique_tag(i);
         TIMPI_UNIT_ASSERT(i == manual_tag.value());
+
+        TIMPI::MessageTag tag_copy = manual_tag;
+        TIMPI_UNIT_ASSERT(i == tag_copy.value());
+
+        TIMPI::MessageTag tag_move = std::move(tag_copy);
+        TIMPI_UNIT_ASSERT(i == tag_move.value());
+      }
+  }
+
+
+  void testGetUniqueTagOverlap()
+  {
+    // Try to request the same tag twice, make sure we don't get it
+    // the second time.
+
+    const int requests[] = {2, 4, 6, 8, 8, 6, 8, 123, 3141, 3142};
+
+    for (const int i : requests)
+      {
+        TIMPI::MessageTag manual_tag =
+          TestCommWorld->get_unique_tag(i);
+        TIMPI_UNIT_ASSERT(i == manual_tag.value());
+
+        TIMPI::MessageTag dup_manual_tag =
+          TestCommWorld->get_unique_tag(i);
+        TIMPI_UNIT_ASSERT(i != dup_manual_tag.value());
+
+        TIMPI::MessageTag tag_copy = manual_tag;
+        TIMPI_UNIT_ASSERT(i == tag_copy.value());
+
+        TIMPI::MessageTag tag_move = std::move(tag_copy);
+        TIMPI_UNIT_ASSERT(i == tag_move.value());
       }
   }
 
@@ -73,6 +105,7 @@ int main(int argc, const char * const * argv)
 
   testGetUniqueTagAuto();
   testGetUniqueTagManual();
+  testGetUniqueTagOverlap();
 
   return 0;
 }
