@@ -218,6 +218,14 @@ Communicator *TestCommWorld;
   // other types.
   void testTupleStringAllGather()
   {
+    static_assert(Has_buffer_type<Packing<std::string>>::value);
+    static_assert(libMesh::Parallel::TupleHasPacking<std::string>::value);
+    static_assert(Has_buffer_type<Packing<std::tuple<std::string>>>::value);
+    static_assert(libMesh::Parallel::TupleHasPacking<std::string, std::string>::value);
+    static_assert(Has_buffer_type<Packing<std::tuple<std::string, std::string>>>::value);
+    static_assert(libMesh::Parallel::TupleHasPacking<std::string, std::string, int>::value);
+    static_assert(Has_buffer_type<Packing<std::tuple<std::string, std::string, int>>>::value);
+
     std::vector<std::tuple<std::string, std::string, int>> sendv(2);
 
     auto & s0 = std::get<1>(sendv[0]);
@@ -264,6 +272,10 @@ Communicator *TestCommWorld;
   void testNestingAllGather()
   {
     typedef std::tuple<unsigned int, std::vector<std::tuple<char,int,std::size_t>>, unsigned int> send_type;
+
+    static_assert(Has_buffer_type<Packing<std::vector<std::tuple<char,int,std::size_t>>>>::value);
+    static_assert(Has_buffer_type<Packing<send_type>>::value);
+
     std::vector<send_type> sendv(2);
 
     std::get<0>(sendv[0]) = 100;
@@ -576,6 +588,17 @@ Communicator *TestCommWorld;
   void testPushPackedOneTuple()
   {
     typedef std::tuple<std::unordered_map<unsigned int, std::string>> tuple_type;
+    static_assert(Has_buffer_type<Packing<std::string>>::value);
+    static_assert(TIMPI::StandardType<std::pair<unsigned int, unsigned int>>::is_fixed_type);
+    static_assert(TIMPI::StandardType<std::pair<const unsigned int, unsigned int>>::is_fixed_type);
+    static_assert(Has_buffer_type<Packing<std::unordered_map<unsigned int, unsigned int>>>::value);
+    static_assert(Has_buffer_type<Packing<std::pair<std::string, std::string>>>::value);
+    static_assert(Has_buffer_type<Packing<std::pair<const std::string, std::string>>>::value);
+    static_assert(Has_buffer_type<Packing<std::unordered_map<std::string, std::string>>>::value);
+    static_assert(Has_buffer_type<Packing<std::pair<unsigned int, std::string>>>::value);
+    static_assert(Has_buffer_type<Packing<std::pair<const unsigned int, std::string>>>::value);
+    static_assert(Has_buffer_type<Packing<std::unordered_map<unsigned int, std::string>>>::value);
+    static_assert(Has_buffer_type<Packing<tuple_type>>::value);
 
     auto fill_tuple = [] (int n)
       {
