@@ -306,10 +306,13 @@ private:
 # endif
 #endif
 
+// using remove_const here so our packing code can see a
+// `StandardType<pair<const K,T>>::is_fixed_type` and infer that it
+// can do memcpy on them
 template<typename T1, typename T2>
 class StandardType<std::pair<T1, T2>,
                    typename std::enable_if<
-                     StandardType<T1>::is_fixed_type &&
+                     StandardType<typename std::remove_const<T1>::type>::is_fixed_type &&
                      StandardType<T2>::is_fixed_type>::type> : public DataType
 {
 public:
@@ -328,7 +331,9 @@ public:
 
         // Get the sub-data-types, and make sure they live long enough
         // to construct the derived type
-        StandardType<T1> d1(&example->first);
+        StandardType<typename std::remove_const<T1>::type>
+          d1(const_cast<typename std::remove_const<T1>::type *>
+               (&example->first));
         StandardType<T2> d2(&example->second);
 
         MPI_Datatype types[] = { (data_type)d1, (data_type)d2 };
