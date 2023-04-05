@@ -377,6 +377,168 @@ push_parallel_nbx_helper(const Communicator & comm,
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
 }
 
+template <typename MapToContainers,
+          typename SendFunctor,
+          typename ReceiveFunctor,
+          typename ActionFunctor>
+void
+push_parallel_alltoall_helper(const Communicator & comm,
+                              MapToContainers && data,
+                              const SendFunctor & send_functor,
+                              const ReceiveFunctor & receive_functor,
+                              const ActionFunctor & act_on_data)
+{
+  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type
+    container_type;
+
+  // This function must be run on all processors at once
+  timpi_parallel_only(comm);
+
+  // This function implements a simpler asynchronous protocol than
+  // NBX.  Every processor will know exactly how many receives to
+  // post.
+
+  processor_id_type num_procs = comm.size();
+
+  // Number of vectors to send to each procesor
+  std::vector<std::size_t> will_send_to(num_procs, 0);
+  for (auto & datapair : data)
+    {
+      // In the case of data partitioned into more processors than we
+      // have ranks, we "wrap around"
+      processor_id_type destid = datapair.first % num_procs;
+
+      // Don't give us empty vectors to send
+      timpi_assert_greater(datapair.second.size(), 0);
+
+      will_send_to[destid]++;
+    }
+
+  // Tell everyone about where everyone will send to
+  comm.alltoall(will_send_to);
+
+  // will_send_to now represents how many vectors we'll receive from
+  // each processor; give it a better name.
+  auto & will_receive_from = will_send_to;
+
+  processor_id_type n_receives = 0;
+  for (processor_id_type proc_id = 0; proc_id < num_procs; proc_id++)
+    n_receives += will_receive_from[proc_id];
+
+  // We'll grab a tag so we can overlap request sends and receives
+  // without confusing one for the other
+  MessageTag tag = comm.get_unique_tag();
+
+  // The send requests
+  std::list<Request> requests;
+
+  // Post all of the sends, non-blocking
+  for (auto & datapair : data)
+    {
+      processor_id_type destid = datapair.first % num_procs;
+      auto & datum = datapair.second;
+
+      // Just act on data if the user requested a send-to-self
+      if (destid == comm.rank())
+        {
+          act_on_data(destid, std::move(datum));
+          n_receives--;
+        }
+      else
+        {
+          requests.emplace_back();
+          send_functor(destid, datum, requests.back(), tag);
+        }
+    }
+
+  // In serial we've now acted on all our data.
+  if (num_procs == 1)
+    return;
+
+  // Post all of the receives.
+  for (processor_id_type i = 0; i != n_receives; ++i)
+    {
+      Status stat(comm.probe(any_source, tag));
+      const processor_id_type
+        proc_id = cast_int<processor_id_type>(stat.source());
+
+      container_type received_data;
+      receive_functor(proc_id, received_data, tag);
+      act_on_data(proc_id, std::move(received_data));
+    }
+
+  // Wait on all the sends to complete
+  for (auto & req : requests)
+    req.wait();
+}
+
+template <typename MapToContainers,
+          typename SendReceiveFunctor,
+          typename ActionFunctor>
+void
+push_parallel_roundrobin_helper(const Communicator & comm,
+                                MapToContainers && data,
+                                const SendReceiveFunctor & sendreceive_functor,
+                                const ActionFunctor & act_on_data)
+{
+  typedef typename std::remove_reference<MapToContainers>::type::value_type::second_type
+    container_type;
+
+  // This function must be run on all processors at once
+  timpi_parallel_only(comm);
+
+  // This function implements the simplest protocol possible, fully
+  // synchronous.  Every processor talks to every other.  Only use this for
+  // debugging, and only when you're desperate.
+
+  unsigned int num_procs = comm.size();
+
+  // Do multiple exchanges if we have an oversized data map
+  processor_id_type n_exchanges = 1;
+  for (auto & datapair : data)
+    {
+      const unsigned int destid = datapair.first;
+      n_exchanges = std::max(n_exchanges, destid/num_procs+1);
+
+      // Don't give us empty vectors to send
+      timpi_assert_greater(datapair.second.size(), 0);
+    }
+
+  comm.max(n_exchanges);
+
+  // We'll grab a tag so responses and queries won't be confused when
+  // this is used within a pull
+  auto tag = comm.get_unique_tag();
+
+  // Do the send_receives, blocking
+  for (processor_id_type e=0; e != n_exchanges; ++e)
+    for (processor_id_type p=0; p != num_procs; ++p)
+      {
+        const processor_id_type procup =
+          cast_int<processor_id_type>((comm.rank() + p) %
+                                      num_procs);
+        const processor_id_type procdown =
+          cast_int<processor_id_type>((comm.rank() + num_procs - p) %
+                                      num_procs);
+
+        container_type empty_container;
+        auto data_it = data.find(procup + e*num_procs);
+        auto * const data_to_send =
+          (data_it == data.end()) ?
+          &empty_container : &data_it->second;
+
+        container_type received_data;
+        sendreceive_functor(procup, *data_to_send,
+                            procdown, received_data, tag);
+
+        // Empty containers aren't *real* data, they're an artifact of
+        // doing send_receive with everyone.  Just skip them.
+        if (!received_data.empty())
+          act_on_data(procdown, std::move(received_data));
+      }
+}
+
+
 } // namespace detail
 
 
@@ -393,28 +555,85 @@ void push_parallel_packed_range(const Communicator & comm,
   typedef typename container_type::value_type nonref_type;
   typename std::remove_const<nonref_type>::type * output_type = nullptr;
 
-  auto send_functor = [&context, &comm](const processor_id_type dest_pid,
-                                        const container_type & datum,
-                                        Request & send_request,
-                                        const MessageTag tag) {
-    comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), send_request, tag);
-  };
+  switch (comm.sync_type()) {
+  case Communicator::NBX:
+    {
+      auto send_functor = [&context, &comm](const processor_id_type dest_pid,
+                                            const container_type & datum,
+                                            Request & send_request,
+                                            const MessageTag tag) {
+        comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), send_request, tag);
+      };
 
-  auto possibly_receive_functor = [&context, &output_type, &comm](unsigned int & current_src_proc,
-                                                                  container_type & current_incoming_data,
-                                                                  Request & current_request,
-                                                                  const MessageTag tag) {
-    return comm.possibly_receive_packed_range(
-        current_src_proc,
-        context,
-        std::inserter(current_incoming_data, current_incoming_data.end()),
-        output_type,
-        current_request,
-        tag);
-  };
+      auto possibly_receive_functor = [&context, &output_type, &comm](unsigned int & current_src_proc,
+                                                                      container_type & current_incoming_data,
+                                                                      Request & current_request,
+                                                                      const MessageTag tag) {
+        return comm.possibly_receive_packed_range(
+            current_src_proc,
+            context,
+            std::inserter(current_incoming_data, current_incoming_data.end()),
+            output_type,
+            current_request,
+            tag);
+      };
 
-  detail::push_parallel_nbx_helper
-    (comm, data, send_functor, possibly_receive_functor, act_on_data);
+      detail::push_parallel_nbx_helper
+        (comm, data, send_functor, possibly_receive_functor, act_on_data);
+    }
+    break;
+  case Communicator::ALLTOALL_COUNTS:
+    {
+      auto send_functor = [&context, &comm](const processor_id_type dest_pid,
+                                            const container_type & datum,
+                                            Request & send_request,
+                                            const MessageTag tag) {
+        comm.nonblocking_send_packed_range(dest_pid, context, datum.begin(), datum.end(), send_request, tag);
+      };
+
+      auto receive_functor = [&context, &output_type, &comm](unsigned int current_src_proc,
+                                                             container_type & current_incoming_data,
+                                                             const MessageTag tag) {
+        bool flag = false;
+        Status stat(comm.packed_range_probe<container_type>(current_src_proc, tag, flag));
+        timpi_assert(flag);
+
+        Request req;
+        comm.nonblocking_receive_packed_range(current_src_proc, context,
+          std::inserter(current_incoming_data, current_incoming_data.end()),
+          output_type, req, stat, tag);
+        req.wait();
+      };
+
+      detail::push_parallel_alltoall_helper
+        (comm, data, send_functor, receive_functor, act_on_data);
+    }
+    break;
+  case Communicator::BLOCKING:
+    {
+      auto sendreceive_functor = [&context, &output_type, &comm]
+        (const processor_id_type dest_pid,
+         const container_type & data_to_send,
+         const processor_id_type src_pid,
+         container_type & received_data,
+         const MessageTag tag) {
+        comm.send_receive_packed_range(dest_pid, context,
+                                       data_to_send.begin(),
+                                       data_to_send.end(), src_pid,
+                                       context,
+                                       std::inserter(received_data,
+                                                     received_data.end()),
+                                       output_type, tag, tag);
+      };
+
+      detail::push_parallel_roundrobin_helper
+        (comm, data, sendreceive_functor, act_on_data);
+    }
+    break;
+  default:
+    timpi_error_msg("Invalid sync_type setting " << comm.sync_type());
+  }
+
 }
 
 
@@ -438,23 +657,65 @@ void push_parallel_vector_data(const Communicator & comm,
   // to construct the user's data type without an example.
   auto type = build_standard_type(static_cast<nonconst_nonref_type *>(nullptr));
 
-  auto send_functor = [&type, &comm](const processor_id_type dest_pid,
-                                     const container_type & datum,
-                                     Request & send_request,
-                                     const MessageTag tag) {
-    comm.send(dest_pid, datum, type, send_request, tag);
-  };
+  switch (comm.sync_type()) {
+  case Communicator::NBX:
+    {
+      auto send_functor = [&type, &comm](const processor_id_type dest_pid,
+                                         const container_type & datum,
+                                         Request & send_request,
+                                         const MessageTag tag) {
+        comm.send(dest_pid, datum, type, send_request, tag);
+      };
 
-  auto possibly_receive_functor = [&type, &comm](unsigned int & current_src_proc,
-                                                 container_type & current_incoming_data,
-                                                 Request & current_request,
-                                                 const MessageTag tag) {
-    return comm.possibly_receive(
-        current_src_proc, current_incoming_data, type, current_request, tag);
-  };
+      auto possibly_receive_functor = [&type, &comm](unsigned int & current_src_proc,
+                                                     container_type & current_incoming_data,
+                                                     Request & current_request,
+                                                     const MessageTag tag) {
+        return comm.possibly_receive(
+            current_src_proc, current_incoming_data, type, current_request, tag);
+      };
 
-  detail::push_parallel_nbx_helper
-    (comm, data, send_functor, possibly_receive_functor, act_on_data);
+      detail::push_parallel_nbx_helper
+        (comm, data, send_functor, possibly_receive_functor, act_on_data);
+    }
+    break;
+  case Communicator::ALLTOALL_COUNTS:
+    {
+      auto send_functor = [&type, &comm](const processor_id_type dest_pid,
+                                         const container_type & datum,
+                                         Request & send_request,
+                                         const MessageTag tag) {
+        comm.send(dest_pid, datum, type, send_request, tag);
+      };
+
+      auto receive_functor = [&type, &comm](unsigned int current_src_proc,
+                                            container_type & current_incoming_data,
+                                            const MessageTag tag) {
+        comm.receive(current_src_proc, current_incoming_data, type, tag);
+      };
+
+      detail::push_parallel_alltoall_helper
+        (comm, data, send_functor, receive_functor, act_on_data);
+    }
+    break;
+  case Communicator::BLOCKING:
+    {
+      auto sendreceive_functor = [&comm](const processor_id_type dest_pid,
+                                         const container_type & data_to_send,
+                                         const processor_id_type src_pid,
+                                         container_type & received_data,
+                                         const MessageTag tag) {
+        comm.send_receive(dest_pid, data_to_send,
+                          src_pid, received_data, tag, tag);
+      };
+
+      detail::push_parallel_roundrobin_helper
+        (comm, data, sendreceive_functor, act_on_data);
+    }
+    break;
+  default:
+    timpi_error_msg("Invalid sync_type setting " << comm.sync_type());
+  }
 }
 
 
@@ -493,6 +754,12 @@ void pull_parallel_vector_data(const Communicator & comm,
   processor_id_type max_pid = 0;
   for (auto p : queries)
     max_pid = std::max(max_pid, p.first);
+
+  // Our BLOCKING implementation doesn't preserve ordering, but we
+  // need ordering preserved for the multimap trick here to work.
+  if (comm.sync_type() == Communicator::BLOCKING &&
+      max_pid > comm.size())
+    timpi_not_implemented();
 #endif
 
   auto gather_functor =
