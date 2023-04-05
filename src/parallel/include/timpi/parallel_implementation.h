@@ -1015,6 +1015,50 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
 
 
 
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+Status Communicator::receive (const unsigned int src_processor_id,
+                              std::vector<T,A> & buf,
+                              const DataType & type,
+                              const MessageTag & tag) const
+{
+  bool flag = false;
+  Status stat;
+  while (!flag)
+    stat = this->packed_range_probe<T>(src_processor_id, tag, flag);
+
+  Request req;
+  this->nonblocking_receive_packed_range(src_processor_id, (void *)(nullptr),
+    std::inserter(buf, buf.end()),
+    type, req, stat, tag);
+  req.wait();
+
+  return stat;
+}
+
+
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+Status Communicator::receive (const unsigned int src_processor_id,
+                              std::vector<T,A> & buf,
+                              const NotADataType &,
+                              const MessageTag & tag) const
+{
+  bool flag = false;
+  Status stat;
+  while (!flag)
+    stat = this->packed_range_probe<T>(src_processor_id, tag, flag);
+
+  Request req;
+  this->nonblocking_receive_packed_range(src_processor_id, (void *)(nullptr),
+    std::inserter(buf, buf.end()),
+    buf.data(), req, stat, tag);
+  req.wait();
+
+  return stat;
+}
+
+
 template <typename T, typename A>
 inline void Communicator::receive (const unsigned int src_processor_id,
                                    std::vector<T,A> & buf,

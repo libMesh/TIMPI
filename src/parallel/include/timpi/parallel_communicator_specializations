@@ -355,6 +355,22 @@
                     const DataType &type,
                     const MessageTag &tag=any_tag) const;
 
+    template <typename T, typename A,
+              typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+    inline
+    Status receive (const unsigned int src_processor_id,
+                    std::vector<T,A> & buf,
+                    const DataType & type,
+                    const MessageTag & tag) const;
+
+    template <typename T, typename A,
+              typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
+    inline
+    Status receive (const unsigned int src_processor_id,
+                    std::vector<T,A> & buf,
+                    const NotADataType &,
+                    const MessageTag & tag) const;
+
     template <typename T, typename A>
     inline
     void receive (const unsigned int src_processor_id,
