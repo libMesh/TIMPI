@@ -1456,6 +1456,29 @@ Communicator::send_receive_packed_range (const unsigned int dest_processor_id,
 {
   TIMPI_LOG_SCOPE("send_receive()", "Parallel");
 
+  timpi_assert_equal_to
+    ((dest_processor_id  == this->rank()),
+     (source_processor_id == this->rank()));
+
+  if (dest_processor_id   == this->rank() &&
+      source_processor_id == this->rank())
+    {
+      // We need to pack and unpack, even if we don't need to
+      // communicate the buffer, just in case user Packing
+      // specializations have side effects
+
+      typedef typename Packing<T>::buffer_type buffer_t;
+      while (send_begin != send_end)
+        {
+          std::vector<buffer_t> buffer;
+          send_begin = pack_range
+            (context1, send_begin, send_end, buffer, approx_buffer_size);
+          unpack_range
+            (buffer, context2, out_iter, output_type);
+        }
+      return;
+    }
+
   Request req;
 
   this->send_packed_range (dest_processor_id, context1, send_begin, send_end,
