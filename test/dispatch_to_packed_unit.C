@@ -571,5 +571,15 @@ int main(int argc, const char * const * argv)
   testPull();
   testPullPacked();
 
+  TestCommWorld->sync_type(Communicator::ALLTOALL_COUNTS);
+  testPush();
+  testPull();
+  testPullPacked();
+
+  TestCommWorld->sync_type(Communicator::BLOCKING);
+  testPush();
+  testPull();
+  testPullPacked();
+
   return 0;
 }
