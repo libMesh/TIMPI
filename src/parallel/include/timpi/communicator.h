@@ -212,6 +212,12 @@ public:
    */
   enum SendMode { DEFAULT=0, SYNCHRONOUS };
 
+  /**
+   * What algorithm to use for parallel synchronization?
+   */
+  enum SyncType { NBX, ALLTOALL_COUNTS, BLOCKING };
+
+
 private:
 
   /**
@@ -223,6 +229,7 @@ private:
   communicator  _communicator;
   processor_id_type _rank, _size;
   SendMode _send_mode;
+  SyncType _sync_type;
 
   // mutable used_tag_values and tag_queue - not thread-safe, but then
   // TIMPI:: isn't thread-safe in general.
@@ -322,6 +329,16 @@ public:
    * Gets the user-requested SendMode.
    */
   SendMode send_mode() const { return _send_mode; }
+
+  /**
+   * Explicitly sets the \p SyncType used for sync operations.
+   */
+  void sync_type (const SyncType st) { _sync_type = st; }
+
+  /**
+   * Gets the user-requested SyncType.
+   */
+  SyncType sync_type() const { return _sync_type; }
 
   /**
    * Pause execution until all processors reach a certain point.
