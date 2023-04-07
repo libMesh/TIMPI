@@ -1428,13 +1428,12 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
                                        const std::vector<std::vector<T,A1>,A2> & sendvec,
                                        const unsigned int source_processor_id,
                                        std::vector<std::vector<T,A1>,A2> & recv,
-                                       const MessageTag & /* send_tag */,
-                                       const MessageTag & /* recv_tag */) const
+                                       const MessageTag & send_tag,
+                                       const MessageTag & recv_tag) const
 {
-  // FIXME - why aren't we honoring send_tag and recv_tag here?
   send_receive_vec_of_vec
     (dest_processor_id, sendvec, source_processor_id, recv,
-     no_tag, any_tag, *this);
+     send_tag, recv_tag, *this);
 }
 
 
