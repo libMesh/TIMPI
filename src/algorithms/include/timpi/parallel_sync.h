@@ -681,6 +681,7 @@ void push_parallel_vector_data(const Communicator & comm,
     break;
   case Communicator::ALLTOALL_COUNTS:
     {
+#ifdef TIMPI_HAVE_MPI // We should never hit these functors in serial
       auto send_functor = [&type, &comm](const processor_id_type dest_pid,
                                          const container_type & datum,
                                          Request & send_request,
@@ -693,6 +694,20 @@ void push_parallel_vector_data(const Communicator & comm,
                                             const MessageTag tag) {
         comm.receive(current_src_proc, current_incoming_data, type, tag);
       };
+#else
+      auto send_functor = [](const processor_id_type,
+                             const container_type &,
+                             Request &,
+                             const MessageTag) {
+        timpi_error(); // We should never hit these in serial
+      };
+
+      auto receive_functor = [](unsigned int,
+                                container_type &,
+                                const MessageTag) {
+        timpi_error();
+      };
+#endif
 
       detail::push_parallel_alltoall_helper
         (comm, data, send_functor, receive_functor, act_on_data);
