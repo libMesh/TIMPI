@@ -182,7 +182,10 @@ Communicator::receive_packed_range(const unsigned int,
 /**
  * Send-receive data from one processor.
  */
-template <typename T1, typename T2>
+template <typename T1, typename T2,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                  std::is_base_of<DataType, StandardType<T2>>::value,
+                                  int>::type>
 inline void Communicator::send_receive (const unsigned int timpi_dbg_var(send_tgt),
                                         const T1 & send_val,
                                         const unsigned int timpi_dbg_var(recv_source),
@@ -194,6 +197,117 @@ inline void Communicator::send_receive (const unsigned int timpi_dbg_var(send_tg
   timpi_assert_equal_to (recv_source, 0);
   recv_val = send_val;
 }
+
+template <typename T1, typename T2, typename A1, typename A2>
+inline
+void Communicator::send_receive(const unsigned int timpi_dbg_var(dest_processor_id),
+                                const std::vector<T1,A1> & send,
+                                const DataType &,
+                                const unsigned int timpi_dbg_var(source_processor_id),
+                                std::vector<T2,A2> &recv,
+                                const DataType &,
+                                const MessageTag &,
+                                const MessageTag &) const
+{
+  timpi_assert_equal_to (dest_processor_id, 0);
+  timpi_assert_equal_to (source_processor_id, 0);
+  recv = send;
+}
+
+template <typename T1, typename T2, typename A1, typename A2,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                  std::is_base_of<DataType, StandardType<T2>>::value,
+                                  int>::type>
+inline
+void Communicator::send_receive(const unsigned int timpi_dbg_var(dest_processor_id),
+                                const std::vector<T1,A1> & send,
+                                const unsigned int timpi_dbg_var(source_processor_id),
+                                std::vector<T2,A2> &recv,
+                                const MessageTag &,
+                                const MessageTag &) const
+{
+  timpi_assert_equal_to (dest_processor_id, 0);
+  timpi_assert_equal_to (source_processor_id, 0);
+  recv = send;
+}
+
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value,
+                                  int>::type>
+inline
+void Communicator::send_receive(const unsigned int timpi_dbg_var(dest_processor_id),
+                                const std::vector<T,A> & send,
+                                const unsigned int timpi_dbg_var(source_processor_id),
+                                std::vector<T,A> &recv,
+                                const MessageTag &,
+                                const MessageTag &) const
+{
+  timpi_assert_equal_to (dest_processor_id, 0);
+  timpi_assert_equal_to (source_processor_id, 0);
+  recv = send;
+}
+
+template <typename T1, typename T2, typename A1, typename A2,
+          typename std::enable_if<Has_buffer_type<Packing<T1>>::value &&
+                                  Has_buffer_type<Packing<T2>>::value, int>::type>
+inline
+void Communicator::send_receive(const unsigned int timpi_dbg_var(dest_processor_id),
+                                const std::vector<T1,A1> & send,
+                                const unsigned int timpi_dbg_var(source_processor_id),
+                                std::vector<T2,A2> &recv,
+                                const MessageTag &,
+                                const MessageTag &) const
+{
+  timpi_assert_equal_to (dest_processor_id, 0);
+  timpi_assert_equal_to (source_processor_id, 0);
+  recv = send;
+}
+
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline
+void Communicator::send_receive(const unsigned int timpi_dbg_var(dest_processor_id),
+                                const std::vector<T,A> & send,
+                                const unsigned int timpi_dbg_var(source_processor_id),
+                                std::vector<T,A> &recv,
+                                const MessageTag &,
+                                const MessageTag &) const
+{
+  timpi_assert_equal_to (dest_processor_id, 0);
+  timpi_assert_equal_to (source_processor_id, 0);
+  recv = send;
+}
+
+template <typename T1, typename T2, typename A1, typename A2, typename A3, typename A4>
+inline
+void Communicator::send_receive(const unsigned int timpi_dbg_var(dest_processor_id),
+                                const std::vector<std::vector<T1,A1>,A2> & send,
+                                const unsigned int timpi_dbg_var(source_processor_id),
+                                std::vector<std::vector<T2,A3>,A4> &recv,
+                                const MessageTag &,
+                                const MessageTag &) const
+{
+  timpi_assert_equal_to (dest_processor_id, 0);
+  timpi_assert_equal_to (source_processor_id, 0);
+  recv = send;
+}
+
+template <typename T, typename A1, typename A2>
+inline
+void Communicator::send_receive(const unsigned int timpi_dbg_var(dest_processor_id),
+                                const std::vector<std::vector<T,A1>,A2> & send,
+                                const unsigned int timpi_dbg_var(source_processor_id),
+                                std::vector<std::vector<T,A1>,A2> &recv,
+                                const MessageTag &,
+                                const MessageTag &) const
+{
+  timpi_assert_equal_to (dest_processor_id, 0);
+  timpi_assert_equal_to (source_processor_id, 0);
+  recv = send;
+}
+
+
+
 
 /**
  * Send-receive range-of-pointers from one processor.

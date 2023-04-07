@@ -435,6 +435,7 @@
     void broadcast(std::set<T,C,A> &data,
                    const unsigned int root_id=0,
                    const bool identical_sizes=false) const;
+#endif // TIMPI_HAVE_MPI
 
 
     // In new overloaded function template entries we have to
@@ -516,6 +517,5 @@
                       std::vector<std::vector<T,A1>,A2> &recv,
                       const MessageTag &send_tag = no_tag,
                       const MessageTag &recv_tag = any_tag) const;
-#endif // TIMPI_HAVE_MPI
 
 #endif // TIMPI_COMMUNICATOR_H
