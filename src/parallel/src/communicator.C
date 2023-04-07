@@ -210,7 +210,6 @@ void Communicator::assign(const communicator & comm)
     }
   _next_tag = _max_tag / 2;
 #endif
-  _send_mode = DEFAULT;
 }
 
 
