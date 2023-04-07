@@ -885,8 +885,14 @@ public:
   /**
    * Send data \p send to one processor while simultaneously receiving
    * other data \p recv from a (potentially different) processor.
+   *
+   * This overload is defined for fixed-size data; other overloads
+   * exist for many other categories.
    */
-  template <typename T1, typename T2>
+  template <typename T1, typename T2,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                    std::is_base_of<DataType, StandardType<T2>>::value,
+                                    int>::type = 0>
   inline
   void send_receive(const unsigned int dest_processor_id,
                     const T1 & send,

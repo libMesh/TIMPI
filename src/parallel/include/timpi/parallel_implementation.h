@@ -1313,8 +1313,52 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
 }
 
 
+template <typename T1, typename T2, typename A1, typename A2,
+          typename std::enable_if<Has_buffer_type<Packing<T1>>::value &&
+                                  Has_buffer_type<Packing<T2>>::value, int>::type>
+inline
+void
+Communicator::send_receive(const unsigned int dest_processor_id,
+                           const std::vector<T1,A1> & send,
+                           const unsigned int source_processor_id,
+                           std::vector<T2,A2> &recv,
+                           const MessageTag &send_tag,
+                           const MessageTag &recv_tag) const
+{
+  this->send_receive_packed_range(dest_processor_id, (void *)(nullptr),
+                                  send.begin(), send.end(),
+                                  source_processor_id, (void *)(nullptr),
+                                  std::back_inserter(recv),
+                                  (const T2 *)(nullptr),
+                                  send_tag, recv_tag);
+}
 
-template <typename T1, typename T2>
+
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline
+void
+Communicator::send_receive(const unsigned int dest_processor_id,
+                           const std::vector<T,A> & send,
+                           const unsigned int source_processor_id,
+                           std::vector<T,A> &recv,
+                           const MessageTag &send_tag,
+                           const MessageTag &recv_tag) const
+{
+  this->send_receive_packed_range(dest_processor_id, (void *)(nullptr),
+                                  send.begin(), send.end(),
+                                  source_processor_id, (void *)(nullptr),
+                                  std::back_inserter(recv),
+                                  (const T *)(nullptr),
+                                  send_tag, recv_tag);
+}
+
+
+
+template <typename T1, typename T2,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                  std::is_base_of<DataType, StandardType<T2>>::value,
+                                  int>::type>
 inline void Communicator::send_receive(const unsigned int dest_processor_id,
                                        const T1 & sendvec,
                                        const unsigned int source_processor_id,
@@ -1354,7 +1398,9 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
 // We specialize on the T1==T2 case so that we can handle
 // send_receive-to-self with a plain copy rather than going through
 // MPI.
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value,
+                                  int>::type>
 inline void Communicator::send_receive(const unsigned int dest_processor_id,
                                        const std::vector<T,A> & sendvec,
                                        const unsigned int source_processor_id,
@@ -1383,9 +1429,10 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
 }
 
 
-// This is both a declaration and definition for a new overloaded
-// function template, so we have to re-specify the default arguments
-template <typename T1, typename T2, typename A1, typename A2>
+template <typename T1, typename T2, typename A1, typename A2,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                  std::is_base_of<DataType, StandardType<T2>>::value,
+                                  int>::type>
 inline void Communicator::send_receive(const unsigned int dest_processor_id,
                                        const std::vector<T1,A1> & sendvec,
                                        const unsigned int source_processor_id,

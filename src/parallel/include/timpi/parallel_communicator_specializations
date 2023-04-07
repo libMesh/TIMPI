@@ -450,7 +450,10 @@
                       const MessageTag &send_tag = no_tag,
                       const MessageTag &recv_tag = any_tag) const;
 
-    template <typename T1, typename T2, typename A1, typename A2>
+    template <typename T1, typename T2, typename A1, typename A2,
+              typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                      std::is_base_of<DataType, StandardType<T2>>::value,
+                                      int>::type = 0>
     inline
     void send_receive(const unsigned int dest_processor_id,
                       const std::vector<T1,A1> & send,
@@ -462,7 +465,32 @@
     // We specialize on the T1==T2 case so that we can handle
     // send_receive-to-self with a plain copy rather than going through
     // MPI.
-    template <typename T, typename A>
+    template <typename T, typename A,
+              typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value,
+                                      int>::type = 0>
+    inline
+    void send_receive(const unsigned int dest_processor_id,
+                      const std::vector<T,A> & send,
+                      const unsigned int source_processor_id,
+                      std::vector<T,A> &recv,
+                      const MessageTag &send_tag = no_tag,
+                      const MessageTag &recv_tag = any_tag) const;
+
+    template <typename T1, typename T2, typename A1, typename A2,
+              typename std::enable_if<Has_buffer_type<Packing<T1>>::value &&
+                                      Has_buffer_type<Packing<T2>>::value, int>::type = 0>
+    inline
+    void send_receive(const unsigned int dest_processor_id,
+                      const std::vector<T1,A1> & send,
+                      const unsigned int source_processor_id,
+                      std::vector<T2,A2> &recv,
+                      const MessageTag &send_tag = no_tag,
+                      const MessageTag &recv_tag = any_tag) const;
+
+    // We specialize on the T1==T2 case so that the other T1==T2
+    // specialization doesn't override the Packing specialization
+    template <typename T, typename A,
+              typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
     inline
     void send_receive(const unsigned int dest_processor_id,
                       const std::vector<T,A> & send,
