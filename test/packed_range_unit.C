@@ -731,6 +731,31 @@ int main(int argc, const char * const * argv)
   testNullSendReceive();
   testContainerAllGather();
   testContainerSendReceive();
+
+  testPushPacked();
+  testPushPackedOversized();
+  testPushPackedNested();
+  testPushPackedDispatch();
+  testPushPackedOneTuple();
+  testPushPackedFailureCase();
+#if __cplusplus > 201402L
+  testPushPackedMove();
+  testPushPackedMoveOversized();
+#endif
+
+  TestCommWorld->sync_type(Communicator::ALLTOALL_COUNTS);
+  testPushPacked();
+  testPushPackedOversized();
+  testPushPackedNested();
+  testPushPackedDispatch();
+  testPushPackedOneTuple();
+  testPushPackedFailureCase();
+#if __cplusplus > 201402L
+  testPushPackedMove();
+  testPushPackedMoveOversized();
+#endif
+
+  TestCommWorld->sync_type(Communicator::SENDRECEIVE);
   testPushPacked();
   testPushPackedOversized();
   testPushPackedNested();

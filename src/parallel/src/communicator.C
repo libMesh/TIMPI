@@ -63,6 +63,7 @@ Communicator::Communicator () :
   _rank(0),
   _size(1),
   _send_mode(DEFAULT),
+  _sync_type(NBX),
   used_tag_values(),
   _next_tag(0),
   _max_tag(std::numeric_limits<int>::max()),
@@ -76,6 +77,7 @@ Communicator::Communicator (const communicator & comm) :
   _rank(0),
   _size(1),
   _send_mode(DEFAULT),
+  _sync_type(NBX),
   used_tag_values(),
   _next_tag(0),
   _max_tag(std::numeric_limits<int>::max()),
@@ -102,6 +104,7 @@ void Communicator::split(int color, int key, Communicator & target) const
   target.assign(newcomm);
   target._I_duped_it = (color != MPI_UNDEFINED);
   target.send_mode(this->send_mode());
+  target.sync_type(this->sync_type());
 }
 
 
@@ -115,6 +118,7 @@ void Communicator::split_by_type(int split_type, int key, info i, Communicator &
   target.assign(newcomm);
   target._I_duped_it = (split_type != MPI_UNDEFINED);
   target.send_mode(this->send_mode());
+  target.sync_type(this->sync_type());
 }
 
 #else
@@ -134,6 +138,7 @@ void Communicator::duplicate(const Communicator & comm)
 {
   this->duplicate(comm._communicator);
   this->send_mode(comm.send_mode());
+  this->sync_type(comm.sync_type());
 }
 
 
@@ -210,7 +215,6 @@ void Communicator::assign(const communicator & comm)
     }
   _next_tag = _max_tag / 2;
 #endif
-  _send_mode = DEFAULT;
 }
 
 
