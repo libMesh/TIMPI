@@ -755,7 +755,7 @@ int main(int argc, const char * const * argv)
   testPushPackedMoveOversized();
 #endif
 
-  TestCommWorld->sync_type(Communicator::BLOCKING);
+  TestCommWorld->sync_type(Communicator::SENDRECEIVE);
   testPushPacked();
   testPushPackedOversized();
   testPushPackedNested();

@@ -227,8 +227,8 @@ Communicator *TestCommWorld;
     // because of C++11's guarantees regarding preservation of insert
     // ordering in multimaps, combined with MPI's guarantees about
     // non-overtaking ... but we do receives in a different order with
-    // BLOCKING mode, so let's skip oversized test there.
-    if (TestCommWorld->sync_type() == Communicator::BLOCKING &&
+    // SENDRECEIVE mode, so let's skip oversized test there.
+    if (TestCommWorld->sync_type() == Communicator::SENDRECEIVE &&
         M > int(TestCommWorld->size()))
       return;
 
@@ -362,8 +362,8 @@ Communicator *TestCommWorld;
     // because of C++11's guarantees regarding preservation of insert
     // ordering in multimaps, combined with MPI's guarantees about
     // non-overtaking ... but we do receives in a different order with
-    // BLOCKING mode, so let's skip oversized test there.
-    if (TestCommWorld->sync_type() == Communicator::BLOCKING &&
+    // SENDRECEIVE mode, so let's skip oversized test there.
+    if (TestCommWorld->sync_type() == Communicator::SENDRECEIVE &&
         M > int(TestCommWorld->size()))
       return;
 
@@ -449,8 +449,8 @@ Communicator *TestCommWorld;
     // because of C++11's guarantees regarding preservation of insert
     // ordering in multimaps, combined with MPI's guarantees about
     // non-overtaking ... but we do receives in a different order with
-    // BLOCKING mode, so let's skip this test there.
-    if (TestCommWorld->sync_type() == Communicator::BLOCKING)
+    // SENDRECEIVE mode, so let's skip this test there.
+    if (TestCommWorld->sync_type() == Communicator::SENDRECEIVE)
       return;
 
     std::multimap<processor_id_type, std::vector<unsigned int> > data, received_data;
@@ -534,8 +534,8 @@ Communicator *TestCommWorld;
     // because of C++11's guarantees regarding preservation of insert
     // ordering in multimaps, combined with MPI's guarantees about
     // non-overtaking ... but we do receives in a different order with
-    // BLOCKING mode, so let's skip this test there.
-    if (TestCommWorld->sync_type() == Communicator::BLOCKING)
+    // SENDRECEIVE mode, so let's skip this test there.
+    if (TestCommWorld->sync_type() == Communicator::SENDRECEIVE)
       return;
 
     std::multimap<processor_id_type, std::vector<std::vector<unsigned int>>> data, received_data;
@@ -651,7 +651,7 @@ int main(int argc, const char * const * argv)
   TestCommWorld->sync_type(Communicator::ALLTOALL_COUNTS);
   run_tests();
 
-  TestCommWorld->sync_type(Communicator::BLOCKING);
+  TestCommWorld->sync_type(Communicator::SENDRECEIVE);
   run_tests();
 
   return 0;

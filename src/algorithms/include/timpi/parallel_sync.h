@@ -609,7 +609,7 @@ void push_parallel_packed_range(const Communicator & comm,
         (comm, data, send_functor, receive_functor, act_on_data);
     }
     break;
-  case Communicator::BLOCKING:
+  case Communicator::SENDRECEIVE:
     {
       auto sendreceive_functor = [&context, &output_type, &comm]
         (const processor_id_type dest_pid,
@@ -713,7 +713,7 @@ void push_parallel_vector_data(const Communicator & comm,
         (comm, data, send_functor, receive_functor, act_on_data);
     }
     break;
-  case Communicator::BLOCKING:
+  case Communicator::SENDRECEIVE:
     {
       auto sendreceive_functor = [&comm](const processor_id_type dest_pid,
                                          const container_type & data_to_send,
@@ -770,9 +770,9 @@ void pull_parallel_vector_data(const Communicator & comm,
   for (auto p : queries)
     max_pid = std::max(max_pid, p.first);
 
-  // Our BLOCKING implementation doesn't preserve ordering, but we
+  // Our SENDRECEIVE implementation doesn't preserve ordering, but we
   // need ordering preserved for the multimap trick here to work.
-  if (comm.sync_type() == Communicator::BLOCKING &&
+  if (comm.sync_type() == Communicator::SENDRECEIVE &&
       max_pid > comm.size())
     timpi_not_implemented();
 #endif

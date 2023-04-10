@@ -576,7 +576,7 @@ int main(int argc, const char * const * argv)
   testPull();
   testPullPacked();
 
-  TestCommWorld->sync_type(Communicator::BLOCKING);
+  TestCommWorld->sync_type(Communicator::SENDRECEIVE);
   testPush();
   testPull();
   testPullPacked();

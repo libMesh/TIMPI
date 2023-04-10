@@ -215,7 +215,7 @@ public:
   /**
    * What algorithm to use for parallel synchronization?
    */
-  enum SyncType { NBX, ALLTOALL_COUNTS, BLOCKING };
+  enum SyncType { NBX, ALLTOALL_COUNTS, SENDRECEIVE };
 
 
 private:
