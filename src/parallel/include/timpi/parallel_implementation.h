@@ -145,9 +145,9 @@ inline void unpack_vector_bool(const std::vector<T,A1> & vec_in,
 // send_receive of (vector<vector<T>>,vector<vector<T>>)
 template <typename T1, typename T2, typename A1, typename A2, typename A3, typename A4>
 inline void send_receive_vec_of_vec(const unsigned int dest_processor_id,
-                                    const std::vector<std::vector<T1,A1>,A2> & send,
+                                    const std::vector<std::vector<T1,A1>,A2> & send_data,
                                     const unsigned int source_processor_id,
-                                    std::vector<std::vector<T2,A3>,A4> & recv,
+                                    std::vector<std::vector<T2,A3>,A4> & recv_data,
                                     const TIMPI::MessageTag & send_tag,
                                     const TIMPI::MessageTag & recv_tag,
                                     const TIMPI::Communicator & comm)
@@ -157,13 +157,13 @@ inline void send_receive_vec_of_vec(const unsigned int dest_processor_id,
   if (dest_processor_id   == comm.rank() &&
       source_processor_id == comm.rank())
     {
-      recv = send;
+      recv_data = send_data;
       return;
     }
 
   TIMPI::Request req;
-  comm.send (dest_processor_id, send, req, send_tag);
-  comm.receive (source_processor_id, recv, recv_tag);
+  comm.send (dest_processor_id, send_data, req, send_tag);
+  comm.receive (source_processor_id, recv_data, recv_tag);
   req.wait();
 }
 
@@ -1319,16 +1319,16 @@ template <typename T1, typename T2, typename A1, typename A2,
 inline
 void
 Communicator::send_receive(const unsigned int dest_processor_id,
-                           const std::vector<T1,A1> & send,
+                           const std::vector<T1,A1> & send_data,
                            const unsigned int source_processor_id,
-                           std::vector<T2,A2> &recv,
+                           std::vector<T2,A2> &recv_data,
                            const MessageTag &send_tag,
                            const MessageTag &recv_tag) const
 {
   this->send_receive_packed_range(dest_processor_id, (void *)(nullptr),
-                                  send.begin(), send.end(),
+                                  send_data.begin(), send_data.end(),
                                   source_processor_id, (void *)(nullptr),
-                                  std::back_inserter(recv),
+                                  std::back_inserter(recv_data),
                                   (const T2 *)(nullptr),
                                   send_tag, recv_tag);
 }
@@ -1339,16 +1339,16 @@ template <typename T, typename A,
 inline
 void
 Communicator::send_receive(const unsigned int dest_processor_id,
-                           const std::vector<T,A> & send,
+                           const std::vector<T,A> & send_data,
                            const unsigned int source_processor_id,
-                           std::vector<T,A> &recv,
+                           std::vector<T,A> &recv_data,
                            const MessageTag &send_tag,
                            const MessageTag &recv_tag) const
 {
   this->send_receive_packed_range(dest_processor_id, (void *)(nullptr),
-                                  send.begin(), send.end(),
+                                  send_data.begin(), send_data.end(),
                                   source_processor_id, (void *)(nullptr),
-                                  std::back_inserter(recv),
+                                  std::back_inserter(recv_data),
                                   (const T *)(nullptr),
                                   send_tag, recv_tag);
 }
