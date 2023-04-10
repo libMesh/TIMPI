@@ -912,9 +912,9 @@ public:
                                     int>::type = 0>
   inline
   void send_receive(const unsigned int dest_processor_id,
-                    const T1 & send,
+                    const T1 & send_data,
                     const unsigned int source_processor_id,
-                    T2 & recv,
+                    T2 & recv_data,
                     const MessageTag & send_tag = no_tag,
                     const MessageTag & recv_tag = any_tag) const;
 
@@ -977,10 +977,10 @@ public:
   template <typename T1, typename T2>
   inline
   void send_receive(const unsigned int dest_processor_id,
-                    const T1 & send,
+                    const T1 & send_data,
                     const DataType & type1,
                     const unsigned int source_processor_id,
-                    T2 & recv,
+                    T2 & recv_data,
                     const DataType & type2,
                     const MessageTag & send_tag = no_tag,
                     const MessageTag & recv_tag = any_tag) const;
@@ -991,7 +991,7 @@ public:
    */
   template <typename T, typename A>
   inline void gather(const unsigned int root_id,
-                     const T & send,
+                     const T & send_data,
                      std::vector<T,A> & recv) const;
 
   /**
@@ -1001,8 +1001,8 @@ public:
    */
   template <typename T, typename A>
   inline void gather(const unsigned int root_id,
-                     const std::basic_string<T> & send,
-                     std::vector<std::basic_string<T>,A> & recv,
+                     const std::basic_string<T> & send_data,
+                     std::vector<std::basic_string<T>,A> & recv_data,
                      const bool identical_buffer_sizes=false) const;
 
   /**
@@ -1048,8 +1048,8 @@ public:
    */
   template <typename T, typename A, typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value,
                                                             int>::type = 0>
-  inline void allgather(const T & send,
-                        std::vector<T,A> & recv) const;
+  inline void allgather(const T & send_data,
+                        std::vector<T,A> & recv_data) const;
 
   /**
    * Take a vector of length \p this->size(), and fill in
@@ -1059,8 +1059,8 @@ public:
    */
   template <typename T, typename A, typename std::enable_if<Has_buffer_type<Packing<T>>::value,
                                                             int>::type = 0>
-  inline void allgather(const T & send,
-                        std::vector<T,A> & recv) const;
+  inline void allgather(const T & send_data,
+                        std::vector<T,A> & recv_data) const;
 
   /**
    * The allgather overload for string types has an optional
@@ -1068,8 +1068,8 @@ public:
    * same length.
    */
   template <typename T, typename A>
-  inline void allgather(const std::basic_string<T> & send,
-                        std::vector<std::basic_string<T>,A> & recv,
+  inline void allgather(const std::basic_string<T> & send_data,
+                        std::vector<std::basic_string<T>,A> & recv_data,
                         const bool identical_buffer_sizes=false) const;
 
   /**
@@ -1110,8 +1110,8 @@ public:
    */
   template <typename T, typename A1, typename A2,
             typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value, int>::type = 0>
-  inline void allgather(const std::vector<T,A1> & send,
-                        std::vector<std::vector<T,A1>, A2> & recv,
+  inline void allgather(const std::vector<T,A1> & send_data,
+                        std::vector<std::vector<T,A1>, A2> & recv_data,
                         const bool identical_buffer_sizes = false) const;
 
   /**
@@ -1120,8 +1120,8 @@ public:
    */
   template <typename T, typename A1, typename A2,
             typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type = 0>
-  inline void allgather(const std::vector<T,A1> & send,
-                        std::vector<std::vector<T,A1>, A2> & recv,
+  inline void allgather(const std::vector<T,A1> & send_data,
+                        std::vector<std::vector<T,A1>, A2> & recv_data,
                         const bool identical_buffer_sizes = false) const;
 
   /**
