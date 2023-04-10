@@ -223,6 +223,15 @@ Communicator *TestCommWorld;
 
   void testPullImpl(int M)
   {
+    // Oversized pulls are well-defined with NBX and ALLTOALL_COUNTS
+    // because of C++11's guarantees regarding preservation of insert
+    // ordering in multimaps, combined with MPI's guarantees about
+    // non-overtaking ... but we do receives in a different order with
+    // SENDRECEIVE mode, so let's skip oversized test there.
+    if (TestCommWorld->sync_type() == Communicator::SENDRECEIVE &&
+        M > int(TestCommWorld->size()))
+      return;
+
     std::map<processor_id_type, std::vector<unsigned int> > data, received_data;
 
     fill_scalar_data(data, M);
@@ -297,11 +306,11 @@ Communicator *TestCommWorld;
       (processor_id_type pid,
        const typename std::vector<std::vector<unsigned int>> & vecvec_received)
       {
-        auto & vec = received_data[pid];
-        vec.insert(vec.end(), vecvec_received[0].begin(), vecvec_received[0].end());
         TIMPI_UNIT_ASSERT(vecvec_received.size() == std::size_t(2));
         TIMPI_UNIT_ASSERT(vecvec_received[1].size() == std::size_t(1));
         TIMPI_UNIT_ASSERT(vecvec_received[0][0] == vecvec_received[1][0]);
+        auto & vec = received_data[pid];
+        vec.insert(vec.end(), vecvec_received[0].begin(), vecvec_received[0].end());
       };
 
     TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
@@ -349,6 +358,15 @@ Communicator *TestCommWorld;
 
   void testPullVecVecImpl(int M)
   {
+    // Oversized pulls are well-defined with NBX and ALLTOALL_COUNTS
+    // because of C++11's guarantees regarding preservation of insert
+    // ordering in multimaps, combined with MPI's guarantees about
+    // non-overtaking ... but we do receives in a different order with
+    // SENDRECEIVE mode, so let's skip oversized test there.
+    if (TestCommWorld->sync_type() == Communicator::SENDRECEIVE &&
+        M > int(TestCommWorld->size()))
+      return;
+
     std::map<processor_id_type, std::vector<std::vector<unsigned int>>> data;
     std::map<processor_id_type, std::vector<std::vector<unsigned int>>> received_data;
 
@@ -427,9 +445,14 @@ Communicator *TestCommWorld;
     const int size = TestCommWorld->size(),
               rank = TestCommWorld->rank();
 
-    // This is going to make sense because of C++11's guarantees
-    // regarding preservation of insert ordering in multimaps,
-    // combined with MPI's guarantees about non-overtaking
+    // This is going to be well-defined with NBX and ALLTOALL_COUNTS
+    // because of C++11's guarantees regarding preservation of insert
+    // ordering in multimaps, combined with MPI's guarantees about
+    // non-overtaking ... but we do receives in a different order with
+    // SENDRECEIVE mode, so let's skip this test there.
+    if (TestCommWorld->sync_type() == Communicator::SENDRECEIVE)
+      return;
+
     std::multimap<processor_id_type, std::vector<unsigned int> > data, received_data;
 
     fill_scalar_data(data, M);
@@ -507,9 +530,14 @@ Communicator *TestCommWorld;
     const int size = TestCommWorld->size(),
               rank = TestCommWorld->rank();
 
-    // This is going to make sense because of C++11's guarantees
-    // regarding preservation of insert ordering in multimaps,
-    // combined with MPI's guarantees about non-overtaking
+    // This is going to be well-defined with NBX and ALLTOALL_COUNTS
+    // because of C++11's guarantees regarding preservation of insert
+    // ordering in multimaps, combined with MPI's guarantees about
+    // non-overtaking ... but we do receives in a different order with
+    // SENDRECEIVE mode, so let's skip this test there.
+    if (TestCommWorld->sync_type() == Communicator::SENDRECEIVE)
+      return;
+
     std::multimap<processor_id_type, std::vector<std::vector<unsigned int>>> data, received_data;
 
     fill_vector_data(data, M);
@@ -591,11 +619,8 @@ Communicator *TestCommWorld;
     testPushMultimapVecVecImpl((TestCommWorld->size() + 4) * 2);
   }
 
-int main(int argc, const char * const * argv)
+void run_tests()
 {
-  TIMPI::TIMPIInit init(argc, argv);
-  TestCommWorld = &init.comm();
-
   testPush();
   testPushMove();
   testPull();
@@ -614,6 +639,20 @@ int main(int argc, const char * const * argv)
   testPullVecVecOversized();
   testPushMultimapOversized();
   testPushMultimapVecVecOversized();
+}
+
+int main(int argc, const char * const * argv)
+{
+  TIMPI::TIMPIInit init(argc, argv);
+  TestCommWorld = &init.comm();
+
+  run_tests();
+
+  TestCommWorld->sync_type(Communicator::ALLTOALL_COUNTS);
+  run_tests();
+
+  TestCommWorld->sync_type(Communicator::SENDRECEIVE);
+  run_tests();
 
   return 0;
 }

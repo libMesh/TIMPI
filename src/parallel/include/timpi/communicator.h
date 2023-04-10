@@ -212,6 +212,12 @@ public:
    */
   enum SendMode { DEFAULT=0, SYNCHRONOUS };
 
+  /**
+   * What algorithm to use for parallel synchronization?
+   */
+  enum SyncType { NBX, ALLTOALL_COUNTS, SENDRECEIVE };
+
+
 private:
 
   /**
@@ -223,6 +229,7 @@ private:
   communicator  _communicator;
   processor_id_type _rank, _size;
   SendMode _send_mode;
+  SyncType _sync_type;
 
   // mutable used_tag_values and tag_queue - not thread-safe, but then
   // TIMPI:: isn't thread-safe in general.
@@ -322,6 +329,16 @@ public:
    * Gets the user-requested SendMode.
    */
   SendMode send_mode() const { return _send_mode; }
+
+  /**
+   * Explicitly sets the \p SyncType used for sync operations.
+   */
+  void sync_type (const SyncType st) { _sync_type = st; }
+
+  /**
+   * Gets the user-requested SyncType.
+   */
+  SyncType sync_type() const { return _sync_type; }
 
   /**
    * Pause execution until all processors reach a certain point.
@@ -885,8 +902,14 @@ public:
   /**
    * Send data \p send to one processor while simultaneously receiving
    * other data \p recv from a (potentially different) processor.
+   *
+   * This overload is defined for fixed-size data; other overloads
+   * exist for many other categories.
    */
-  template <typename T1, typename T2>
+  template <typename T1, typename T2,
+            typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                    std::is_base_of<DataType, StandardType<T2>>::value,
+                                    int>::type = 0>
   inline
   void send_receive(const unsigned int dest_processor_id,
                     const T1 & send,

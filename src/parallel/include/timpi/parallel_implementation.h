@@ -1015,6 +1015,50 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
 
 
 
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+Status Communicator::receive (const unsigned int src_processor_id,
+                              std::vector<T,A> & buf,
+                              const DataType & type,
+                              const MessageTag & tag) const
+{
+  bool flag = false;
+  Status stat;
+  while (!flag)
+    stat = this->packed_range_probe<T>(src_processor_id, tag, flag);
+
+  Request req;
+  this->nonblocking_receive_packed_range(src_processor_id, (void *)(nullptr),
+    std::inserter(buf, buf.end()),
+    type, req, stat, tag);
+  req.wait();
+
+  return stat;
+}
+
+
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+Status Communicator::receive (const unsigned int src_processor_id,
+                              std::vector<T,A> & buf,
+                              const NotADataType &,
+                              const MessageTag & tag) const
+{
+  bool flag = false;
+  Status stat;
+  while (!flag)
+    stat = this->packed_range_probe<T>(src_processor_id, tag, flag);
+
+  Request req;
+  this->nonblocking_receive_packed_range(src_processor_id, (void *)(nullptr),
+    std::inserter(buf, buf.end()),
+    buf.data(), req, stat, tag);
+  req.wait();
+
+  return stat;
+}
+
+
 template <typename T, typename A>
 inline void Communicator::receive (const unsigned int src_processor_id,
                                    std::vector<T,A> & buf,
@@ -1269,8 +1313,52 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
 }
 
 
+template <typename T1, typename T2, typename A1, typename A2,
+          typename std::enable_if<Has_buffer_type<Packing<T1>>::value &&
+                                  Has_buffer_type<Packing<T2>>::value, int>::type>
+inline
+void
+Communicator::send_receive(const unsigned int dest_processor_id,
+                           const std::vector<T1,A1> & send,
+                           const unsigned int source_processor_id,
+                           std::vector<T2,A2> &recv,
+                           const MessageTag &send_tag,
+                           const MessageTag &recv_tag) const
+{
+  this->send_receive_packed_range(dest_processor_id, (void *)(nullptr),
+                                  send.begin(), send.end(),
+                                  source_processor_id, (void *)(nullptr),
+                                  std::back_inserter(recv),
+                                  (const T2 *)(nullptr),
+                                  send_tag, recv_tag);
+}
 
-template <typename T1, typename T2>
+
+template <typename T, typename A,
+          typename std::enable_if<Has_buffer_type<Packing<T>>::value, int>::type>
+inline
+void
+Communicator::send_receive(const unsigned int dest_processor_id,
+                           const std::vector<T,A> & send,
+                           const unsigned int source_processor_id,
+                           std::vector<T,A> &recv,
+                           const MessageTag &send_tag,
+                           const MessageTag &recv_tag) const
+{
+  this->send_receive_packed_range(dest_processor_id, (void *)(nullptr),
+                                  send.begin(), send.end(),
+                                  source_processor_id, (void *)(nullptr),
+                                  std::back_inserter(recv),
+                                  (const T *)(nullptr),
+                                  send_tag, recv_tag);
+}
+
+
+
+template <typename T1, typename T2,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                  std::is_base_of<DataType, StandardType<T2>>::value,
+                                  int>::type>
 inline void Communicator::send_receive(const unsigned int dest_processor_id,
                                        const T1 & sendvec,
                                        const unsigned int source_processor_id,
@@ -1310,7 +1398,9 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
 // We specialize on the T1==T2 case so that we can handle
 // send_receive-to-self with a plain copy rather than going through
 // MPI.
-template <typename T, typename A>
+template <typename T, typename A,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T>>::value,
+                                  int>::type>
 inline void Communicator::send_receive(const unsigned int dest_processor_id,
                                        const std::vector<T,A> & sendvec,
                                        const unsigned int source_processor_id,
@@ -1339,9 +1429,10 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
 }
 
 
-// This is both a declaration and definition for a new overloaded
-// function template, so we have to re-specify the default arguments
-template <typename T1, typename T2, typename A1, typename A2>
+template <typename T1, typename T2, typename A1, typename A2,
+          typename std::enable_if<std::is_base_of<DataType, StandardType<T1>>::value &&
+                                  std::is_base_of<DataType, StandardType<T2>>::value,
+                                  int>::type>
 inline void Communicator::send_receive(const unsigned int dest_processor_id,
                                        const std::vector<T1,A1> & sendvec,
                                        const unsigned int source_processor_id,
@@ -1384,13 +1475,12 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
                                        const std::vector<std::vector<T,A1>,A2> & sendvec,
                                        const unsigned int source_processor_id,
                                        std::vector<std::vector<T,A1>,A2> & recv,
-                                       const MessageTag & /* send_tag */,
-                                       const MessageTag & /* recv_tag */) const
+                                       const MessageTag & send_tag,
+                                       const MessageTag & recv_tag) const
 {
-  // FIXME - why aren't we honoring send_tag and recv_tag here?
   send_receive_vec_of_vec
     (dest_processor_id, sendvec, source_processor_id, recv,
-     no_tag, any_tag, *this);
+     send_tag, recv_tag, *this);
 }
 
 
@@ -1412,6 +1502,29 @@ Communicator::send_receive_packed_range (const unsigned int dest_processor_id,
                                          std::size_t approx_buffer_size) const
 {
   TIMPI_LOG_SCOPE("send_receive()", "Parallel");
+
+  timpi_assert_equal_to
+    ((dest_processor_id  == this->rank()),
+     (source_processor_id == this->rank()));
+
+  if (dest_processor_id   == this->rank() &&
+      source_processor_id == this->rank())
+    {
+      // We need to pack and unpack, even if we don't need to
+      // communicate the buffer, just in case user Packing
+      // specializations have side effects
+
+      typedef typename Packing<T>::buffer_type buffer_t;
+      while (send_begin != send_end)
+        {
+          std::vector<buffer_t> buffer;
+          send_begin = pack_range
+            (context1, send_begin, send_end, buffer, approx_buffer_size);
+          unpack_range
+            (buffer, context2, out_iter, output_type);
+        }
+      return;
+    }
 
   Request req;
 
