@@ -248,6 +248,9 @@ push_parallel_nbx_helper(const Communicator & comm,
       processor_id_type dest_pid = datapair.first % num_procs;
       auto & datum = datapair.second;
 
+      // Don't give us empty vectors to send
+      timpi_assert_greater(datum.size(), 0);
+
       // Just act on data if the user requested a send-to-self
       if (dest_pid == comm.rank())
         act_on_data(dest_pid, std::move(datum));
