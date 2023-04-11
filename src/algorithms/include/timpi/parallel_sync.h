@@ -212,6 +212,7 @@ void pull_parallel_vector_data(const Communicator & comm,
 // Separate namespace for not-for-public-use helper functions
 namespace detail {
 
+inline
 void
 empty_send_assertion (const Communicator & comm,
                       processor_id_type empty_target_pid)
