@@ -42,7 +42,9 @@ namespace TIMPI {
  * The \p data map is indexed by processor ids as keys, and for each
  * processor id in the map there should be a vector of data to send.
  * For processors to which no data should be sent, there should be no
- * map entry; this will avoid any unnecessary communication.
+ * map entry; this will avoid any unnecessary communication.  Unless
+ * NDEBUG is enabled, TIMPI will assert that no empty map entries
+ * exist.  In any case empty map entries will not be acted on.
  *
  * Data which is received from other processors will be operated on by
  * act_on_data(processor_id_type pid, std::vector<datum> && data)
@@ -102,7 +104,10 @@ void push_parallel_vector_data(const Communicator & comm,
  * The \p data map is indexed by processor ids as keys, and for each
  * processor id in the map there should be a vector of query ids to send.
  * For processors to which no data should be sent, there should be no
- * map entry; this will avoid any unnecessary communication.
+ * map entry; this will avoid any unnecessary communication.  Unless
+ * NDEBUG is enabled, TIMPI will assert that no empty map entries
+ * exist.  In any case empty map entries will not be gathered or acted
+ * on.
  *
  * Queries will be operated on by the queried processor by
  * gather_data(processor_id_type pid, const std::vector<id> & ids,
@@ -145,7 +150,9 @@ void pull_parallel_vector_data(const Communicator & comm,
  * The \p data map is indexed by processor ids as keys, and for each
  * processor id in the map there should be a vector of data to send.
  * For processors to which no data should be sent, there should be no
- * map entry; this will avoid any unnecessary communication.
+ * map entry; this will avoid any unnecessary communication.  Unless
+ * NDEBUG is enabled, TIMPI will assert that no empty map entries
+ * exist.  In any case empty map entries will not be acted on.
  *
  * Data which is received from other processors will be operated on by
  * act_on_data(processor_id_type pid, std::vector<datum> && data)
