@@ -662,7 +662,10 @@ Communicator *TestCommWorld;
       std::regex msg_regex("empty data");
       TIMPI_UNIT_ASSERT(std::regex_search(e.what(), msg_regex));
     }
-    TIMPI_UNIT_ASSERT(caught_exception);
+
+    // We didn't leave room for empty sends in the 2 processor case
+    if (M > 2)
+      TIMPI_UNIT_ASSERT(caught_exception);
 #endif
 
     // Test the received results, for each processor id p we're in
