@@ -205,6 +205,20 @@ void pull_parallel_vector_data(const Communicator & comm,
 // Separate namespace for not-for-public-use helper functions
 namespace detail {
 
+void
+empty_send_assertion (const Communicator & comm,
+                      processor_id_type empty_target_pid)
+{
+  bool someone_found_empty_send = (empty_target_pid != processor_id_type(-1));
+  comm.max(someone_found_empty_send);
+  std::stringstream err_msg;
+  if (empty_target_pid != processor_id_type(-1))
+    err_msg << " [" << comm.rank() << "] sent an empty to [" <<
+      empty_target_pid << "]";
+  timpi_assert_msg(!someone_found_empty_send,
+                   "Some rank(s) sent empty data!" + err_msg.str());
+}
+
 template <typename MapToContainers,
           typename SendFunctor,
           typename PossiblyReceiveFunctor,
@@ -241,6 +255,16 @@ push_parallel_nbx_helper(const Communicator & comm,
 
   const processor_id_type num_procs = comm.size();
 
+  // Don't give us empty vectors to send.  We'll yell at you (after
+  // the sync is done, so all ranks get out of it and we can throw an
+  // assertion failure everywhere) if we're debugging and we catch
+  // one.
+  //
+  // But in opt mode we'll just skip empty vectors.
+#ifndef NDEBUG
+  processor_id_type empty_target_pid = processor_id_type(-1);
+#endif
+
   for (auto & datapair : data)
     {
       // In the case of data partitioned into more processors than we
@@ -248,8 +272,13 @@ push_parallel_nbx_helper(const Communicator & comm,
       processor_id_type dest_pid = datapair.first % num_procs;
       auto & datum = datapair.second;
 
-      // Don't give us empty vectors to send
-      timpi_assert_greater(datum.size(), 0);
+      if (datum.empty())
+        {
+#ifndef NDEBUG
+          empty_target_pid = dest_pid;
+#endif
+          continue;
+        }
 
       // Just act on data if the user requested a send-to-self
       if (dest_pid == comm.rank())
@@ -378,6 +407,11 @@ push_parallel_nbx_helper(const Communicator & comm,
 
   // Reset the send mode
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
+
+  // So, *did* we see any empty containers being sent?
+#ifndef NDEBUG
+  empty_send_assertion(comm, empty_target_pid);
+#endif // NDEBUG
 }
 
 template <typename MapToContainers,
@@ -403,18 +437,35 @@ push_parallel_alltoall_helper(const Communicator & comm,
 
   processor_id_type num_procs = comm.size();
 
+  // Don't give us empty vectors to send.  We'll yell at you (after
+  // the sync is done, so all ranks get out of it and we can throw an
+  // assertion failure everywhere) if we're debugging and we catch
+  // one.
+  //
+  // But in opt mode we'll just skip empty vectors.
+#ifndef NDEBUG
+  processor_id_type empty_target_pid = processor_id_type(-1);
+#endif
+
   // Number of vectors to send to each procesor
   std::vector<std::size_t> will_send_to(num_procs, 0);
   for (auto & datapair : data)
     {
       // In the case of data partitioned into more processors than we
       // have ranks, we "wrap around"
-      processor_id_type destid = datapair.first % num_procs;
+      processor_id_type dest_pid = datapair.first % num_procs;
 
-      // Don't give us empty vectors to send
-      timpi_assert_greater(datapair.second.size(), 0);
+      // But in opt mode we'll just try to stay consistent with what
+      // we can do in the other backends
+      if (datapair.second.empty())
+        {
+#ifndef NDEBUG
+          empty_target_pid = dest_pid;
+#endif
+          continue;
+        }
 
-      will_send_to[destid]++;
+      will_send_to[dest_pid]++;
     }
 
   // Tell everyone about where everyone will send to
@@ -435,11 +486,14 @@ push_parallel_alltoall_helper(const Communicator & comm,
   // The send requests
   std::list<Request> requests;
 
-  // Post all of the sends, non-blocking
+  // Post all of the non-empty sends, non-blocking
   for (auto & datapair : data)
     {
       processor_id_type destid = datapair.first % num_procs;
       auto & datum = datapair.second;
+
+      if (datum.empty())
+        continue;
 
       // Just act on data if the user requested a send-to-self
       if (destid == comm.rank())
@@ -473,6 +527,11 @@ push_parallel_alltoall_helper(const Communicator & comm,
   // Wait on all the sends to complete
   for (auto & req : requests)
     req.wait();
+
+  // So, *did* we see any empty containers being sent?
+#ifndef NDEBUG
+  empty_send_assertion(comm, empty_target_pid);
+#endif // NDEBUG
 }
 
 template <typename MapToContainers,
@@ -496,15 +555,30 @@ push_parallel_roundrobin_helper(const Communicator & comm,
 
   unsigned int num_procs = comm.size();
 
+  // Don't give us empty vectors to send.  We'll yell at you (after
+  // the sync is done, so all ranks get out of it and we can throw an
+  // assertion failure everywhere) if we're debugging and we catch
+  // one.
+  //
+  // But in opt mode we'll just skip empty vectors.
+#ifndef NDEBUG
+  processor_id_type empty_target_pid = processor_id_type(-1);
+#endif
+
   // Do multiple exchanges if we have an oversized data map
   processor_id_type n_exchanges = 1;
   for (auto & datapair : data)
     {
-      const unsigned int destid = datapair.first;
-      n_exchanges = std::max(n_exchanges, destid/num_procs+1);
+      const unsigned int dest_pid = datapair.first;
+      n_exchanges = std::max(n_exchanges, dest_pid/num_procs+1);
 
-      // Don't give us empty vectors to send
-      timpi_assert_greater(datapair.second.size(), 0);
+      if (datapair.second.empty())
+        {
+#ifndef NDEBUG
+          empty_target_pid = dest_pid;
+#endif
+          continue;
+        }
     }
 
   comm.max(n_exchanges);
@@ -539,6 +613,11 @@ push_parallel_roundrobin_helper(const Communicator & comm,
         if (!received_data.empty())
           act_on_data(procdown, std::move(received_data));
       }
+
+  // So, *did* we see any empty containers being sent?
+#ifndef NDEBUG
+  empty_send_assertion(comm, empty_target_pid);
+#endif // NDEBUG
 }
 
 
