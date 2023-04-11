@@ -619,6 +619,22 @@ Communicator *TestCommWorld;
     testPushMultimapVecVecImpl((TestCommWorld->size() + 4) * 2);
   }
 
+
+  void testStringSyncType()
+  {
+    Communicator comm;
+    comm.duplicate(*TestCommWorld);
+
+    comm.sync_type("nbx");
+    TIMPI_UNIT_ASSERT(comm.sync_type() == Communicator::NBX);
+
+    comm.sync_type("sendreceive");
+    TIMPI_UNIT_ASSERT(comm.sync_type() == Communicator::SENDRECEIVE);
+
+    comm.sync_type("alltoall");
+    TIMPI_UNIT_ASSERT(comm.sync_type() == Communicator::ALLTOALL_COUNTS);
+  }
+
 void run_tests()
 {
   testPush();
@@ -639,6 +655,8 @@ void run_tests()
   testPullVecVecOversized();
   testPushMultimapOversized();
   testPushMultimapVecVecOversized();
+
+  testStringSyncType();
 }
 
 int main(int argc, const char * const * argv)

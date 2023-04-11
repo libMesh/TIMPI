@@ -452,4 +452,17 @@ void Communicator::maxloc(bool & r,
 }
 
 
+void Communicator::sync_type(const std::string & st)
+{
+  SyncType type = NBX;
+  if (st == "sendreceive")
+    type = SENDRECEIVE;
+  else if (st == "alltoall")
+    type = ALLTOALL_COUNTS;
+  else if (st != "nbx")
+    timpi_error_msg("Unrecognized TIMPI sync type " << st);
+  this->sync_type(type);
+}
+
+
 } // namespace TIMPI

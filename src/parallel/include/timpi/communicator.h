@@ -336,6 +336,13 @@ public:
   void sync_type (const SyncType st) { _sync_type = st; }
 
   /**
+   * Sets the sync type used for sync operations via a string.
+   *
+   * Useful for changing the sync type via a CLI arg or parameter.
+   */
+  void sync_type (const std::string & st);
+
+  /**
    * Gets the user-requested SyncType.
    */
   SyncType sync_type() const { return _sync_type; }
