@@ -2,6 +2,7 @@
 #include <timpi/timpi_init.h>
 
 #include <algorithm>
+#include <regex>
 
 #define TIMPI_UNIT_ASSERT(expr) \
   if (!(expr)) \
@@ -619,6 +620,98 @@ Communicator *TestCommWorld;
     testPushMultimapVecVecImpl((TestCommWorld->size() + 4) * 2);
   }
 
+
+  // We want to not freak out if we see an empty send in an opt mode
+  // sync, but we do want to freak out when debugging.
+  void testEmptyEntry()
+  {
+    const int size = TestCommWorld->size(),
+              rank = TestCommWorld->rank();
+    const int M=size;
+
+    std::map<processor_id_type, std::vector<unsigned int> > data, received_data;
+
+    fill_scalar_data(data, M);
+
+    // Give some processors empty sends
+    for (int i=0; i != M; ++i)
+      if (!(rank % 3))
+        data[i];
+
+    auto collect_data =
+      [&received_data]
+      (processor_id_type pid,
+       const typename std::vector<unsigned int> & vec_received)
+      {
+        // Even if we send them we shouldn't get them
+        TIMPI_UNIT_ASSERT (!vec_received.empty())
+
+        auto & vec = received_data[pid];
+        vec.insert(vec.end(), vec_received.begin(), vec_received.end());
+      };
+
+#ifndef NDEBUG
+    bool caught_exception = false;
+    try {
+#endif
+    TIMPI::push_parallel_vector_data(*TestCommWorld, data, collect_data);
+#ifndef NDEBUG
+    }
+    catch (std::logic_error & e) {
+      caught_exception = true;
+      std::regex msg_regex("empty data");
+      TIMPI_UNIT_ASSERT(std::regex_search(e.what(), msg_regex));
+    }
+
+    // We didn't leave room for empty sends in the 2 processor case
+    if (M > 2)
+      TIMPI_UNIT_ASSERT(caught_exception);
+#endif
+
+    // Test the received results, for each processor id p we're in
+    // charge of.
+    std::vector<std::size_t> checked_sizes(size, 0);
+    for (int p=rank; p < M; p += size)
+      for (int srcp=0; srcp != size; ++srcp)
+        {
+          int diffsize = std::abs(srcp-p);
+          int diffsqrt = std::sqrt(diffsize);
+          if (diffsqrt*diffsqrt != diffsize)
+            {
+              if (received_data.count(srcp))
+                {
+                  const std::vector<unsigned int> & datum = received_data[srcp];
+                  TIMPI_UNIT_ASSERT(std::count(datum.begin(), datum.end(), p) == std::ptrdiff_t(0));
+                }
+              continue;
+            }
+
+          TIMPI_UNIT_ASSERT(received_data.count(srcp) == std::size_t(1));
+          const std::vector<unsigned int> & datum = received_data[srcp];
+          TIMPI_UNIT_ASSERT(std::count(datum.begin(), datum.end(), p) == std::ptrdiff_t(diffsqrt+1));
+          checked_sizes[srcp] += diffsqrt+1;
+        }
+
+    for (int srcp=0; srcp != size; ++srcp)
+      TIMPI_UNIT_ASSERT(checked_sizes[srcp] == received_data[srcp].size());
+  }
+
+
+  void testStringSyncType()
+  {
+    Communicator comm;
+    comm.duplicate(*TestCommWorld);
+
+    comm.sync_type("nbx");
+    TIMPI_UNIT_ASSERT(comm.sync_type() == Communicator::NBX);
+
+    comm.sync_type("sendreceive");
+    TIMPI_UNIT_ASSERT(comm.sync_type() == Communicator::SENDRECEIVE);
+
+    comm.sync_type("alltoall");
+    TIMPI_UNIT_ASSERT(comm.sync_type() == Communicator::ALLTOALL_COUNTS);
+  }
+
 void run_tests()
 {
   testPush();
@@ -628,6 +721,8 @@ void run_tests()
   testPullVecVec();
   testPushMultimap();
   testPushMultimapVecVec();
+
+  testEmptyEntry();
 
   // Our sync functions need to support sending to ranks that don't
   // exist!  If we're on N processors but working on a mesh
@@ -639,6 +734,8 @@ void run_tests()
   testPullVecVecOversized();
   testPushMultimapOversized();
   testPushMultimapVecVecOversized();
+
+  testStringSyncType();
 }
 
 int main(int argc, const char * const * argv)
