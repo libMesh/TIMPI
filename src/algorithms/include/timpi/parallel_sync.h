@@ -212,6 +212,7 @@ void pull_parallel_vector_data(const Communicator & comm,
 // Separate namespace for not-for-public-use helper functions
 namespace detail {
 
+#ifndef NDEBUG
 inline
 void
 empty_send_assertion (const Communicator & comm,
@@ -226,6 +227,7 @@ empty_send_assertion (const Communicator & comm,
   timpi_assert_msg(!someone_found_empty_send,
                    "Some rank(s) sent empty data!" + err_msg.str());
 }
+#endif
 
 template <typename MapToContainers,
           typename SendFunctor,
