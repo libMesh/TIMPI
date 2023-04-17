@@ -261,7 +261,7 @@ push_parallel_nbx_helper(const Communicator & comm,
   const_cast<Communicator &>(comm).send_mode(Communicator::SYNCHRONOUS);
 
   // The send requests
-  std::list<Request> requests;
+  std::list<Request> send_requests;
 
   const processor_id_type num_procs = comm.size();
 
@@ -295,17 +295,14 @@ push_parallel_nbx_helper(const Communicator & comm,
         act_on_data(dest_pid, std::move(datum));
       else
         {
-          requests.emplace_back();
-          send_functor(dest_pid, datum, requests.back(), tag);
+          send_requests.emplace_back();
+          send_functor(dest_pid, datum, send_requests.back(), tag);
         }
     }
 
   // In serial we've now acted on all our data.
   if (num_procs == 1)
     return;
-
-  // Whether or not all of the sends are complete
-  bool sends_complete = requests.empty();
 
   // Whether or not the nonblocking barrier has started
   bool started_barrier = false;
@@ -390,7 +387,8 @@ push_parallel_nbx_helper(const Communicator & comm,
                return false;
              });
 
-      requests.remove_if
+      // Remove any sends that have completed in user space
+      send_requests.remove_if
         ([](Request & req)
          {
            if (req.test())
@@ -404,13 +402,11 @@ push_parallel_nbx_helper(const Communicator & comm,
              return false;
          });
 
-
-      // See if all of the sends are finished
-      if (requests.empty())
-        sends_complete = true;
-
-      // If they've all completed then we can start the barrier
-      if (sends_complete && !started_barrier)
+      // If all of the sends are "complete", we can start the barrier
+      // At this point, we've only been able to guarantee that a
+      // receive has been posted and not necessarily that the
+      // data has entered user space
+      if (send_requests.empty() && !started_barrier)
         {
           started_barrier = true;
           comm.nonblocking_barrier(barrier_request);
