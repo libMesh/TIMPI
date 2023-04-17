@@ -427,6 +427,9 @@ push_parallel_nbx_helper(const Communicator & comm,
               break;
     }
 
+  // There better not be anything left at this point
+  timpi_assert(!possibly_receive());
+
   // Reset the send mode
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
 
