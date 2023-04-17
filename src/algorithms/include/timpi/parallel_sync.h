@@ -326,24 +326,36 @@ push_parallel_nbx_helper(const Communicator & comm,
   std::list<IncomingInfo> incoming;
   incoming.emplace_back(); // add the first invalid entry for receives
 
+  // Helper for checking and processing receives if there are any; we
+  // need to check this in multiple places
+  auto possibly_receive = [&incoming, &tag, &possibly_receive_functor]() {
+    auto & next_incoming = incoming.back();
+    timpi_assert_equal_to(next_incoming.src_pid, any_source);
+    if (possibly_receive_functor(next_incoming.src_pid,
+                                 next_incoming.data,
+                                 next_incoming.request, tag))
+      {
+        timpi_assert(next_incoming.src_pid != any_source);
+
+        // Insert another entry so that the next poll has something
+        // to fill into if needed
+        incoming.emplace_back();
+
+        // We received something
+        return true;
+      }
+
+      // We didn't receive anything
+      return false;
+  };
+
   // Keep looking for receives
   while (true)
     {
       timpi_assert(incoming.size() > 0);
 
       // Check if there is a message and start receiving it
-      auto & current_incoming = incoming.back();
-      timpi_assert_equal_to(current_incoming.src_pid, any_source);
-      if (possibly_receive_functor(current_incoming.src_pid,
-                                   current_incoming.data,
-                                   current_incoming.request, tag))
-        {
-          timpi_assert(current_incoming.src_pid != any_source);
-
-          // Insert another entry so that the next poll has something
-          // to fill into if needed
-          incoming.emplace_back();
-        }
+      possibly_receive();
 
         // Work through the incoming requests and act on them if they're ready
         incoming.remove_if
@@ -404,15 +416,19 @@ push_parallel_nbx_helper(const Communicator & comm,
           comm.nonblocking_barrier(barrier_request);
         }
 
-      // Must fully receive everything before being allowed to move on!
-      // We reserve a single value in incoming for filling within the
-      // next poll loop, so if incoming is a size of one we have nothing
-      // to process
+      // There is no data to act on (we reserve a single value in
+      // \p incoming for filling within the next poll loop)
       if (incoming.size() == 1)
-        // See if all proessors have finished all sends (i.e. _done_!)
+        // We've started the barrier
         if (started_barrier)
+          // The barrier is complete
           if (barrier_request.test())
-            break; // Done!
+            // Nothing remains to be processed (the synchronous send
+            // has completed but on the receiving process may only
+            // exist as a request and not in user space)
+            if (!possibly_receive())
+              // Profit
+              break;
     }
 
   // Reset the send mode
