@@ -354,38 +354,38 @@ push_parallel_nbx_helper(const Communicator & comm,
       // Check if there is a message and start receiving it
       possibly_receive();
 
-        // Work through the incoming requests and act on them if they're ready
-        incoming.remove_if
-          ([&act_on_data
+      // Work through the incoming requests and act on them if they're ready
+      incoming.remove_if
+        ([&act_on_data
 #ifndef NDEBUG
-            ,&incoming
+          ,&incoming
 #endif
-           ](IncomingInfo & info)
-           {
-             // The last entry (marked by an invalid src pid) should be skipped;
-             // it needs to remain in the list for potential filling in the next poll
-             const bool is_invalid_entry = info.src_pid == any_source;
-             timpi_assert_equal_to(is_invalid_entry, &info == &incoming.back());
+          ](IncomingInfo & info)
+          {
+            // The last entry (marked by an invalid src pid) should be skipped;
+            // it needs to remain in the list for potential filling in the next poll
+            const bool is_invalid_entry = info.src_pid == any_source;
+            timpi_assert_equal_to(is_invalid_entry, &info == &incoming.back());
 
-             if (is_invalid_entry)
-               return false;
+            if (is_invalid_entry)
+              return false;
 
-             // If it's finished - let's act on it
-             if (info.request.test())
-               {
-                 // Do any post-wait work
-                 info.request.wait();
+            // If it's finished - let's act on it
+            if (info.request.test())
+              {
+                // Do any post-wait work
+                info.request.wait();
 
-                 // Act on the data
-                 act_on_data(info.src_pid, std::move(info.data));
+                // Act on the data
+                act_on_data(info.src_pid, std::move(info.data));
 
-                 // This removes it from the list
-                 return true;
-               }
+                // This removes it from the list
+                return true;
+              }
 
-               // Not finished yet
-               return false;
-             });
+              // Not finished yet
+              return false;
+            });
 
       // Remove any sends that have completed in user space
       send_requests.remove_if
