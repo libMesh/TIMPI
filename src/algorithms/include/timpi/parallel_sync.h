@@ -251,17 +251,17 @@ push_parallel_nbx_helper(const Communicator & comm,
 
   // We'll grab a tag so we can overlap request sends and receives
   // without confusing one for the other
-  auto tag = comm.get_unique_tag();
+  const auto tag = comm.get_unique_tag();
 
   // Save off the old send_mode so we can restore it after this
-  auto old_send_mode = comm.send_mode();
+  const auto old_send_mode = comm.send_mode();
 
   // Set the sending to synchronous - this is so that we can know when
   // the sends are complete
   const_cast<Communicator &>(comm).send_mode(Communicator::SYNCHRONOUS);
 
   // The send requests
-  std::list<Request> requests;
+  std::list<Request> send_requests;
 
   const processor_id_type num_procs = comm.size();
 
@@ -295,17 +295,14 @@ push_parallel_nbx_helper(const Communicator & comm,
         act_on_data(dest_pid, std::move(datum));
       else
         {
-          requests.emplace_back();
-          send_functor(dest_pid, datum, requests.back(), tag);
+          send_requests.emplace_back();
+          send_functor(dest_pid, datum, send_requests.back(), tag);
         }
     }
 
   // In serial we've now acted on all our data.
   if (num_procs == 1)
     return;
-
-  // Whether or not all of the sends are complete
-  bool sends_complete = requests.empty();
 
   // Whether or not the nonblocking barrier has started
   bool started_barrier = false;
@@ -326,59 +323,72 @@ push_parallel_nbx_helper(const Communicator & comm,
   std::list<IncomingInfo> incoming;
   incoming.emplace_back(); // add the first invalid entry for receives
 
+  // Helper for checking and processing receives if there are any; we
+  // need to check this in multiple places
+  auto possibly_receive = [&incoming, &tag, &possibly_receive_functor]() {
+    auto & next_incoming = incoming.back();
+    timpi_assert_equal_to(next_incoming.src_pid, any_source);
+    if (possibly_receive_functor(next_incoming.src_pid,
+                                 next_incoming.data,
+                                 next_incoming.request, tag))
+      {
+        timpi_assert(next_incoming.src_pid != any_source);
+
+        // Insert another entry so that the next poll has something
+        // to fill into if needed
+        incoming.emplace_back();
+
+        // We received something
+        return true;
+      }
+
+      // We didn't receive anything
+      return false;
+  };
+
   // Keep looking for receives
   while (true)
     {
       timpi_assert(incoming.size() > 0);
 
       // Check if there is a message and start receiving it
-      auto & current_incoming = incoming.back();
-      timpi_assert_equal_to(current_incoming.src_pid, any_source);
-      if (possibly_receive_functor(current_incoming.src_pid,
-                                   current_incoming.data,
-                                   current_incoming.request, tag))
-        {
-          timpi_assert(current_incoming.src_pid != any_source);
+      possibly_receive();
 
-          // Insert another entry so that the next poll has something
-          // to fill into if needed
-          incoming.emplace_back();
-        }
-
-        // Work through the incoming requests and act on them if they're ready
-        incoming.remove_if
-          ([&act_on_data
+      // Work through the incoming requests and act on them if they're ready
+      incoming.remove_if
+        ([&act_on_data
 #ifndef NDEBUG
-            ,&incoming
+          ,&incoming
 #endif
-           ](IncomingInfo & info)
-           {
-             // The last entry (marked by an invalid src pid) should be skipped;
-             // it needs to remain in the list for potential filling in the next poll
-             const bool is_invalid_entry = info.src_pid == any_source;
-             timpi_assert_equal_to(is_invalid_entry, &info == &incoming.back());
+          ](IncomingInfo & info)
+          {
+            // The last entry (marked by an invalid src pid) should be skipped;
+            // it needs to remain in the list for potential filling in the next poll
+            const bool is_invalid_entry = info.src_pid == any_source;
+            timpi_assert_equal_to(is_invalid_entry, &info == &incoming.back());
 
-             if (is_invalid_entry)
-               return false;
+            if (is_invalid_entry)
+              return false;
 
-             // If it's finished - let's act on it
-             if (info.request.test())
-               {
-                 // Do any post-wait work
-                 info.request.wait();
+            // If it's finished - let's act on it
+            if (info.request.test())
+              {
+                // Do any post-wait work
+                info.request.wait();
 
-                 // Act on the data
-                 act_on_data(info.src_pid, std::move(info.data));
+                // Act on the data
+                act_on_data(info.src_pid, std::move(info.data));
 
-                 // This removes it from the list
-                 return true;
-               }
+                // This removes it from the list
+                return true;
+              }
 
-               // Not finished yet
-               return false;
-             });
+              // Not finished yet
+              return false;
+            });
 
-      requests.remove_if
+      // Remove any sends that have completed in user space
+      send_requests.remove_if
         ([](Request & req)
          {
            if (req.test())
@@ -392,28 +402,35 @@ push_parallel_nbx_helper(const Communicator & comm,
              return false;
          });
 
-
-      // See if all of the sends are finished
-      if (requests.empty())
-        sends_complete = true;
-
-      // If they've all completed then we can start the barrier
-      if (sends_complete && !started_barrier)
+      // If all of the sends are complete, we can start the barrier.
+      // We strongly believe that the MPI standard guarantees
+      // if a synchronous send is marked as completed, then there
+      // is a corresponding user-posted request for said send.
+      // Therefore, send_requests being empty is enough
+      // to state that our sends are done and everyone that we have
+      // sent data is expecting it. Double therefore, this condition
+      // being satisified on all processors in addition to all
+      // receive requests being complete is a sufficient stopping
+      // criteria
+      if (send_requests.empty() && !started_barrier)
         {
           started_barrier = true;
           comm.nonblocking_barrier(barrier_request);
         }
 
-      // Must fully receive everything before being allowed to move on!
-      // We reserve a single value in incoming for filling within the
-      // next poll loop, so if incoming is a size of one we have nothing
-      // to process
+      // There is no data to act on (we reserve a single value in
+      // \p incoming for filling within the next poll loop)
       if (incoming.size() == 1)
-        // See if all proessors have finished all sends (i.e. _done_!)
+        // We've started the barrier
         if (started_barrier)
+          // The barrier is complete (everyone is done)
           if (barrier_request.test())
-            break; // Done!
+            // Profit
+            break;
     }
+
+  // There better not be anything left at this point
+  timpi_assert(!possibly_receive());
 
   // Reset the send mode
   const_cast<Communicator &>(comm).send_mode(old_send_mode);
