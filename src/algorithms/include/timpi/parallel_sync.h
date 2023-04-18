@@ -402,10 +402,16 @@ push_parallel_nbx_helper(const Communicator & comm,
              return false;
          });
 
-      // If all of the sends are "complete", we can start the barrier
-      // At this point, we've only been able to guarantee that a
-      // receive has been posted and not necessarily that the
-      // data has entered user space
+      // If all of the sends are complete, we can start the barrier.
+      // We strongly believe that the MPI standard guarantees
+      // if a synchronous send is marked as completed, then there
+      // is a corresponding user-posted request for said send.
+      // Therefore, send_requests being empty is enough
+      // to state that our sends are done and everyone that we have
+      // sent data is expecting it. Double therefore, this condition
+      // being satisified on all processors in addition to all
+      // receive requests being complete is a sufficient stopping
+      // criteria
       if (send_requests.empty() && !started_barrier)
         {
           started_barrier = true;
@@ -417,14 +423,10 @@ push_parallel_nbx_helper(const Communicator & comm,
       if (incoming.size() == 1)
         // We've started the barrier
         if (started_barrier)
-          // The barrier is complete
+          // The barrier is complete (everyone is done)
           if (barrier_request.test())
-            // Nothing remains to be processed (the synchronous send
-            // has completed but on the receiving process may only
-            // exist as a request and not in user space)
-            if (!possibly_receive())
-              // Profit
-              break;
+            // Profit
+            break;
     }
 
   // There better not be anything left at this point
