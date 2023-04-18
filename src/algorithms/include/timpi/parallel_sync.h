@@ -251,10 +251,10 @@ push_parallel_nbx_helper(const Communicator & comm,
 
   // We'll grab a tag so we can overlap request sends and receives
   // without confusing one for the other
-  auto tag = comm.get_unique_tag();
+  const auto tag = comm.get_unique_tag();
 
   // Save off the old send_mode so we can restore it after this
-  auto old_send_mode = comm.send_mode();
+  const auto old_send_mode = comm.send_mode();
 
   // Set the sending to synchronous - this is so that we can know when
   // the sends are complete
