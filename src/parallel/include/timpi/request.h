@@ -108,11 +108,7 @@ public:
   // made from \p this have been cleaned up.
   void add_post_wait_work(PostWaitWork * work);
 
-#ifdef TIMPI_HAVE_MPI
-  static constexpr request null_request = MPI_REQUEST_NULL;
-#else
-  static constexpr request null_request = 0;
-#endif
+  static const request null_request;
 
 private:
   request _request;
