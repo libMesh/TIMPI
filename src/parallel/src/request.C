@@ -37,6 +37,12 @@
 namespace TIMPI
 {
 
+#ifdef TIMPI_HAVE_MPI
+const request Request::null_request = MPI_REQUEST_NULL;
+#else
+const request Request::null_request = 0;
+#endif
+
 // ------------------------------------------------------------
 // Request member functions
 Request::Request () :
