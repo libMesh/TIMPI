@@ -517,6 +517,37 @@ void testGather()
   }
 
 
+  void testMinVecBool ()
+  {
+    const processor_id_type rank = TestCommWorld->rank();
+    const processor_id_type N = TestCommWorld->size();
+
+    // Use a long vector, so we can be sure that many bits extends
+    // over multiple unsigned integers; use a weird size to test the
+    // not-evenly-divisible case.
+    constexpr std::size_t vec_size = 2345;
+    std::vector<bool> vec_bool(vec_size, true);
+    for (std::size_t i=0; i < vec_size; i += (rank+2))
+      vec_bool[i] = false;
+
+    TestCommWorld->min(vec_bool);
+
+    for (std::size_t i=0; i != vec_size; ++i)
+      {
+        bool should_be_true = true;
+        for (processor_id_type p=0; p < N; ++p)
+          if (i % (p+2) == 0)
+          {
+            should_be_true = false;
+            break;
+          }
+        TIMPI_UNIT_ASSERT (vec_bool[i] == should_be_true);
+      }
+  }
+
+
+
+
   void testMPIULongMin()
   {
     unsigned long min = 1;
@@ -569,6 +600,36 @@ void testGather()
 
     TIMPI_UNIT_ASSERT (cast_int<processor_id_type>(max+1) ==
                           cast_int<processor_id_type>(TestCommWorld->size()));
+  }
+
+
+
+  void testMaxVecBool ()
+  {
+    const processor_id_type rank = TestCommWorld->rank();
+    const processor_id_type N = TestCommWorld->size();
+
+    // Use a long vector, so we can be sure it extends over multiple
+    // unsigned integers; use a weird size to test the
+    // not-evenly-divisible case.
+    constexpr std::size_t vec_size = 2345;
+    std::vector<bool> vec_bool(vec_size, false);
+    for (std::size_t i=0; i < vec_size; i += (rank+2))
+      vec_bool[i] = true;
+
+    TestCommWorld->max(vec_bool);
+
+    for (std::size_t i=0; i != vec_size; ++i)
+      {
+        bool should_be_true = false;
+        for (processor_id_type p=0; p < N; ++p)
+          if (i % (p+2) == 0)
+          {
+            should_be_true = true;
+            break;
+          }
+        TIMPI_UNIT_ASSERT (vec_bool[i] == should_be_true);
+      }
   }
 
 
@@ -1086,7 +1147,9 @@ int main(int argc, const char * const * argv)
   testScatter();
   testBarrier();
   testMin();
+  testMinVecBool();
   testMax();
+  testMaxVecBool();
   testMPIULongMin();
   testMinLarge<char>();
   testMinLarge<unsigned char>();
