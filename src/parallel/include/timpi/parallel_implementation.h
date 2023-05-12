@@ -114,7 +114,7 @@ inline void pack_vector_bool(const std::vector<bool,A1> & vec_in,
     {
       std::size_t index = i/data_bits;
       std::size_t offset = i%data_bits;
-      vec_out[index] += (vec_in[i]?1:0) << offset;
+      vec_out[index] += (vec_in[i]?1u:0u) << offset;
     }
 }
 
