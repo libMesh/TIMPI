@@ -135,7 +135,7 @@ inline void unpack_vector_bool(const std::vector<T,A1> & vec_in,
     {
       std::size_t index = i/data_bits;
       std::size_t offset = i%data_bits;
-      vec_out[i] = vec_in[index] << (data_bits-1-offset) >> (data_bits-1);
+      vec_out[i] = (vec_in[index] >> offset) & 1;
     }
 }
 
