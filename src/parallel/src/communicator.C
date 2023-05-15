@@ -296,7 +296,7 @@ status Communicator::probe (const unsigned int src_processor_id,
                   src_processor_id == any_source);
 
   timpi_call_mpi
-    (MPI_Probe (src_processor_id, tag.value(), this->get(), &stat));
+    (MPI_Probe (int(src_processor_id), tag.value(), this->get(), &stat));
 
   return stat;
 }

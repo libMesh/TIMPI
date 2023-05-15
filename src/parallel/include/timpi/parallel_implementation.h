@@ -114,7 +114,7 @@ inline void pack_vector_bool(const std::vector<bool,A1> & vec_in,
     {
       std::size_t index = i/data_bits;
       std::size_t offset = i%data_bits;
-      vec_out[index] += (vec_in[i]?1:0) << offset;
+      vec_out[index] += (vec_in[i]?1u:0u) << offset;
     }
 }
 
@@ -135,7 +135,7 @@ inline void unpack_vector_bool(const std::vector<T,A1> & vec_in,
     {
       std::size_t index = i/data_bits;
       std::size_t offset = i%data_bits;
-      vec_out[i] = vec_in[index] << (data_bits-1-offset) >> (data_bits-1);
+      vec_out[i] = (vec_in[index] >> offset) & 1;
     }
 }
 
@@ -1939,11 +1939,11 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
   timpi_assert(src_processor_id < this->size() ||
                   src_processor_id == any_source);
 
-  timpi_call_mpi(MPI_Iprobe(src_processor_id,
-                               tag.value(),
-                               this->get(),
-                               &int_flag,
-                               stat.get()));
+  timpi_call_mpi(MPI_Iprobe(int(src_processor_id),
+                            tag.value(),
+                            this->get(),
+                            &int_flag,
+                            stat.get()));
 
   if (int_flag)
   {
@@ -2003,7 +2003,7 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
   timpi_assert(src_processor_id < this->size() ||
                   src_processor_id == any_source);
 
-  timpi_call_mpi(MPI_Iprobe(src_processor_id,
+  timpi_call_mpi(MPI_Iprobe(int(src_processor_id),
                             tag.value(),
                             this->get(),
                             &int_flag,
@@ -4052,7 +4052,7 @@ inline Status Communicator::packed_range_probe (const unsigned int src_processor
   timpi_assert(src_processor_id < this->size() ||
                src_processor_id == any_source);
 
-  timpi_call_mpi(MPI_Iprobe(src_processor_id,
+  timpi_call_mpi(MPI_Iprobe(int(src_processor_id),
                             tag.value(),
                             this->get(),
                             &int_flag,
