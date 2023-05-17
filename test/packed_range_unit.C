@@ -37,8 +37,13 @@ std::vector<char> fake_stringy_number(int number)
 
 template <typename T>
 struct null_output_iterator
-  : std::iterator<std::output_iterator_tag, T>
 {
+  using iterator_category = std::output_iterator_tag;
+  using value_type = T;
+  using difference_type = std::ptrdiff_t;
+  using pointer = T*;
+  using reference = T&;
+
   template <typename T2>
   void operator=(const T2&) {}
 
