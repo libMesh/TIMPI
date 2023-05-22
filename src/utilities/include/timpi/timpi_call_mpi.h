@@ -39,18 +39,18 @@
  */
 #ifndef NDEBUG
 #define timpi_assert_mpi_success(error_code)                         \
-  do                                                                    \
-    {                                                                   \
-      if (error_code != MPI_SUCCESS)                                    \
-        {                                                               \
+  do                                                                 \
+    {                                                                \
+      if (error_code != MPI_SUCCESS)                                 \
+        {                                                            \
           char timpi_mpi_error_string[MPI_MAX_ERROR_STRING+1];       \
           int timpi_mpi_error_string_len;                            \
           MPI_Error_string(error_code, timpi_mpi_error_string,       \
                            &timpi_mpi_error_string_len);             \
           timpi_assert_equal_to_msg(error_code, MPI_SUCCESS,         \
-                                       timpi_mpi_error_string);      \
-        }                                                               \
-    }                                                                   \
+                                    timpi_mpi_error_string);         \
+        }                                                            \
+    }                                                                \
   while (0)
 
 #else
@@ -63,17 +63,17 @@
 
 // Only catch MPI return values when asserts are active.
 #ifndef NDEBUG
-#define timpi_call_mpi(mpi_call)                             \
+#define timpi_call_mpi(mpi_call)                                \
   do                                                            \
     {                                                           \
-      int timpi_mpi_error_code = mpi_call;          \
-      timpi_assert_mpi_success (timpi_mpi_error_code);    \
+      int timpi_mpi_error_code = mpi_call;                      \
+      timpi_assert_mpi_success (timpi_mpi_error_code);          \
     }                                                           \
   while (0)
 
 #else
 
-#define timpi_call_mpi(mpi_call)             \
+#define timpi_call_mpi(mpi_call)                \
   do                                            \
     {                                           \
       mpi_call;                                 \
@@ -85,7 +85,7 @@
 
 #define timpi_mpi_var(var)
 
-#define timpi_call_mpi(mpi_call)             \
+#define timpi_call_mpi(mpi_call)                \
   do {}                                         \
   while (0)
 
