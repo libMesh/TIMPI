@@ -66,7 +66,7 @@
 #define timpi_call_mpi(mpi_call)                             \
   do                                                            \
     {                                                           \
-      unsigned int timpi_mpi_error_code = mpi_call;          \
+      int timpi_mpi_error_code = mpi_call;          \
       timpi_assert_mpi_success (timpi_mpi_error_code);    \
     }                                                           \
   while (0)

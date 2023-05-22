@@ -150,7 +150,7 @@ TIMPIInit::~TIMPIInit()
     {
       // We can't just timpi_assert here because destructor,
       // but we ought to report any errors
-      unsigned int error_code = MPI_Finalize();
+      int error_code = MPI_Finalize();
       if (error_code != MPI_SUCCESS)
         {
           char error_string[MPI_MAX_ERROR_STRING+1];
