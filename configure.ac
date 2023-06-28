@@ -75,8 +75,8 @@ TIMPI_SET_COMPILERS
 # standards level.  Adds the required flag to CXXFLAGS if
 # one is found.  Exits if no acceptable flag is found.
 #
-# We've started using C++14 code in TIMPI; we'll be requiring C++17
-# too shortly so we might as well enable it when it's found.
+# We've started relying on C++14 code in TIMPI; we also use C++17
+# but with backward compatibility shims.
 # --------------------------------------------------------------
 ACSM_CXX_COMPILER_STANDARD([2014], [2017])
 
