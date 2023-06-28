@@ -30,6 +30,16 @@
 #include <iterator>
 #include <type_traits> // is_same
 
+// C++17 gives us "if constexpr", which nvc++ really seems to need in
+// order to determine that warnings shouldn't be emitted inside a
+// block instantiated as "if (32 < 32)", but let's see if we can
+// stay backwards compatible a while longer
+#if __cplusplus >= 201703
+#  define timpi_if_constexpr if constexpr
+#else
+#  define timpi_if_constexpr if
+#endif
+
 
 // FIXME: This *should* be in TIMPI namespace but we have libMesh
 // users which already partially specialized it
@@ -144,8 +154,9 @@ get_packed_len (typename std::vector<buffer_type>::const_iterator in)
   constexpr int n_bits = (sizeof(buffer_type) * CHAR_BIT);
 
   // We may have a small signed buffer type into which we stuffed
-  // an unsigned value
-  if (n_bits < sizeof(unsigned int) * CHAR_BIT)
+  // an unsigned value.  Try to use constexpr here for efficiency and
+  // to avoid shift size warnings.
+  timpi_if_constexpr (n_bits < sizeof(unsigned int) * CHAR_BIT)
     {
       const int n_size_entries = get_packed_len_entries<buffer_type>();
       unsigned int packed_len = 0;
