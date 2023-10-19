@@ -5,7 +5,7 @@ AC_PREREQ(2.61)
 AC_INIT(timpi, 1.8.5, roystgnr@ices.utexas.edu)
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_CONFIG_HEADER(src/utilities/include/timpi/timpi_config.h.tmp)
+AC_CONFIG_HEADERS([src/utilities/include/timpi/timpi_config.h.tmp])
 dnl Prefixes everything in the temporary file with TIMPI_
 AX_PREFIX_CONFIG_H(src/utilities/include/timpi/timpi_config.h,TIMPI,src/utilities/include/timpi/timpi_config.h.tmp)
 
