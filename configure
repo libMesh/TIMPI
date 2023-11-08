@@ -742,17 +742,17 @@ GCOV_FLAGS
 ac_ct_FC
 FCFLAGS
 FC
+have_gcov
+ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE
+ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE
+ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE
+ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE
 am__fastdepCC_FALSE
 am__fastdepCC_TRUE
 CCDEPMODE
 ac_ct_CC
 CFLAGS
 CC
-have_gcov
-ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE
-ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE
-ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE
-ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE
 HAVE_CXX11
 HAVE_CXX14
 HAVE_CXX17
@@ -884,6 +884,7 @@ with_cxx_std_max
 with_cxx_std_min
 with_cxx_std
 enable_sanitize
+enable_fpe_safety
 enable_glibcxx_debugging
 enable_glibcxx_debugging_cppunit
 enable_coverage
@@ -1571,6 +1572,7 @@ Optional Features:
                           speeds up one-time build
   --enable-sanitize="opt dbg devel prof oprof"
                           turn on sanitizer flags for the given methods
+  --disable-fpe-safety    remove FPE-trapping compiler flags
   --enable-glibcxx-debugging
                           enable -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC in
                           dbg mode
@@ -15970,470 +15972,6 @@ fi
 
 
 
-  # method-specific preprocessor flags, independent of compiler.
-  ACSM_CPPFLAGS_OPT="-DNDEBUG"
-  ACSM_CPPFLAGS_DBG="-DDEBUG"
-  ACSM_CPPFLAGS_DEVEL=""
-
-  # Flag to add directories to the dynamic library search path; can
-  # be changed at a later stage
-  ACSM_RPATHFLAG="-Wl,-rpath,"
-  ACSM_XDR_LIBS=""
-
-  # Flag for profiling mode; can be modified at a later stage
-  ACSM_PROFILING_FLAGS="-pg"
-
-  # Flag for assembly-output mode; can be modified at a later stage
-  ACSM_ASSEMBLY_FLAGS="-S"
-
-  # Flag to turn warnings into errors; can be modified at a later stage
-  ACSM_WERROR_FLAGS="-Werror"
-
-  # Flags to add every additional warning we expect the library itself
-  # to not trigger
-  #
-  # These can be fairly compiler-specific so the default is blank: we
-  # only add warnings within specific compiler version tests.
-  ACSM_PARANOID_FLAGS=""
-
-  # The -g flag is necessary for OProfile to produce annotations
-  # -fno-omit-frame-pointer flag turns off an optimization that
-  # interferes with OProfile callgraphs
-  ACSM_OPROFILE_FLAGS="-g -fno-omit-frame-pointer"
-
-  # For compilers that support it (clang >= 3.5.0 and GCC >= 4.8) the
-  # user can selectively enable "sanitize" flags for different METHODs
-  # with e.g.
-  #
-  # --enable-sanitize="dbg opt"
-  #
-  # These flags generally slow down code execution, so you don't
-  # necessarily want to turn them on all the time or in all METHODs.
-
-  # Declaring something AC_ARG_VAR does several things, see
-  # http://www.gnu.org/software/autoconf/manual/autoconf-2.60/html_node/Setting-Output-Variables.html
-  # for more information... not sure we need it in this case.
-  # AC_ARG_VAR([SANITIZE_METHODS], [methods we apply sanitizer flags to, e.g. "opt dbg devel"])
-
-  # Check whether --enable-sanitize was given.
-if test ${enable_sanitize+y}
-then :
-  enableval=$enable_sanitize; for method in ${enableval} ; do
-                                  case "${method}" in #(
-  optimized|opt|debug|dbg|devel|profiling|pro|prof|oprofile|oprof) :
-     ;; #(
-  *) :
-    as_fn_error $? "bad value ${method} for --enable-sanitize" "$LINENO" 5 ;;
-esac
-               done
-                              SANITIZE_METHODS=${enableval}
-fi
-
-
-  if test "x$SANITIZE_METHODS" != x
-then :
-
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Testing sanitizer flags for method(s) \"$SANITIZE_METHODS\" >>>" >&5
-printf "%s\n" "<<< Testing sanitizer flags for method(s) \"$SANITIZE_METHODS\" >>>" >&6; }
-
-                                        COMMON_SANITIZE_OPTIONS="-fsanitize=address -fno-omit-frame-pointer -O1 -g -fno-optimize-sibling-calls"
-
-
-    # Save current lang and CXXFLAGS values
-    ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-    saveCXXFLAGS="$CXXFLAGS"
-
-    # Set CXXFLAGS to be used for the test compilation.  Note:
-    # we don't test these flags in conjunction with any
-    # others...  that doesn't seem to be necessary yet.
-    CXXFLAGS="$COMMON_SANITIZE_OPTIONS"
-
-    # Tell the user what we are doing
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if compiler has support for address sanitizer" >&5
-printf %s "checking if compiler has support for address sanitizer... " >&6; }
-
-    # Try compiling and running a simple main program with
-    # sanitizer flags.  Since address sanitizer requires
-    # library-level support, we want to be sure that a compiled
-    # executable can run, not just that the compiler accepts the
-    # sanitizer flags.  This program does not actually have a
-    # memory error, otherwise configure would consider the test
-    # to have failed...
-    if test "$cross_compiling" = yes
-then :
-
-        # Result if cross-compiling
-        have_address_sanitizer=no
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-
-else $as_nop
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main (void)
-{
-
-        int *array = new int[100];
-        delete [] array;
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_run "$LINENO"
-then :
-
-        # Result if program succeeds
-        have_address_sanitizer=yes
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-
-else $as_nop
-
-        # Result if program fails
-        have_address_sanitizer=no
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-
-    # Restore the original lang and flags
-    CXXFLAGS="$saveCXXFLAGS"
-    ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-
-                    if test "x$have_address_sanitizer" = xyes
-then :
-
-                                                                        ACSM_SANITIZE_LDFLAGS="-Wc,-fsanitize=address"
-
-                  for method in ${SANITIZE_METHODS}; do
-                      case "${method}" in #(
-  optimized|opt) :
-    ACSM_SANITIZE_OPT_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
-  debug|dbg) :
-    ACSM_SANITIZE_DBG_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
-  devel) :
-    ACSM_SANITIZE_DEVEL_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
-  profiling|pro|prof) :
-    ACSM_SANITIZE_PROF_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
-  oprofile|oprof) :
-    ACSM_SANITIZE_OPROF_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
-  *) :
-    as_fn_error $? "bad value ${method} for --enable-sanitize" "$LINENO" 5 ;;
-esac
-                  done
-
-fi
-
-fi
-
-  # First the flags for gcc compilers
-  if test "$GXX" = "yes" && test "x$ACSM_REAL_GXX" != "x"
-then :
-
-          ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 -felide-constructors -fstrict-aliasing -Wdisabled-optimization"
-                    ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -O2 -felide-constructors -g -pedantic -W -Wall -Wextra -Wno-long-long -Wunused"
-          ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -Wpointer-arith -Wformat -Wparentheses -Wuninitialized -fstrict-aliasing -Woverloaded-virtual -Wdisabled-optimization"
-          ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -O0 -felide-constructors -g -pedantic -W -Wall -Wextra -Wno-long-long -Wunused -Wpointer-arith -Wformat -Wparentheses -Woverloaded-virtual"
-          ACSM_NODEPRECATEDFLAG="-Wno-deprecated"
-
-          ACSM_CFLAGS_OPT="-O2 -fstrict-aliasing"
-          ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_OPT -g -Wimplicit -fstrict-aliasing"
-          ACSM_CFLAGS_DBG="-O0 -g -Wimplicit"
-          ACSM_ASSEMBLY_FLAGS="$ACSM_ASSEMBLY_FLAGS -fverbose-asm"
-
-                    if test "x$ACSM_GXX_VERSION" != "xgcc11"
-then :
-
-                  ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -funroll-loops"
-                  ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -funroll-loops"
-                  ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -funroll-loops"
-                  ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DEVEL -funroll-loops"
-
-fi
-
-                              ACSM_PARANOID_FLAGS="-Wall -Wextra -Wcast-align -Wcast-qual -Wdisabled-optimization -Wformat=2"
-          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wformat-nonliteral -Wformat-security -Wformat-y2k"
-          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Winvalid-pch -Wlogical-op -Wmissing-field-initializers"
-          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wmissing-include-dirs -Wpacked -Wredundant-decls"
-          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wshadow -Wstack-protector -Wstrict-aliasing -Wswitch-default"
-          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wtrigraphs -Wunreachable-code -Wunused-label"
-          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunused-parameter -Wunused-value -Wvariadic-macros"
-          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wvolatile-register-var -Wwrite-strings"
-
-          if test "x$enableglibcxxdebugging" = "xyes"
-then :
-  ACSM_CPPFLAGS_DBG="$ACSM_CPPFLAGS_DBG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC"
-fi
-
-          # GCC 4.6.3 warns about variadic macros but supports them just
-          # fine, so let's turn off that warning.
-          case "$ACSM_GXX_VERSION" in #(
-  gcc4.6 | gcc5) :
-    ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -Wno-variadic-macros"
-                                    ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -Wno-variadic-macros"
-                                    ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -Wno-variadic-macros" ;; #(
-  *) :
-     ;;
-esac
-
-                                        case "$target" in #(
-  *solaris*) :
-    ACSM_RPATHFLAG="-Wl,-R,"
-                                ACSM_XDR_LIBS="-lrpcsvc" ;; #(
-  *) :
-     ;;
-esac
-
-else $as_nop
-
-        case "$ACSM_GXX_VERSION" in #(
-  ibm_xlc) :
-
-                          ACSM_CXXFLAGS_OPT="-O3 -qmaxmem=-1 -w -qansialias -Q=10 -qrtti=all -qstaticinline"
-                          ACSM_CXXFLAGS_DBG="-qmaxmem=-1 -qansialias -qrtti=all -g -qstaticinline"
-                          ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DBG"
-                          ACSM_NODEPRECATEDFLAG=""
-                          ACSM_CFLAGS_OPT="-O3 -qmaxmem=-1 -w -qansialias -Q=10"
-                          ACSM_CFLAGS_DBG="-qansialias -g"
-                          ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DBG"
-                         ;; #(
-              intel_*) :
-
-                                                    ACSM_NODEPRECATEDFLAG="-Wno-deprecated"
-
-                                                    ACSM_PROFILING_FLAGS="-qp"
-
-                                                    ACSM_ASSEMBLY_FLAGS="$ACSM_ASSEMBLY_FLAGS -fverbose-asm -fsource-asm"
-
-                                                    ACSM_OPROFILE_FLAGS="-g"
-
-                                                                              ACSM_PARANOID_FLAGS="-Wall -Wextra -Wdisabled-optimization -Wformat=2"
-                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wformat-security"
-                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Winvalid-pch"
-                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wmissing-include-dirs"
-                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wtrigraphs"
-                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunused-parameter"
-                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wwrite-strings"
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        case "$ACSM_GXX_VERSION" in #(
-  intel_icc_v13.x | intel_icc_v14.x | intel_icc_v15.x | intel_icc_v16.x | intel_icc_v17.x | intel_icc_v18.x | intel_icc_v19.x | intel_icc_v20.x) :
-
-                                    ACSM_PROFILING_FLAGS="-p"
-                                    ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -w1 -g -wd175 -wd1476 -wd1505 -wd1572 -wd488 -wd161"
-                                    ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O3 -unroll -w0 -ftz"
-                                    ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -w1 -g -wd175 -wd1476 -wd1505 -wd1572 -wd488 -wd161"
-                                    ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG -w1 -g -wd266 -wd1572 -wd488 -wd161"
-                                    ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O3 -unroll -w0 -ftz"
-                                    ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DBG"
-                                   ;; #(
-  *) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: Unknown Intel compiler" >&5
-printf "%s\n" "Unknown Intel compiler" >&6; } ;;
-esac
-                        ;; #(
-  nvidia) :
-
-
-                                                                                    ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -O0 --display_error_number -g -pedantic -Wno-long-long -Wunused -Wuninitialized --diag_suppress=11,111,177,445,1676"
-                                ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -O2 --display_error_number -g -pedantic -Wno-long-long -Wunused -Wuninitialized --diag_suppress=11,111,177,445,1676"
-                                ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 --display_error_number --diag_suppress=11,111,177,445,1676"
-
-                                ACSM_NODEPRECATEDFLAG="-Wno-deprecated-declarations"
-
-                                ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG -O0 -g"
-                                ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DEVEL -O2 -g"
-                                ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O2"
-
-                                                                if test "$enableexceptions" = no
-then :
-
-                                        ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG --no_exceptions"
-                                        ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT --no_exceptions"
-
-fi
-                               ;; #(
-  portland_group) :
-
-                                ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -g --no_using_std"
-                                ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 --no_using_std -fast -Minform=severe"
-                                ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DBG"
-
-                                                                ACSM_NODEPRECATEDFLAG=""
-
-                                ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG -g"
-                                ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O2"
-                                ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DBG"
-
-                                                                if test "$enableexceptions" = no
-then :
-
-                                        ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG --no_exceptions"
-                                        ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT --no_exceptions"
-
-fi
-                               ;; #(
-  cray_cc) :
-
-                         ACSM_CXXFLAGS_DBG="-h conform,one_instantiation_per_object,instantiate=used,noimplicitinclude -G n"
-                         ACSM_CXXFLAGS_OPT="-h conform,one_instantiation_per_object,instantiate=used,noimplicitinclude -G n"
-                         ACSM_CXXFLAGS_DEVEL="-h conform,one_instantiation_per_object,instantiate=used,noimplicitinclude -G n"
-                         ACSM_NODEPRECATEDFLAG=""
-                         ACSM_CFLAGS_DBG="-G n"
-                         ACSM_CFLAGS_OPT="-G n"
-                         ACSM_CFLAGS_DEVEL="-G n"
-                        ;; #(
-  clang) :
-
-                       ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 -felide-constructors -Qunused-arguments -Wunused-parameter -Wunused"
-                                              ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -O2 -felide-constructors -g -pedantic -W -Wall -Wextra -Wno-long-long"
-                       ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -Wunused-parameter -Wunused -Wpointer-arith -Wformat -Wparentheses -Wuninitialized -Qunused-arguments -Woverloaded-virtual -fno-limit-debug-info"
-                                              ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -O0 -felide-constructors -g -pedantic -W -Wall -Wextra -Wno-long-long"
-                       ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -Wunused-parameter -Wunused -Wpointer-arith -Wformat -Wparentheses -Qunused-arguments -Woverloaded-virtual -fno-limit-debug-info"
-                       ACSM_NODEPRECATEDFLAG="-Wno-deprecated"
-
-                                              ACSM_PARANOID_FLAGS="-Wall -Wextra -Wcast-align -Wdisabled-optimization -Wformat=2"
-                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wformat-nonliteral -Wformat-security -Wformat-y2k"
-                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Winvalid-pch -Wmissing-field-initializers"
-                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wmissing-include-dirs -Wpacked"
-                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wstack-protector -Wtrigraphs"
-                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunreachable-code -Wunused-label"
-                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunused-parameter -Wunused-value -Wvariadic-macros"
-                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wvolatile-register-var -Wwrite-strings"
-
-                       ACSM_CFLAGS_OPT="-O2 -Qunused-arguments -Wunused"
-                       ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_OPT -g -Wimplicit -fno-limit-debug-info -Wunused"
-                       ACSM_CFLAGS_DBG="-g -Wimplicit -Qunused-arguments -fno-limit-debug-info -Wunused"
-                      ;; #(
-  *) :
-
-              { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: No specific options for this C++ compiler known" >&5
-printf "%s\n" "No specific options for this C++ compiler known" >&6; }
-              ACSM_CXXFLAGS_DBG="$CXXFLAGS"
-              ACSM_CXXFLAGS_OPT="$CXXFLAGS"
-              ACSM_CXXFLAGS_DEVEL="$CXXFLAGS"
-              ACSM_NODEPRECATEDFLAG=""
-
-              ACSM_CFLAGS_DBG="$CFLAGS"
-              ACSM_CFLAGS_OPT="$CFLAGS"
-              ACSM_CFLAGS_DEVEL="$CFLAGS"
-             ;;
-esac
-
-fi
-
-
-
-  # in the case blocks below we may add GLIBCXX-specific pedantic debugging preprocessor
-  # definitions. Should only be used by a knowing user, because these options break
-  # ABI compatibility.
-  # Check whether --enable-glibcxx-debugging was given.
-if test ${enable_glibcxx_debugging+y}
-then :
-  enableval=$enable_glibcxx_debugging; case "${enableval}" in #(
-  yes) :
-    acsm_enableglibcxxdebugging=yes ;; #(
-  no) :
-    acsm_enableglibcxxdebugging=no ;; #(
-  *) :
-    as_fn_error $? "bad value ${enableval} for --enable-glibcxx-debugging" "$LINENO" 5 ;;
-esac
-else $as_nop
-  acsm_enableglibcxxdebugging=no
-fi
-
-
-  # GLIBCXX debugging causes untold woes on mac machines - so disable it
-  if test `uname` = "Darwin"
-then :
-
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Disabling GLIBCXX debugging on Darwin >>>" >&5
-printf "%s\n" "<<< Disabling GLIBCXX debugging on Darwin >>>" >&6; }
-          acsm_enableglibcxxdebugging=no
-
-fi
-   if test x$acsm_enableglibcxxdebugging = xyes; then
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE=
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE='#'
-else
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE='#'
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE=
-fi
-
-
-
-  # GLIBCXX-specific debugging flags conflict with cppunit on many of
-  # our users' systems.  However, being able to override this allows
-  # us to increase our unit test coverage.
-  # Check whether --enable-glibcxx-debugging-cppunit was given.
-if test ${enable_glibcxx_debugging_cppunit+y}
-then :
-  enableval=$enable_glibcxx_debugging_cppunit; case "${enableval}" in #(
-  yes) :
-    acsm_enableglibcxxdebuggingcppunit=yes ;; #(
-  no) :
-    acsm_enableglibcxxdebuggingcppunit=no ;; #(
-  *) :
-    as_fn_error $? "bad value ${enableval} for --enable-glibcxx-debugging-cppunit" "$LINENO" 5 ;;
-esac
-else $as_nop
-  acsm_enableglibcxxdebuggingcppunit=no
-fi
-
-
-   if test x$acsm_enableglibcxxdebuggingcppunit = xyes; then
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE=
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE='#'
-else
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE='#'
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE=
-fi
-
-
-
-  CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT"
-  CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL"
-  CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG"
-
-  CPPFLAGS_OPT="$ACSM_CPPFLAGS_OPT"
-  CPPFLAGS_DEVEL="$ACSM_CPPFLAGS_DEVEL"
-  CPPFLAGS_DBG="$ACSM_CPPFLAGS_DBG"
-
-  ASSEMBLY_FLAGS="$ACSM_ASSEMBLY_FLAGS"
-  NODEPRECATEDFLAG="$ACSM_NODEPRECATEDFLAG"
-  OPROFILE_FLAGS="$ACSM_OPROFILE_FLAGS"
-  PARANOID_FLAGS="$ACSM_PARANOID_FLAGS"
-  PROFILING_FLAGS="$ACSM_PROFILING_FLAGS"
-  RPATHFLAG="$ACSM_RPATHFLAG"
-  WERROR_FLAGS="$ACSM_WERROR_FLAGS"
-
-
-
-#------------------------------------------------------
-# Checks for code coverage
-# this must be done after we look for our own compilers
-#------------------------------------------------------
-
-
-
-
 
 
 
@@ -17361,6 +16899,623 @@ fi
 
 
 
+
+
+
+
+  # method-specific preprocessor flags, independent of compiler.
+  ACSM_CPPFLAGS_OPT="-DNDEBUG"
+  ACSM_CPPFLAGS_DBG="-DDEBUG"
+  ACSM_CPPFLAGS_DEVEL=""
+
+  # Flag to add directories to the dynamic library search path; can
+  # be changed at a later stage
+  ACSM_RPATHFLAG="-Wl,-rpath,"
+  ACSM_XDR_LIBS=""
+
+  # Flag for profiling mode; can be modified at a later stage
+  ACSM_PROFILING_FLAGS="-pg"
+
+  # Flag for assembly-output mode; can be modified at a later stage
+  ACSM_ASSEMBLY_FLAGS="-S"
+
+  # Flag to turn warnings into errors; can be modified at a later stage
+  ACSM_WERROR_FLAGS="-Werror"
+
+  # Flags to add every additional warning we expect the library itself
+  # to not trigger
+  #
+  # These can be fairly compiler-specific so the default is blank: we
+  # only add warnings within specific compiler version tests.
+  ACSM_PARANOID_FLAGS=""
+
+  # The -g flag is necessary for OProfile to produce annotations
+  # -fno-omit-frame-pointer flag turns off an optimization that
+  # interferes with OProfile callgraphs
+  ACSM_OPROFILE_FLAGS="-g -fno-omit-frame-pointer"
+
+  # Turning on floating-point exceptions is technically undefined
+  # behavior, and optimizers are starting to take advantage of that.
+  # See e.g. LLVM github issue #71492: "Whether your source code
+  # contains operations that produce a division by zero is irrelevant,
+  # as they may be legally introduced by the compiler." So if we might
+  # want to be able to trigger SIGFPE without false positives, we need
+  # to use compiler flags that enable that.
+  #
+  # Those are likely to vary from compiler to compiler, because "just
+  # never let the optimizer cause a floating-point exception" used to
+  # be a popular enough strategy that you didn't need a compiler
+  # flag.  The gcc manual for -fno-trapping-math still says "This
+  # option should never be turned on by any -O option since it can
+  # result in incorrect output for programs which depend on an exact
+  # implementation of IEEE or ISO rules/specifications for math
+  # functions"...
+  ACSM_FPE_SAFETY_FLAGS=""
+
+  # For compilers that support it (clang >= 3.5.0 and GCC >= 4.8) the
+  # user can selectively enable "sanitize" flags for different METHODs
+  # with e.g.
+  #
+  # --enable-sanitize="dbg opt"
+  #
+  # These flags generally slow down code execution, so you don't
+  # necessarily want to turn them on all the time or in all METHODs.
+
+  # Declaring something AC_ARG_VAR does several things, see
+  # http://www.gnu.org/software/autoconf/manual/autoconf-2.60/html_node/Setting-Output-Variables.html
+  # for more information... not sure we need it in this case.
+  # AC_ARG_VAR([SANITIZE_METHODS], [methods we apply sanitizer flags to, e.g. "opt dbg devel"])
+
+  # Check whether --enable-sanitize was given.
+if test ${enable_sanitize+y}
+then :
+  enableval=$enable_sanitize; for method in ${enableval} ; do
+                                  case "${method}" in #(
+  optimized|opt|debug|dbg|devel|profiling|pro|prof|oprofile|oprof) :
+     ;; #(
+  *) :
+    as_fn_error $? "bad value ${method} for --enable-sanitize" "$LINENO" 5 ;;
+esac
+               done
+                              SANITIZE_METHODS=${enableval}
+fi
+
+
+  if test "x$SANITIZE_METHODS" != x
+then :
+
+          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Testing sanitizer flags for method(s) \"$SANITIZE_METHODS\" >>>" >&5
+printf "%s\n" "<<< Testing sanitizer flags for method(s) \"$SANITIZE_METHODS\" >>>" >&6; }
+
+                                        COMMON_SANITIZE_OPTIONS="-fsanitize=address -fno-omit-frame-pointer -O1 -g -fno-optimize-sibling-calls"
+
+
+    # Save current lang and CXXFLAGS values
+    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+    saveCXXFLAGS="$CXXFLAGS"
+
+    # Set CXXFLAGS to be used for the test compilation.  Note:
+    # we don't test these flags in conjunction with any
+    # others...  that doesn't seem to be necessary yet.
+    CXXFLAGS="$COMMON_SANITIZE_OPTIONS"
+
+    # Tell the user what we are doing
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if compiler has support for address sanitizer" >&5
+printf %s "checking if compiler has support for address sanitizer... " >&6; }
+
+    # Try compiling and running a simple main program with
+    # sanitizer flags.  Since address sanitizer requires
+    # library-level support, we want to be sure that a compiled
+    # executable can run, not just that the compiler accepts the
+    # sanitizer flags.  This program does not actually have a
+    # memory error, otherwise configure would consider the test
+    # to have failed...
+    if test "$cross_compiling" = yes
+then :
+
+        # Result if cross-compiling
+        have_address_sanitizer=no
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+else $as_nop
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+        int *array = new int[100];
+        delete [] array;
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_run "$LINENO"
+then :
+
+        # Result if program succeeds
+        have_address_sanitizer=yes
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+
+else $as_nop
+
+        # Result if program fails
+        have_address_sanitizer=no
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+    # Restore the original lang and flags
+    CXXFLAGS="$saveCXXFLAGS"
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+                    if test "x$have_address_sanitizer" = xyes
+then :
+
+                                                                        ACSM_SANITIZE_LDFLAGS="-Wc,-fsanitize=address"
+
+                  for method in ${SANITIZE_METHODS}; do
+                      case "${method}" in #(
+  optimized|opt) :
+    ACSM_SANITIZE_OPT_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
+  debug|dbg) :
+    ACSM_SANITIZE_DBG_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
+  devel) :
+    ACSM_SANITIZE_DEVEL_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
+  profiling|pro|prof) :
+    ACSM_SANITIZE_PROF_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
+  oprofile|oprof) :
+    ACSM_SANITIZE_OPROF_FLAGS=$COMMON_SANITIZE_OPTIONS ;; #(
+  *) :
+    as_fn_error $? "bad value ${method} for --enable-sanitize" "$LINENO" 5 ;;
+esac
+                  done
+
+fi
+
+fi
+
+  # First the flags for gcc compilers
+  if test "$GXX" = "yes" && test "x$ACSM_REAL_GXX" != "x"
+then :
+
+          ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 -felide-constructors -fstrict-aliasing -Wdisabled-optimization"
+                    ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -O2 -felide-constructors -g -pedantic -W -Wall -Wextra -Wno-long-long -Wunused"
+          ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -Wpointer-arith -Wformat -Wparentheses -Wuninitialized -fstrict-aliasing -Woverloaded-virtual -Wdisabled-optimization"
+          ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -O0 -felide-constructors -g -pedantic -W -Wall -Wextra -Wno-long-long -Wunused -Wpointer-arith -Wformat -Wparentheses -Woverloaded-virtual"
+          ACSM_NODEPRECATEDFLAG="-Wno-deprecated"
+
+                    ACSM_FPE_SAFETY_FLAGS="-ftrapping-math"
+
+          ACSM_CFLAGS_OPT="-O2 -fstrict-aliasing"
+          ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_OPT -g -Wimplicit -fstrict-aliasing"
+          ACSM_CFLAGS_DBG="-O0 -g -Wimplicit"
+          ACSM_ASSEMBLY_FLAGS="$ACSM_ASSEMBLY_FLAGS -fverbose-asm"
+
+                    if test "x$ACSM_GXX_VERSION" != "xgcc11"
+then :
+
+                  ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -funroll-loops"
+                  ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -funroll-loops"
+                  ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -funroll-loops"
+                  ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DEVEL -funroll-loops"
+
+fi
+
+                              ACSM_PARANOID_FLAGS="-Wall -Wextra -Wcast-align -Wcast-qual -Wdisabled-optimization -Wformat=2"
+          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wformat-nonliteral -Wformat-security -Wformat-y2k"
+          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Winvalid-pch -Wlogical-op -Wmissing-field-initializers"
+          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wmissing-include-dirs -Wpacked -Wredundant-decls"
+          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wshadow -Wstack-protector -Wstrict-aliasing -Wswitch-default"
+          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wtrigraphs -Wunreachable-code -Wunused-label"
+          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunused-parameter -Wunused-value -Wvariadic-macros"
+          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wvolatile-register-var -Wwrite-strings"
+
+          if test "x$enableglibcxxdebugging" = "xyes"
+then :
+  ACSM_CPPFLAGS_DBG="$ACSM_CPPFLAGS_DBG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC"
+fi
+
+          # GCC 4.6.3 warns about variadic macros but supports them just
+          # fine, so let's turn off that warning.
+          case "$ACSM_GXX_VERSION" in #(
+  gcc4.6 | gcc5) :
+    ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -Wno-variadic-macros"
+                                    ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -Wno-variadic-macros"
+                                    ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -Wno-variadic-macros" ;; #(
+  *) :
+     ;;
+esac
+
+                                        case "$target" in #(
+  *solaris*) :
+    ACSM_RPATHFLAG="-Wl,-R,"
+                                ACSM_XDR_LIBS="-lrpcsvc" ;; #(
+  *) :
+     ;;
+esac
+
+else $as_nop
+
+        case "$ACSM_GXX_VERSION" in #(
+  ibm_xlc) :
+
+                          ACSM_CXXFLAGS_OPT="-O3 -qmaxmem=-1 -w -qansialias -Q=10 -qrtti=all -qstaticinline"
+                          ACSM_CXXFLAGS_DBG="-qmaxmem=-1 -qansialias -qrtti=all -g -qstaticinline"
+                          ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DBG"
+                          ACSM_NODEPRECATEDFLAG=""
+                          ACSM_CFLAGS_OPT="-O3 -qmaxmem=-1 -w -qansialias -Q=10"
+                          ACSM_CFLAGS_DBG="-qansialias -g"
+                          ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DBG"
+                         ;; #(
+              intel_*) :
+
+                                                    ACSM_NODEPRECATEDFLAG="-Wno-deprecated"
+
+                                                    ACSM_PROFILING_FLAGS="-qp"
+
+                                                    ACSM_ASSEMBLY_FLAGS="$ACSM_ASSEMBLY_FLAGS -fverbose-asm -fsource-asm"
+
+                                                    ACSM_OPROFILE_FLAGS="-g"
+
+                                                                              ACSM_PARANOID_FLAGS="-Wall -Wextra -Wdisabled-optimization -Wformat=2"
+                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wformat-security"
+                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Winvalid-pch"
+                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wmissing-include-dirs"
+                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wtrigraphs"
+                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunused-parameter"
+                          ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wwrite-strings"
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        case "$ACSM_GXX_VERSION" in #(
+  intel_icc_v13.x | intel_icc_v14.x | intel_icc_v15.x | intel_icc_v16.x | intel_icc_v17.x | intel_icc_v18.x | intel_icc_v19.x | intel_icc_v20.x) :
+
+                                    ACSM_PROFILING_FLAGS="-p"
+                                    ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -w1 -g -wd175 -wd1476 -wd1505 -wd1572 -wd488 -wd161"
+                                    ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O3 -unroll -w0 -ftz"
+                                    ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -w1 -g -wd175 -wd1476 -wd1505 -wd1572 -wd488 -wd161"
+                                    ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG -w1 -g -wd266 -wd1572 -wd488 -wd161"
+                                    ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O3 -unroll -w0 -ftz"
+                                    ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DBG"
+                                   ;; #(
+  *) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: Unknown Intel compiler" >&5
+printf "%s\n" "Unknown Intel compiler" >&6; } ;;
+esac
+                        ;; #(
+  nvidia) :
+
+
+                                                                                    ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -O0 --display_error_number -g -pedantic -Wno-long-long -Wunused -Wuninitialized --diag_suppress=11,111,177,445,1676"
+                                ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -O2 --display_error_number -g -pedantic -Wno-long-long -Wunused -Wuninitialized --diag_suppress=11,111,177,445,1676"
+                                ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 --display_error_number --diag_suppress=11,111,177,445,1676"
+
+                                ACSM_NODEPRECATEDFLAG="-Wno-deprecated-declarations"
+
+                                ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG -O0 -g"
+                                ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DEVEL -O2 -g"
+                                ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O2"
+
+                                                                if test "$enableexceptions" = no
+then :
+
+                                        ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG --no_exceptions"
+                                        ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT --no_exceptions"
+
+fi
+                               ;; #(
+  portland_group) :
+
+                                ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -g --no_using_std"
+                                ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 --no_using_std -fast -Minform=severe"
+                                ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DBG"
+
+                                                                ACSM_NODEPRECATEDFLAG=""
+
+                                ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG -g"
+                                ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O2"
+                                ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DBG"
+
+                                                                if test "$enableexceptions" = no
+then :
+
+                                        ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG --no_exceptions"
+                                        ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT --no_exceptions"
+
+fi
+                               ;; #(
+  cray_cc) :
+
+                         ACSM_CXXFLAGS_DBG="-h conform,one_instantiation_per_object,instantiate=used,noimplicitinclude -G n"
+                         ACSM_CXXFLAGS_OPT="-h conform,one_instantiation_per_object,instantiate=used,noimplicitinclude -G n"
+                         ACSM_CXXFLAGS_DEVEL="-h conform,one_instantiation_per_object,instantiate=used,noimplicitinclude -G n"
+                         ACSM_NODEPRECATEDFLAG=""
+                         ACSM_CFLAGS_DBG="-G n"
+                         ACSM_CFLAGS_OPT="-G n"
+                         ACSM_CFLAGS_DEVEL="-G n"
+                        ;; #(
+  clang) :
+
+                       ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O2 -felide-constructors -Qunused-arguments -Wunused-parameter -Wunused"
+                                              ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -O2 -felide-constructors -g -pedantic -W -Wall -Wextra -Wno-long-long"
+                       ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -Wunused-parameter -Wunused -Wpointer-arith -Wformat -Wparentheses -Wuninitialized -Qunused-arguments -Woverloaded-virtual -fno-limit-debug-info"
+                                              ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -O0 -felide-constructors -g -pedantic -W -Wall -Wextra -Wno-long-long"
+                       ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -Wunused-parameter -Wunused -Wpointer-arith -Wformat -Wparentheses -Qunused-arguments -Woverloaded-virtual -fno-limit-debug-info"
+                       ACSM_NODEPRECATEDFLAG="-Wno-deprecated"
+
+                                                                                                                                                                                                               ACSM_FPE_SAFETY_FLAGS="-ftrapping-math"
+
+                                              ACSM_PARANOID_FLAGS="-Wall -Wextra -Wcast-align -Wdisabled-optimization -Wformat=2"
+                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wformat-nonliteral -Wformat-security -Wformat-y2k"
+                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Winvalid-pch -Wmissing-field-initializers"
+                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wmissing-include-dirs -Wpacked"
+                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wstack-protector -Wtrigraphs"
+                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunreachable-code -Wunused-label"
+                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunused-parameter -Wunused-value -Wvariadic-macros"
+                       ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wvolatile-register-var -Wwrite-strings"
+
+                       ACSM_CFLAGS_OPT="-O2 -Qunused-arguments -Wunused"
+                       ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_OPT -g -Wimplicit -fno-limit-debug-info -Wunused"
+                       ACSM_CFLAGS_DBG="-g -Wimplicit -Qunused-arguments -fno-limit-debug-info -Wunused"
+                      ;; #(
+  *) :
+
+              { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: No specific options for this C++ compiler known" >&5
+printf "%s\n" "No specific options for this C++ compiler known" >&6; }
+              ACSM_CXXFLAGS_DBG="$CXXFLAGS"
+              ACSM_CXXFLAGS_OPT="$CXXFLAGS"
+              ACSM_CXXFLAGS_DEVEL="$CXXFLAGS"
+              ACSM_NODEPRECATEDFLAG=""
+
+              ACSM_CFLAGS_DBG="$CFLAGS"
+              ACSM_CFLAGS_OPT="$CFLAGS"
+              ACSM_CFLAGS_DEVEL="$CFLAGS"
+             ;;
+esac
+
+fi
+
+
+  #-----------------------------------------------------
+  # Add compiler flags to respect IEEE FPE behavior.
+  # This probably doesn't affect TIMPI directly but I'd
+  # hate to be surprised by it later.
+  #-----------------------------------------------------
+
+
+
+  # Check whether --enable-fpe-safety was given.
+if test ${enable_fpe_safety+y}
+then :
+  enableval=$enable_fpe_safety; case "${enableval}" in #(
+  yes) :
+    acsm_enablefpesafety=yes ;; #(
+  no) :
+    acsm_enablefpesafety=no ;; #(
+  *) :
+    as_fn_error $? "bad value ${enableval} for --enable-fpe-safety" "$LINENO" 5 ;;
+esac
+else $as_nop
+  acsm_enablefpesafety=yes
+fi
+
+
+  if test "$acsm_enablefpesafety" = "yes"
+then :
+
+          ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+          ac_fpe_safety_save_CFLAGS="$CFLAGS"
+          CFLAGS="${CFLAGS} ${ACSM_FPE_SAFETY_FLAGS}"
+          cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+
+else $as_nop
+
+              { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: unable to compile C with FPE safety flag ($CC $ACSM_FPE_SAFETY_FLAGS)" >&5
+printf "%s\n" "$as_me: WARNING: unable to compile C with FPE safety flag ($CC $ACSM_FPE_SAFETY_FLAGS)" >&2;}
+              ACSM_FPE_SAFETY_FLAGS=""
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+          CFLAGS="$ac_fpe_safety_save_CFLAGS"
+          ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+          ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+          ac_fpe_safety_save_CXXFLAGS="$CXXFLAGS"
+          CXXFLAGS="${CXXFLAGS} ${ACSM_FPE_SAFETY_FLAGS}"
+          cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+
+else $as_nop
+
+              { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: unable to compile C++ with FPE safety flag ($CXX $ACSM_FPE_SAFETY_FLAGS)" >&5
+printf "%s\n" "$as_me: WARNING: unable to compile C++ with FPE safety flag ($CXX $ACSM_FPE_SAFETY_FLAGS)" >&2;}
+              ACSM_FPE_SAFETY_FLAGS=""
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+          CXXFLAGS="$ac_fpe_safety_save_CXXFLAGS"
+          ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+          if test "x$ACSM_FPE_SAFETY_FLAGS" != "x"
+then :
+
+                  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Adding $ACSM_FPE_SAFETY_FLAGS for FPE safety >>>" >&5
+printf "%s\n" "<<< Adding $ACSM_FPE_SAFETY_FLAGS for FPE safety >>>" >&6; }
+
+else $as_nop
+
+                  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< No flags found to use for FPE safety >>>" >&5
+printf "%s\n" "<<< No flags found to use for FPE safety >>>" >&6; }
+
+fi
+          ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT $ACSM_FPE_SAFETY_FLAGS"
+          ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG $ACSM_FPE_SAFETY_FLAGS"
+          ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL $ACSM_FPE_SAFETY_FLAGS"
+
+          ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT $ACSM_FPE_SAFETY_FLAGS"
+          ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG $ACSM_FPE_SAFETY_FLAGS"
+          ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DEVEL $ACSM_FPE_SAFETY_FLAGS"
+
+else $as_nop
+
+          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Not enabling flags for FPE safety >>>" >&5
+printf "%s\n" "<<< Not enabling flags for FPE safety >>>" >&6; }
+
+fi
+
+
+
+  # in the case blocks below we may add GLIBCXX-specific pedantic debugging preprocessor
+  # definitions. Should only be used by a knowing user, because these options break
+  # ABI compatibility.
+  # Check whether --enable-glibcxx-debugging was given.
+if test ${enable_glibcxx_debugging+y}
+then :
+  enableval=$enable_glibcxx_debugging; case "${enableval}" in #(
+  yes) :
+    acsm_enableglibcxxdebugging=yes ;; #(
+  no) :
+    acsm_enableglibcxxdebugging=no ;; #(
+  *) :
+    as_fn_error $? "bad value ${enableval} for --enable-glibcxx-debugging" "$LINENO" 5 ;;
+esac
+else $as_nop
+  acsm_enableglibcxxdebugging=no
+fi
+
+
+  # GLIBCXX debugging causes untold woes on mac machines - so disable it
+  if test `uname` = "Darwin"
+then :
+
+          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Disabling GLIBCXX debugging on Darwin >>>" >&5
+printf "%s\n" "<<< Disabling GLIBCXX debugging on Darwin >>>" >&6; }
+          acsm_enableglibcxxdebugging=no
+
+fi
+   if test x$acsm_enableglibcxxdebugging = xyes; then
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE=
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE='#'
+else
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE='#'
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE=
+fi
+
+
+
+  # GLIBCXX-specific debugging flags conflict with cppunit on many of
+  # our users' systems.  However, being able to override this allows
+  # us to increase our unit test coverage.
+  # Check whether --enable-glibcxx-debugging-cppunit was given.
+if test ${enable_glibcxx_debugging_cppunit+y}
+then :
+  enableval=$enable_glibcxx_debugging_cppunit; case "${enableval}" in #(
+  yes) :
+    acsm_enableglibcxxdebuggingcppunit=yes ;; #(
+  no) :
+    acsm_enableglibcxxdebuggingcppunit=no ;; #(
+  *) :
+    as_fn_error $? "bad value ${enableval} for --enable-glibcxx-debugging-cppunit" "$LINENO" 5 ;;
+esac
+else $as_nop
+  acsm_enableglibcxxdebuggingcppunit=no
+fi
+
+
+   if test x$acsm_enableglibcxxdebuggingcppunit = xyes; then
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE=
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE='#'
+else
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE='#'
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE=
+fi
+
+
+
+  CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT"
+  CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL"
+  CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG"
+
+  CPPFLAGS_OPT="$ACSM_CPPFLAGS_OPT"
+  CPPFLAGS_DEVEL="$ACSM_CPPFLAGS_DEVEL"
+  CPPFLAGS_DBG="$ACSM_CPPFLAGS_DBG"
+
+  ASSEMBLY_FLAGS="$ACSM_ASSEMBLY_FLAGS"
+  NODEPRECATEDFLAG="$ACSM_NODEPRECATEDFLAG"
+  OPROFILE_FLAGS="$ACSM_OPROFILE_FLAGS"
+  PARANOID_FLAGS="$ACSM_PARANOID_FLAGS"
+  PROFILING_FLAGS="$ACSM_PROFILING_FLAGS"
+  RPATHFLAG="$ACSM_RPATHFLAG"
+  WERROR_FLAGS="$ACSM_WERROR_FLAGS"
+
+
+
+#------------------------------------------------------
+# Checks for code coverage
+# this must be done after we look for our own compilers
+#------------------------------------------------------
 ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
 ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
@@ -33956,16 +34111,16 @@ if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
+  as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE}" && test -z "${ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE}"; then
   as_fn_error $? "conditional \"ACSM_ENABLE_GLIBCXX_DEBUGGING\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE}" && test -z "${ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE}"; then
   as_fn_error $? "conditional \"ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
-  as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CODE_COVERAGE_ENABLED_TRUE}" && test -z "${CODE_COVERAGE_ENABLED_FALSE}"; then
