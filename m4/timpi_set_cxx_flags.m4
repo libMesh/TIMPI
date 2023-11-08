@@ -23,6 +23,13 @@ AC_DEFUN([TIMPI_SET_CXX_FLAGS],
 [
   ACSM_SET_CXX_FLAGS
 
+  #-----------------------------------------------------
+  # Add compiler flags to respect IEEE FPE behavior.
+  # This probably doesn't affect TIMPI directly but I'd
+  # hate to be surprised by it later.
+  #-----------------------------------------------------
+  ACSM_SET_FPE_SAFETY_FLAGS
+
   ACSM_SET_GLIBCXX_DEBUG_FLAGS
 
   CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT"
