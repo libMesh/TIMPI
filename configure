@@ -17302,14 +17302,14 @@ fi
                        ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -Wunused-parameter -Wunused -Wpointer-arith -Wformat -Wparentheses -Qunused-arguments -Woverloaded-virtual -fno-limit-debug-info"
                        ACSM_NODEPRECATEDFLAG="-Wno-deprecated"
 
-                                                                                                                                                                 if test "x$ACSM_CLANG_VERSION" = "xother" || test $ACSM_CLANG_VERSION -gt 10
+                                                                                                                                                                 if test "x$ACSM_CLANG_VERSION" = "xother" || test $ACSM_CLANG_VERSION -ge 10
 then :
   ACSM_FPE_SAFETY_FLAGS="-ftrapping-math"
 else $as_nop
   ACSM_FPE_SAFETY_FLAGS=""
 fi
 
-                       if test "x$ACSM_CLANG_VERSION" = "xother" || test $ACSM_CLANG_VERSION -gt 12
+                       if test "x$ACSM_CLANG_VERSION" = "xother" || test $ACSM_CLANG_VERSION -ge 12
 then :
   ACSM_FPE_SAFETY_FLAGS="$ACSM_FPE_SAFETY_FLAGS -Wno-unsupported-floating-point-opt"
 fi
