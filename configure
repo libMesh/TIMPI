@@ -4594,6 +4594,7 @@ then :
                   PETSCLINKLIBS=`make -s -C ${PETSC_DIR} SHELL=/bin/sh getlinklibs`
                   PETSCINCLUDEDIRS=`make -s -C ${PETSC_DIR} SHELL=/bin/sh getincludedirs`
                   PETSC_CXX=`make -s -C $PETSC_DIR SHELL=/bin/sh getcxxcompiler`
+                  PETSC_CC=`make -s -C $PETSC_DIR SHELL=/bin/sh getccompiler`
                   PETSC_MPI_INCLUDE_DIRS=`make -s -C $PETSC_DIR SHELL=/bin/sh getmpiincludedirs`
                   PETSC_MPI_LINK_LIBS=`make -s -C $PETSC_DIR SHELL=/bin/sh getmpilinklibs`
                   printf '%s\n' "include $PETSC_VARS_FILE" > Makefile_config_petsc
@@ -4627,6 +4628,8 @@ fi
                   printf '\t%s\n' "echo \$(PETSC_SNES_LIB)" >> Makefile_config_petsc
                   printf '%s\n' "getcxxcompiler:" >> Makefile_config_petsc
                   printf '\t%s\n' "echo \$(CXX)" >> Makefile_config_petsc
+                  printf '%s\n' "getccompiler:" >> Makefile_config_petsc
+                  printf '\t%s\n' "echo \$(CC)" >> Makefile_config_petsc
                   printf '%s\n' "getmpiincludedirs:" >> Makefile_config_petsc
                   printf '\t%s\n' "echo \$(MPI_INCLUDE)" >> Makefile_config_petsc
                   printf '%s\n' "getmpilinklibs:" >> Makefile_config_petsc
@@ -4636,6 +4639,7 @@ fi
                   PETSC_CC_INCLUDES=`make -s -f Makefile_config_petsc SHELL=/bin/sh getPETSC_CC_INCLUDES`
                   PETSC_FC_INCLUDES=`make -s -f Makefile_config_petsc SHELL=/bin/sh getPETSC_FC_INCLUDES`
                   PETSC_CXX=`make -s -f Makefile_config_petsc SHELL=/bin/sh getcxxcompiler`
+                  PETSC_CC=`make -s -f Makefile_config_petsc SHELL=/bin/sh getccompiler`
                   PETSC_MPI_INCLUDE_DIRS=`make -s -f Makefile_config_petsc SHELL=/bin/sh getmpiincludedirs`
                   PETSC_MPI_LINK_LIBS=`make -s -f Makefile_config_petsc SHELL=/bin/sh getmpilinklibs`
                   rm -f Makefile_config_petsc
@@ -15798,34 +15802,70 @@ fi
     if test "x$compiler_brand_detected" = "xno"
 then :
 
-          clang_version="`($CXX --version 2>&1)`"
-          is_clang="`echo $clang_version | grep 'clang'`"
+          ACSM_CLANG_VERSION_STRING="`($CXX --version 2>&1)`"
+          is_clang="`echo $ACSM_CLANG_VERSION_STRING | grep 'clang'`"
 
           if test "x$is_clang" != "x"
 then :
 
-                                                                        is_apple_clang="`echo $clang_version | grep 'Apple'`"
+                                                                        is_apple_clang="`echo $ACSM_CLANG_VERSION_STRING | grep 'Apple'`"
                   clang_vendor="clang"
                   if test "x$is_apple_clang" != "x"
 then :
   clang_vendor="Apple clang"
 fi
 
-                                                      clang_major_minor=unknown
+                  case "x$ACSM_CLANG_VERSION_STRING" in #(
+  *clang\ version\ 17.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-17.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-17.x >>>" >&6; }
+                                                    ACSM_CLANG_VERSION=17 ;; #(
+  *clang\ version\ 16.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-16.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-16.x >>>" >&6; }
+                                                    ACSM_CLANG_VERSION=16 ;; #(
+  *clang\ version\ 15.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-15.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-15.x >>>" >&6; }
+                                                    ACSM_CLANG_VERSION=15 ;; #(
+  *clang\ version\ 14.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-14.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-14.x >>>" >&6; }
+                                                    ACSM_CLANG_VERSION=14 ;; #(
+  *clang\ version\ 13.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-13.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-13.x >>>" >&6; }
+                                                    ACSM_CLANG_VERSION=13 ;; #(
+  *clang\ version\ 12.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-12.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-12.x >>>" >&6; }
+                                                    ACSM_CLANG_VERSION=12 ;; #(
+  *clang\ version\ 11.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-11.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-11.x >>>" >&6; }
+                                                    ACSM_CLANG_VERSION=11 ;; #(
+  *clang\ version\ 10.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-10.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-10.x >>>" >&6; }
+                                                    ACSM_CLANG_VERSION=10 ;; #(
+  *clang\ version\ 9.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-9.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-9.x >>>" >&6; }
+                                                   ACSM_CLANG_VERSION=9 ;; #(
+  *clang\ version\ 8.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-8.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-8.x >>>" >&6; }
+                                                   ACSM_CLANG_VERSION=8 ;; #(
+  *clang\ version\ 7.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is clang-7.x >>>" >&5
+printf "%s\n" "<<< C++ compiler is clang-7.x >>>" >&6; }
+                                                   ACSM_CLANG_VERSION=7 ;; #(
+  *) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler \"$ACSM_CLANG_VERSION\" is unknown but accepted clang version >>>" >&5
+printf "%s\n" "<<< C++ compiler \"$ACSM_CLANG_VERSION\" is unknown but accepted clang version >>>" >&6; }
+                           ACSM_CLANG_VERSION=other ;;
+esac
 
-                  if test "x$PERL" != "x"
-then :
-
-                          clang_major_minor=`echo $clang_version | $PERL -ne 'print $1 if /version\s(\d+\.\d+)/'`
-                          if test "x$clang_major_minor" = "x"
-then :
-  clang_major_minor=unknown
-fi
-
-fi
-
-                  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is ${clang_vendor}, version ${clang_major_minor} >>>" >&5
-printf "%s\n" "<<< C++ compiler is ${clang_vendor}, version ${clang_major_minor} >>>" >&6; }
                   ACSM_GXX_VERSION=clang
                   compiler_brand_detected=yes
 
@@ -17262,7 +17302,17 @@ fi
                        ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -Wunused-parameter -Wunused -Wpointer-arith -Wformat -Wparentheses -Qunused-arguments -Woverloaded-virtual -fno-limit-debug-info"
                        ACSM_NODEPRECATEDFLAG="-Wno-deprecated"
 
-                                                                                                                                                                                                               ACSM_FPE_SAFETY_FLAGS="-ftrapping-math"
+                                                                                                                                                                 if test "x$ACSM_CLANG_VERSION" = "xother" || test $ACSM_CLANG_VERSION -gt 10
+then :
+  ACSM_FPE_SAFETY_FLAGS="-ftrapping-math"
+else $as_nop
+  ACSM_FPE_SAFETY_FLAGS=""
+fi
+
+                       if test "x$ACSM_CLANG_VERSION" = "xother" || test $ACSM_CLANG_VERSION -gt 12
+then :
+  ACSM_FPE_SAFETY_FLAGS="$ACSM_FPE_SAFETY_FLAGS -Wno-unsupported-floating-point-opt"
+fi
 
                                               ACSM_PARANOID_FLAGS="-Wall -Wextra -Wcast-align -Wdisabled-optimization -Wformat=2"
                        ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wformat-nonliteral -Wformat-security -Wformat-y2k"
