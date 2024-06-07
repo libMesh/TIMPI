@@ -24,6 +24,13 @@ void my_inserter(std::multiset<int> & s, int i)
   s.insert(3*i+2);
 }
 
+void my_inserter(std::unordered_multiset<int> & s, int i)
+{
+  s.insert(-1);
+  s.insert(3*i+1);
+  s.insert(3*i+2);
+}
+
 void my_inserter(std::set<std::vector<int>> & s, int i)
 { s.insert(std::vector<int>(i,i)); }
 
@@ -34,6 +41,13 @@ void my_inserter(std::map<int, int> & m, int i)
 { m.insert(std::make_pair(i,2*i+3)); }
 
 void my_inserter(std::multimap<int, int> & m, int i)
+{
+  m.insert(std::make_pair(-1,-1));
+  m.insert(std::make_pair(i,3*i+1));
+  m.insert(std::make_pair(i,3*i+2));
+}
+
+void my_inserter(std::unordered_multimap<int, int> & m, int i)
 {
   m.insert(std::make_pair(-1,-1));
   m.insert(std::make_pair(i,3*i+1));
@@ -60,6 +74,13 @@ void tester(const std::multiset<int> & s, int i)
   TIMPI_UNIT_ASSERT( s.count(3*i+2) == std::size_t(1) );
 }
 
+void tester(const std::unordered_multiset<int> & s, int i)
+{
+  TIMPI_UNIT_ASSERT( s.count(-1) * 3 == s.size() );
+  TIMPI_UNIT_ASSERT( s.count(3*i+1) == std::size_t(1) );
+  TIMPI_UNIT_ASSERT( s.count(3*i+2) == std::size_t(1) );
+}
+
 void tester(const std::set<std::vector<int>> & s, int i)
 { TIMPI_UNIT_ASSERT( s.count(std::vector<int>(i,i)) == std::size_t(1) ); }
 
@@ -73,6 +94,22 @@ void tester(const std::map<int, int> & m, int i)
 }
 
 void tester(const std::multimap<int, int> & m, int i)
+{
+  TIMPI_UNIT_ASSERT( m.count(-1) * 3 == m.size() );
+
+  std::bitset<2> found;
+  auto [begin, end] = m.equal_range(i);
+  for (auto it = begin; it != end; ++it)
+    {
+      auto [key, val] = *it;
+      TIMPI_UNIT_ASSERT( val > 3*i && val < 3*i+3 );
+      TIMPI_UNIT_ASSERT( !found[val-3*i-1] );
+      found[val-3*i-1] = true;
+    }
+  TIMPI_UNIT_ASSERT( found.count() == 2 );
+}
+
+void tester(const std::unordered_multimap<int, int> & m, int i)
 {
   TIMPI_UNIT_ASSERT( m.count(-1) * 3 == m.size() );
 
@@ -232,9 +269,11 @@ int main(int argc, const char * const * argv)
 
   testBigUnion<std::set<int>>();
   testBigUnion<std::multiset<int>>(3);
+  testBigUnion<std::unordered_multiset<int>>(3);
   testBigUnion<std::unordered_set<int>>();
   testBigUnion<std::map<int, int>>();
   testBigUnion<std::multimap<int, int>>(3);
+  testBigUnion<std::unordered_multimap<int, int>>(3);
   testBigUnion<std::unordered_map<int, int>>();
 
   testUnion<std::set<int>>();
