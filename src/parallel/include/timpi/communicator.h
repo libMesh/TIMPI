@@ -465,11 +465,16 @@ public:
   /**
    * Take a container (set, map, unordered_set, multimap, etc) of
    * local variables on each processor, and collect their union over
-   * all processors, replacing the original on processor 0.
+   * all processors, replacing the original on the processor with rank
+   * \p root_id.
    *
    * If the \p data is a map or unordered_map and entries exist on
    * different processors with the same key and different values, then
    * the value with the lowest processor id takes precedence.
+   *
+   * If the \p data is a multiset or multimap or unordered_multimap,
+   * and entries exist on different processors with the same key,
+   * these entries are duplicated in the gathered container.
    */
   template <typename T>
   inline
@@ -479,6 +484,10 @@ public:
    * Take a container of local variables on each processor, and
    * replace it with their union over all processors, replacing the
    * original on all processors.
+   *
+   * If the \p data is a multiset or multimap or unordered_multimap,
+   * and entries exist on different processors with the same key,
+   * these entries are duplicated in the gathered container.
    */
   template <typename T>
   inline
