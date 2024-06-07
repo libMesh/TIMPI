@@ -17,6 +17,13 @@ Communicator *TestCommWorld;
 void my_inserter(std::set<int> & s, int i)
 { s.insert(i); }
 
+void my_inserter(std::multiset<int> & s, int i)
+{
+  s.insert(-1);
+  s.insert(3*i+1);
+  s.insert(3*i+2);
+}
+
 void my_inserter(std::set<std::vector<int>> & s, int i)
 { s.insert(std::vector<int>(i,i)); }
 
@@ -46,6 +53,13 @@ void my_inserter(std::unordered_map<int, std::vector<int>> & m, int i)
 void tester(const std::set<int> & s, int i)
 { TIMPI_UNIT_ASSERT( s.count(i) == std::size_t(1) ); }
 
+void tester(const std::multiset<int> & s, int i)
+{
+  TIMPI_UNIT_ASSERT( s.count(-1) * 3 == s.size() );
+  TIMPI_UNIT_ASSERT( s.count(3*i+1) == std::size_t(1) );
+  TIMPI_UNIT_ASSERT( s.count(3*i+2) == std::size_t(1) );
+}
+
 void tester(const std::set<std::vector<int>> & s, int i)
 { TIMPI_UNIT_ASSERT( s.count(std::vector<int>(i,i)) == std::size_t(1) ); }
 
@@ -57,7 +71,6 @@ void tester(const std::map<int, int> & m, int i)
   TIMPI_UNIT_ASSERT( m.count(i) == std::size_t(1) );
   TIMPI_UNIT_ASSERT( m.at(i) == 2*i+3 );
 }
-
 
 void tester(const std::multimap<int, int> & m, int i)
 {
@@ -218,6 +231,7 @@ int main(int argc, const char * const * argv)
   TestCommWorld = &init.comm();
 
   testBigUnion<std::set<int>>();
+  testBigUnion<std::multiset<int>>(3);
   testBigUnion<std::unordered_set<int>>();
   testBigUnion<std::map<int, int>>();
   testBigUnion<std::multimap<int, int>>(3);
