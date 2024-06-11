@@ -2922,6 +2922,41 @@ inline void Communicator::set_union(std::set<T,C,A> & data) const
 
 
 
+template <typename T, typename C, typename A>
+inline void Communicator::set_union(std::multiset<T,C,A> & data,
+                                    const unsigned int root_id) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<T> vecdata(data.begin(), data.end());
+      this->gather(root_id, vecdata);
+      if (this->rank() == root_id)
+        {
+          // Clear first so the root's data doesn't get duplicated
+          data.clear();
+          data.insert(vecdata.begin(), vecdata.end());
+        }
+    }
+}
+
+
+template <typename T, typename C, typename A>
+inline void Communicator::set_union(std::multiset<T,C,A> & data) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<T> vecdata(data.begin(), data.end());
+      this->allgather(vecdata, false);
+
+      // Don't let our data duplicate itself
+      data.clear();
+
+      data.insert(vecdata.begin(), vecdata.end());
+    }
+}
+
+
+
 template <typename T1, typename T2, typename C, typename A>
 inline void Communicator::set_union(std::map<T1,T2,C,A> & data,
                                     const unsigned int root_id) const
@@ -2931,13 +2966,15 @@ inline void Communicator::set_union(std::map<T1,T2,C,A> & data,
       std::vector<std::pair<T1,T2>> vecdata(data.begin(), data.end());
       this->gather(root_id, vecdata);
 
-      // If we have a non-zero root_id, we still want to let pid 0's
-      // values take precedence in the event we have duplicate keys
-      if (root_id)
-        data.clear();
-
       if (this->rank() == root_id)
-        data.insert(vecdata.begin(), vecdata.end());
+        {
+          // If we have a non-zero root_id, we still want to let pid
+          // 0's values take precedence in the event we have duplicate
+          // keys
+          data.clear();
+
+          data.insert(vecdata.begin(), vecdata.end());
+        }
     }
 }
 
@@ -2958,6 +2995,45 @@ inline void Communicator::set_union(std::map<T1,T2,C,A> & data) const
       data.insert(vecdata.begin(), vecdata.end());
     }
 }
+
+
+
+template <typename T1, typename T2, typename C, typename A>
+inline void Communicator::set_union(std::multimap<T1,T2,C,A> & data,
+                                    const unsigned int root_id) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<std::pair<T1,T2>> vecdata(data.begin(), data.end());
+      this->gather(root_id, vecdata);
+
+      if (this->rank() == root_id)
+        {
+          // Don't let root's data duplicate itself
+          data.clear();
+
+          data.insert(vecdata.begin(), vecdata.end());
+        }
+    }
+}
+
+
+
+template <typename T1, typename T2, typename C, typename A>
+inline void Communicator::set_union(std::multimap<T1,T2,C,A> & data) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<std::pair<T1,T2>> vecdata(data.begin(), data.end());
+      this->allgather(vecdata, false);
+
+      // Don't let our data duplicate itself
+      data.clear();
+
+      data.insert(vecdata.begin(), vecdata.end());
+    }
+}
+
 
 
 template <typename K, typename H, typename KE, typename A>
@@ -2988,6 +3064,43 @@ inline void Communicator::set_union(std::unordered_set<K,H,KE,A> & data) const
 
 
 
+template <typename K, typename H, typename KE, typename A>
+inline void Communicator::set_union(std::unordered_multiset<K,H,KE,A> & data,
+                                    const unsigned int root_id) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<K> vecdata(data.begin(), data.end());
+      this->gather(root_id, vecdata);
+      if (this->rank() == root_id)
+        {
+          // Don't let root's data duplicate itself
+          data.clear();
+
+          data.insert(vecdata.begin(), vecdata.end());
+        }
+    }
+}
+
+
+
+template <typename K, typename H, typename KE, typename A>
+inline void Communicator::set_union(std::unordered_multiset<K,H,KE,A> & data) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<K> vecdata(data.begin(), data.end());
+      this->allgather(vecdata, false);
+
+      // Don't let our data duplicate itself
+      data.clear();
+
+      data.insert(vecdata.begin(), vecdata.end());
+    }
+}
+
+
+
 template <typename K, typename T, typename H, typename KE, typename A>
 inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data,
                                     const unsigned int root_id) const
@@ -2997,13 +3110,15 @@ inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data,
       std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
       this->gather(root_id, vecdata);
 
-      // If we have a non-zero root_id, we still want to let pid 0's
-      // values take precedence in the event we have duplicate keys
-      if (root_id)
-        data.clear();
-
       if (this->rank() == root_id)
-        data.insert(vecdata.begin(), vecdata.end());
+        {
+          // If we have a non-zero root_id, we still want to let pid
+          // 0's values take precedence in the event we have duplicate
+          // keys
+          data.clear();
+
+          data.insert(vecdata.begin(), vecdata.end());
+        }
     }
 }
 
@@ -3019,6 +3134,44 @@ inline void Communicator::set_union(std::unordered_map<K,T,H,KE,A> & data) const
 
       // We want values on lower pids to take precedence in the event
       // we have duplicate keys
+      data.clear();
+
+      data.insert(vecdata.begin(), vecdata.end());
+    }
+}
+
+
+
+template <typename K, typename T, typename H, typename KE, typename A>
+inline void Communicator::set_union(std::unordered_multimap<K,T,H,KE,A> & data,
+                                    const unsigned int root_id) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
+      this->gather(root_id, vecdata);
+
+      if (this->rank() == root_id)
+        {
+          // Don't let root's data duplicate itself
+          data.clear();
+
+          data.insert(vecdata.begin(), vecdata.end());
+        }
+    }
+}
+
+
+
+template <typename K, typename T, typename H, typename KE, typename A>
+inline void Communicator::set_union(std::unordered_multimap<K,T,H,KE,A> & data) const
+{
+  if (this->size() > 1)
+    {
+      std::vector<std::pair<K,T>> vecdata(data.begin(), data.end());
+      this->allgather(vecdata, false);
+
+      // Don't let our data duplicate itself
       data.clear();
 
       data.insert(vecdata.begin(), vecdata.end());

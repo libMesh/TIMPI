@@ -107,6 +107,15 @@
     inline
     void set_union(std::set<T,C,A> &data) const;
 
+    template <typename T, typename C, typename A>
+    inline
+    void set_union(std::multiset<T,C,A> &data,
+                   const unsigned int root_id) const;
+
+    template <typename T, typename C, typename A>
+    inline
+    void set_union(std::multiset<T,C,A> &data) const;
+
     template <typename T1, typename T2, typename C, typename A>
     inline
     void set_union(std::map<T1,T2,C,A> &data,
@@ -115,6 +124,15 @@
     template <typename T1, typename T2, typename C, typename A>
     inline
     void set_union(std::map<T1,T2,C,A> &data) const;
+
+    template <typename T1, typename T2, typename C, typename A>
+    inline
+    void set_union(std::multimap<T1,T2,C,A> &data,
+                   const unsigned int root_id) const;
+
+    template <typename T1, typename T2, typename C, typename A>
+    inline
+    void set_union(std::multimap<T1,T2,C,A> &data) const;
 
     template <typename K, typename H, typename KE, typename A>
     inline
@@ -125,6 +143,15 @@
     inline
     void set_union(std::unordered_set<K,H,KE,A> &data) const;
 
+    template <typename K, typename H, typename KE, typename A>
+    inline
+    void set_union(std::unordered_multiset<K,H,KE,A> &data,
+                   const unsigned int root_id) const;
+
+    template <typename K, typename H, typename KE, typename A>
+    inline
+    void set_union(std::unordered_multiset<K,H,KE,A> &data) const;
+
     template <typename K, typename T, typename H, typename KE, typename A>
     inline
     void set_union(std::unordered_map<K,T,H,KE,A> &data,
@@ -133,6 +160,15 @@
     template <typename K, typename T, typename H, typename KE, typename A>
     inline
     void set_union(std::unordered_map<K,T,H,KE,A> &data) const;
+
+    template <typename K, typename T, typename H, typename KE, typename A>
+    inline
+    void set_union(std::unordered_multimap<K,T,H,KE,A> &data,
+                   const unsigned int root_id) const;
+
+    template <typename K, typename T, typename H, typename KE, typename A>
+    inline
+    void set_union(std::unordered_multimap<K,T,H,KE,A> &data) const;
 
     template <typename T, typename A1, typename A2>
     inline
