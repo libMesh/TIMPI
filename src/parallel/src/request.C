@@ -128,7 +128,7 @@ Status Request::wait ()
       _prior_request.reset(nullptr);
     }
 
-  Status stat;
+  Status stat {};
 #ifdef TIMPI_HAVE_MPI
   timpi_call_mpi
     (MPI_Wait (&_request, stat.get()));
