@@ -1,8 +1,10 @@
 #include <timpi/timpi.h>
 
 #define TIMPI_UNIT_ASSERT(expr) \
-  if (!(expr)) \
-    timpi_error();
+  do { \
+    if (!(expr)) \
+      timpi_error(); \
+  } while (0)
 
 using namespace TIMPI;
 
@@ -165,6 +167,36 @@ void testGather()
         TIMPI_UNIT_ASSERT(allvals[i].size() == i%10);
         for (processor_id_type j = 0, jend = i%10; j != jend; ++j)
           TIMPI_UNIT_ASSERT(allvals[i][j] == int(3*j));
+      }
+  }
+
+  void testAllGatherVectorVectorInPlace()
+  {
+    std::vector<std::vector<double>> allvals;
+    if (TestCommWorld->rank() == 1)
+      {
+        // Leave test empty for rank 1
+      }
+    else
+      {
+        allvals.push_back(
+          {static_cast<double>(TestCommWorld->rank()),
+           static_cast<double>(TestCommWorld->rank() * 2)});
+      }
+
+    TestCommWorld->allgather(allvals, false);
+
+    if (TestCommWorld->size() > 1)
+      TIMPI_UNIT_ASSERT(allvals.size() == TestCommWorld->size()-1);
+    else
+      TIMPI_UNIT_ASSERT(allvals.size() == 1);
+
+    for (processor_id_type i = 0, iend = TestCommWorld->size()-1; i != iend; ++i)
+      {
+        int r = i > 0 ? (i+1) : i;
+        TIMPI_UNIT_ASSERT(allvals[i].size() == 2);
+        TIMPI_UNIT_ASSERT(allvals[i][0] == r);
+        TIMPI_UNIT_ASSERT(allvals[i][1] == r*2);
       }
   }
 
@@ -1133,6 +1165,7 @@ int main(int argc, const char * const * argv)
   testAllGatherString();
   testAllGatherVectorString();
   testAllGatherVectorVector();
+  testAllGatherVectorVectorInPlace();
   testAllGatherVectorVectorPacked();
   testAllGatherEmptyVectorString();
   testAllGatherHalfEmptyVectorString();
