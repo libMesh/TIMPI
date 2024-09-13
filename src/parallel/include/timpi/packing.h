@@ -127,7 +127,14 @@ put_packed_len (unsigned int len, Iter data_out)
     {
       constexpr int size_entries = get_packed_len_entries<buffer_type>();
 
-      const std::size_t max_entry = std::size_t(1) << n_bits;
+      // Some compilers warn about shifting by too many bits even when
+      // that's unreachable code.  After we require C++17 we should
+      // see if "if constexpr" is a better ifx.
+      constexpr int compiler_workaround =
+        std::max(n_bits-1, int(sizeof(unsigned int) * CHAR_BIT));
+
+      const std::size_t max_entry = std::size_t(1) <<
+        compiler_workaround;
 
       for (unsigned int i=0; i != size_entries; ++i)
         {
