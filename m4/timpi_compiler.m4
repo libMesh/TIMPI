@@ -55,10 +55,4 @@ AC_DEFUN([TIMPI_SET_COMPILERS],
 
   dnl If we still don't have a CXX set then we will try to pick one up from CXX_TRY_LIST
   AC_PROG_CXX([$CXX_TRY_LIST])
-
-  # --------------------------------------------------------------
-  # Figure out which version of a particular compiler, e.g. GCC 4.0,
-  # we are using.
-  # --------------------------------------------------------------
-  DETERMINE_CXX_BRAND
 ])
