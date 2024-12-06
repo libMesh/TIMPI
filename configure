@@ -695,7 +695,6 @@ EGREP
 GREP
 LIBTOOL
 enablewarnings
-acsm_precision_LIBS
 enabledeprecated
 timpi_optional_LIBS
 timpi_optional_INCLUDES
@@ -4595,6 +4594,7 @@ then :
                   PETSCINCLUDEDIRS=`make -s -C ${PETSC_DIR} SHELL=/bin/sh getincludedirs`
                   PETSC_CXX=`make -s -C $PETSC_DIR SHELL=/bin/sh getcxxcompiler`
                   PETSC_CC=`make -s -C $PETSC_DIR SHELL=/bin/sh getccompiler`
+                  PETSC_FC=`make -s -C $PETSC_DIR SHELL=/bin/sh getfortrancompiler`
                   PETSC_MPI_INCLUDE_DIRS=`make -s -C $PETSC_DIR SHELL=/bin/sh getmpiincludedirs`
                   PETSC_MPI_LINK_LIBS=`make -s -C $PETSC_DIR SHELL=/bin/sh getmpilinklibs`
                   printf '%s\n' "include $PETSC_VARS_FILE" > Makefile_config_petsc
@@ -4630,6 +4630,8 @@ fi
                   printf '\t%s\n' "echo \$(CXX)" >> Makefile_config_petsc
                   printf '%s\n' "getccompiler:" >> Makefile_config_petsc
                   printf '\t%s\n' "echo \$(CC)" >> Makefile_config_petsc
+                  printf '%s\n' "getfortrancompiler:" >> Makefile_config_petsc
+                  printf '\t%s\n' "echo \$(FC)" >> Makefile_config_petsc
                   printf '%s\n' "getmpiincludedirs:" >> Makefile_config_petsc
                   printf '\t%s\n' "echo \$(MPI_INCLUDE)" >> Makefile_config_petsc
                   printf '%s\n' "getmpilinklibs:" >> Makefile_config_petsc
@@ -4640,6 +4642,7 @@ fi
                   PETSC_FC_INCLUDES=`make -s -f Makefile_config_petsc SHELL=/bin/sh getPETSC_FC_INCLUDES`
                   PETSC_CXX=`make -s -f Makefile_config_petsc SHELL=/bin/sh getcxxcompiler`
                   PETSC_CC=`make -s -f Makefile_config_petsc SHELL=/bin/sh getccompiler`
+                  PETSC_FC=`make -s -f Makefile_config_petsc SHELL=/bin/sh getfortrancompiler`
                   PETSC_MPI_INCLUDE_DIRS=`make -s -f Makefile_config_petsc SHELL=/bin/sh getmpiincludedirs`
                   PETSC_MPI_LINK_LIBS=`make -s -f Makefile_config_petsc SHELL=/bin/sh getmpilinklibs`
                   rm -f Makefile_config_petsc
@@ -5591,223 +5594,6 @@ else
   am__fastdepCXX_FALSE=
 fi
 
-
-
-  # --------------------------------------------------------------
-  # Figure out which version of a particular compiler, e.g. GCC 4.0,
-  # we are using.
-  # --------------------------------------------------------------
-
-    compiler_brand_detected=no
-
-      REAL_GXX=`($CXX -v 2>&1) | grep "gcc version"`
-
-    is_intel_icc="`($CXX -V 2>&1) | grep 'Intel(R)' | grep 'Compiler'`"
-  if test "x$is_intel_icc" != "x"
-then :
-  REAL_GXX=""
-fi
-
-  if test "$GXX" = "yes" && test "x$REAL_GXX" != "x"
-then :
-
-                    GXX_VERSION_STRING=`($CXX -v 2>&1) | grep "gcc version"`
-
-          case "$GXX_VERSION_STRING" in #(
-  *gcc\ version\ 7.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is gcc-7.x >>>" >&5
-printf "%s\n" "<<< C++ compiler is gcc-7.x >>>" >&6; }
-                                         GXX_VERSION=gcc7 ;; #(
-  *gcc\ version\ 6.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is gcc-6.x >>>" >&5
-printf "%s\n" "<<< C++ compiler is gcc-6.x >>>" >&6; }
-                                         GXX_VERSION=gcc6 ;; #(
-  *gcc\ version\ 5.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is gcc-5.x >>>" >&5
-printf "%s\n" "<<< C++ compiler is gcc-5.x >>>" >&6; }
-                                         GXX_VERSION=gcc5 ;; #(
-  *4.9.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is gcc-4.9 >>>" >&5
-printf "%s\n" "<<< C++ compiler is gcc-4.9 >>>" >&6; }
-                             GXX_VERSION=gcc4.9 ;; #(
-  *4.8.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is gcc-4.8 >>>" >&5
-printf "%s\n" "<<< C++ compiler is gcc-4.8 >>>" >&6; }
-                             GXX_VERSION=gcc4.8 ;; #(
-  *4.7.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is gcc-4.7 >>>" >&5
-printf "%s\n" "<<< C++ compiler is gcc-4.7 >>>" >&6; }
-                             GXX_VERSION=gcc4.7 ;; #(
-  *4.6.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is gcc-4.6 >>>" >&5
-printf "%s\n" "<<< C++ compiler is gcc-4.6 >>>" >&6; }
-                             GXX_VERSION=gcc4.6 ;; #(
-  *) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is unknown but accepted gcc version >>>" >&5
-printf "%s\n" "<<< C++ compiler is unknown but accepted gcc version >>>" >&6; }
-                   GXX_VERSION=gcc-other ;;
-esac
-
-                    compiler_brand_detected=yes
-
-fi
-
-    if test "x$compiler_brand_detected" = "xno"
-then :
-
-          clang_version="`($CXX --version 2>&1)`"
-          is_clang="`echo $clang_version | grep 'clang'`"
-
-          if test "x$is_clang" != "x"
-then :
-
-                                                                        is_apple_clang="`echo $clang_version | grep 'Apple'`"
-                  clang_vendor="clang"
-                  if test "x$is_apple_clang" != "x"
-then :
-  clang_vendor="Apple clang"
-fi
-
-                                                      clang_major_minor=unknown
-
-                  if test "x$PERL" != "x"
-then :
-
-                          clang_major_minor=`echo $clang_version | $PERL -ne 'print $1 if /version\s(\d+\.\d+)/'`
-                          if test "x$clang_major_minor" = "x"
-then :
-  clang_major_minor=unknown
-fi
-
-fi
-
-                  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is ${clang_vendor}, version ${clang_major_minor} >>>" >&5
-printf "%s\n" "<<< C++ compiler is ${clang_vendor}, version ${clang_major_minor} >>>" >&6; }
-                  GXX_VERSION=clang
-                  compiler_brand_detected=yes
-
-fi
-
-fi
-
-    if test "x$compiler_brand_detected" = "xno"
-then :
-
-          is_intel_icc="`($CXX -V 2>&1) | grep 'Intel(R)' | grep 'Compiler'`"
-          if test "x$is_intel_icc" != "x"
-then :
-
-                  GXX_VERSION_STRING="`($CXX -V 2>&1) | grep 'Version '`"
-                  case "$GXX_VERSION_STRING" in #(
-  *21.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 21 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 21 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v21.x ;; #(
-  *20.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 20 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 20 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v20.x ;; #(
-  *19.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 19 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 19 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v19.x ;; #(
-  *18.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 18 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 18 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v18.x ;; #(
-  *17.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 17 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 17 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v17.x ;; #(
-  *16.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 16 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 16 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v16.x ;; #(
-  *15.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 15 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 15 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v15.x ;; #(
-  *14.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 14 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 14 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v14.x ;; #(
-  *13.*) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 13 >>>" >&5
-printf "%s\n" "<<< C++ compiler is Intel(R) icc 13 >>>" >&6; }
-                            GXX_VERSION=intel_icc_v13.x ;; #(
-  *) :
-    as_fn_error $? "Unsupported Intel compiler detected" "$LINENO" 5 ;;
-esac
-                  compiler_brand_detected=yes
-
-fi
-
-fi
-
-              if test "x$compiler_brand_detected" = "xno"
-then :
-
-          is_ibm_xlc="`($CXX 2>&1) | egrep -i 'xlc'`"
-          if test "x$is_ibm_xlc" != "x"
-then :
-
-                  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is IBM xlC >>>" >&5
-printf "%s\n" "<<< C++ compiler is IBM xlC >>>" >&6; }
-                  GXX_VERSION=ibm_xlc
-                  compiler_brand_detected=yes
-
-fi
-
-fi
-
-    if test "x$compiler_brand_detected" = "xno"
-then :
-
-          is_cray_cc="`($CXX -V 2>&1) | grep 'Cray '`"
-          if test "x$is_cray_cc" != "x"
-then :
-
-                  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Cray C++ >>>" >&5
-printf "%s\n" "<<< C++ compiler is Cray C++ >>>" >&6; }
-                  GXX_VERSION=cray_cc
-                  compiler_brand_detected=yes
-
-fi
-
-fi
-
-    if test "x$compiler_brand_detected" = "xno"
-then :
-
-          is_pgcc="`($CXX -V 2>&1) | grep 'Portland Group\|PGI'`"
-          if test "x$is_pgcc" != "x"
-then :
-
-            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Portland Group C++ >>>" >&5
-printf "%s\n" "<<< C++ compiler is Portland Group C++ >>>" >&6; }
-            GXX_VERSION=portland_group
-            compiler_brand_detected=yes
-
-fi
-
-fi
-
-    if test "x$compiler_brand_detected" = "xno"
-then :
-
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: WARNING:" >&5
-printf "%s\n" "WARNING:" >&6; }
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: >>> Unrecognized compiler: \"$CXX\" <<<" >&5
-printf "%s\n" ">>> Unrecognized compiler: \"$CXX\" <<<" >&6; }
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: You will likely need to modify" >&5
-printf "%s\n" "You will likely need to modify" >&6; }
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: Make.common directly to specify" >&5
-printf "%s\n" "Make.common directly to specify" >&6; }
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: proper compiler flags" >&5
-printf "%s\n" "proper compiler flags" >&6; }
-          GXX_VERSION=unknown
-
-fi
 
 
 
@@ -15876,7 +15662,7 @@ fi
     if test "x$compiler_brand_detected" = "xno"
 then :
 
-          is_intel_icc="`($CXX -V 2>&1) | grep 'Intel(R)' | grep 'Compiler'`"
+          is_intel_icc="`($CXX -V 2>&1) | grep 'Intel(R)' | grep 'Compiler' | grep -v 'oneAPI'`"
           if test "x$is_intel_icc" != "x"
 then :
 
@@ -15918,6 +15704,39 @@ printf "%s\n" "<<< C++ compiler is Intel(R) icc 14 >>>" >&6; }
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icc 13 >>>" >&5
 printf "%s\n" "<<< C++ compiler is Intel(R) icc 13 >>>" >&6; }
                             ACSM_GXX_VERSION=intel_icc_v13.x ;; #(
+  *) :
+    as_fn_error $? "Unsupported Intel compiler detected" "$LINENO" 5 ;;
+esac
+                  compiler_brand_detected=yes
+
+fi
+
+          is_intel_icx="`($CXX -V 2>&1) | grep 'Intel(R)' | grep 'Compiler' | grep 'oneAPI'`"
+          if test "x$is_intel_icx" != "x"
+then :
+
+                  ACSM_GXX_VERSION_STRING="`($CXX -V 2>&1) | grep 'Version '`"
+                  case "$ACSM_GXX_VERSION_STRING" in #(
+  *25.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icx 25 >>>" >&5
+printf "%s\n" "<<< C++ compiler is Intel(R) icx 25 >>>" >&6; }
+                            ACSM_GXX_VERSION=intel_icx_v25.x ;; #(
+  *24.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icx 24 >>>" >&5
+printf "%s\n" "<<< C++ compiler is Intel(R) icx 24 >>>" >&6; }
+                            ACSM_GXX_VERSION=intel_icx_v24.x ;; #(
+  *23.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icx 23 >>>" >&5
+printf "%s\n" "<<< C++ compiler is Intel(R) icx 23 >>>" >&6; }
+                            ACSM_GXX_VERSION=intel_icx_v23.x ;; #(
+  *22.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icx 22 >>>" >&5
+printf "%s\n" "<<< C++ compiler is Intel(R) icx 22 >>>" >&6; }
+                            ACSM_GXX_VERSION=intel_icx_v22.x ;; #(
+  *21.*) :
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< C++ compiler is Intel(R) icx 21 >>>" >&5
+printf "%s\n" "<<< C++ compiler is Intel(R) icx 21 >>>" >&6; }
+                            ACSM_GXX_VERSION=intel_icx_v21.x ;; #(
   *) :
     as_fn_error $? "Unsupported Intel compiler detected" "$LINENO" 5 ;;
 esac
@@ -17227,7 +17046,7 @@ else $as_nop
                           ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wwrite-strings"
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         case "$ACSM_GXX_VERSION" in #(
-  intel_icc_v13.x | intel_icc_v14.x | intel_icc_v15.x | intel_icc_v16.x | intel_icc_v17.x | intel_icc_v18.x | intel_icc_v19.x | intel_icc_v20.x) :
+  intel_icc_*) :
 
                                     ACSM_PROFILING_FLAGS="-p"
                                     ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -w1 -g -wd175 -wd1476 -wd1505 -wd1572 -wd488 -wd161"
@@ -17237,9 +17056,19 @@ else $as_nop
                                     ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O3 -unroll -w0 -ftz"
                                     ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DBG"
                                    ;; #(
+  intel_icx_*) :
+
+                                    ACSM_PROFILING_FLAGS=""
+                                    ACSM_CXXFLAGS_DBG="$ACSM_CXXFLAGS_DBG -O0 -g"
+                                    ACSM_CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT -O3 -w0"
+                                    ACSM_CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL -O2 -g"
+                                    ACSM_CFLAGS_DBG="$ACSM_CFLAGS_DBG -O0 -g"
+                                    ACSM_CFLAGS_OPT="$ACSM_CFLAGS_OPT -O3 -w0"
+                                    ACSM_CFLAGS_DEVEL="$ACSM_CFLAGS_DEVEL -O2 -g"
+                                   ;; #(
   *) :
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: Unknown Intel compiler" >&5
-printf "%s\n" "Unknown Intel compiler" >&6; } ;;
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: Unknown Intel compiler \"$ACSM_GXX_VERSION\"" >&5
+printf "%s\n" "Unknown Intel compiler \"$ACSM_GXX_VERSION\"" >&6; } ;;
 esac
                         ;; #(
   nvidia) :
@@ -19303,8 +19132,6 @@ printf "%s\n" "#define DEFAULT_SCALAR_TYPE double" >>confdefs.h
 printf "%s\n" "<<< Default floating point is double precision (double) >>>" >&6; }
 
 fi
-
-
 
 
 
