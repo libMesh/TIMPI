@@ -39,7 +39,7 @@ namespace TIMPI
 
 #ifdef TIMPI_HAVE_MPI
 TIMPIInit::TIMPIInit (int argc, const char * const * argv,
-                            bool using_threads,
+                            int mpi_thread_requested,
                             bool handle_mpi_errors,
                             MPI_Comm COMM_WORLD_IN) :
   i_initialized_mpi(false),
@@ -53,16 +53,12 @@ TIMPIInit::TIMPIInit (int argc, const char * const * argv,
   if (!flag)
     {
       int mpi_thread_provided;
-      const int mpi_thread_requested = using_threads ?
-        MPI_THREAD_FUNNELED :
-        MPI_THREAD_SINGLE;
 
       timpi_call_mpi
         (MPI_Init_thread (&argc, const_cast<char ***>(&argv),
                           mpi_thread_requested, &mpi_thread_provided));
 
-      if (using_threads &&
-          (mpi_thread_provided < MPI_THREAD_FUNNELED))
+      if (mpi_thread_provided < mpi_thread_requested)
         {
           // Ideally, if an MPI stack tells us it's unsafe for us
           // to use threads, we should scream and die or at least
@@ -75,9 +71,27 @@ TIMPIInit::TIMPIInit (int argc, const char * const * argv,
           // a couple old stacks that return MPI_THREAD_SINGLE but
           // support threaded runs anyway, so we just emit a warning.
           //
-          timpi_warning("Warning: MPI failed to guarantee MPI_THREAD_FUNNELED\n"
+          std::string thread_type;
+          switch (mpi_thread_requested)
+            {
+            case 0:
+              thread_type = "MPI_THREAD_SINGLE";
+              break;
+            case 1:
+              thread_type = "MPI_THREAD_FUNNELED";
+              break;
+            case 2:
+              thread_type = "MPI_THREAD_SERIALIZED";
+              break;
+            case 3:
+              thread_type = "MPI_THREAD_MULTIPLE";
+              break;
+            default:
+              timpi_error_msg("Unsupported mpi thread requested '" << mpi_thread_requested << "'");
+            }
+
+          timpi_warning("Warning: MPI failed to guarantee " << thread_type << "\n"
                            << "for a threaded run.\n"
-                           << "Be sure your library is funneled-thread-safe..."
                            << std::endl);
         }
       this->i_initialized_mpi = true;
@@ -106,8 +120,8 @@ TIMPIInit::TIMPIInit (int argc, const char * const * argv,
 }
 #else
 TIMPIInit::TIMPIInit (int /* argc */, const char * const * /* argv */,
-                            bool /* handle_mpi_errors */,
-                            bool /* using_threads */)
+                      int /* mpi_thread_requested */,
+                      bool /* handle_mpi_errors */)
 {
   this->_comm = std::make_unique<Communicator>(); // So comm() doesn't dereference null
   this->_ref = std::make_unique<SemiPermanent::Ref>();

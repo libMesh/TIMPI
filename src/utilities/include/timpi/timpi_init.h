@@ -63,8 +63,10 @@ public:
    * provided.  This will e.g. call MPI_Init_thread if MPI is
    * available and enabled and has not already been initialized.
    *
-   * using_threads should be set to true when MPI_THREAD_FUNNELED
-   * initialization is desired.
+   * mpi_thread_requested should be set to 0 when MPI_THREAD_SINGLE is
+   * desired, 1 when MPI_THREAD_FUNNELED initialization is desired, 2
+   * when MPI_THREAD_SERIALIZED is desaired, and 3 when
+   * MPI_THREAD_MULTIPLE is desired
    *
    * handle_mpi_errors should be set to true to use the
    * "timpi_not_implemented()" behavior (e.g. throwing an
@@ -74,12 +76,12 @@ public:
    * parameter to use a user-specified MPI communicator.
    */
   TIMPIInit(int argc, const char * const * argv,
-               bool using_threads=false,
+               int mpi_thread_requested=0,
                bool handle_mpi_errors=false,
                MPI_Comm COMM_WORLD_IN=MPI_COMM_WORLD);
 #else
   TIMPIInit(int argc, const char * const * argv,
-               bool using_threads=false,
+               int mpi_thread_requested=0,
                bool handle_mpi_errors=false);
 #endif
 
