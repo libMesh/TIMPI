@@ -192,7 +192,7 @@ void Communicator::assign(const communicator & comm)
       timpi_call_mpi
         (MPI_Comm_size(_communicator, &i));
 
-      timpi_assert_greater_equal (i, 0);
+      timpi_assert_greater (i, 0);
       _size = cast_int<processor_id_type>(i);
 
       timpi_call_mpi
