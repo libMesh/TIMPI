@@ -1091,7 +1091,7 @@ template <typename Context, typename buffertype,
           typename OutputIter, typename T>
 inline void unpack_range (const std::vector<buffertype> & buffer,
                           Context * context,
-                          OutputIter out_iter,
+                          OutputIter & out_iter,
                           const T * /* output_type */)
 {
   // Loop through the buffer and unpack each object, returning the

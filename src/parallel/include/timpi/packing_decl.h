@@ -198,7 +198,7 @@ template <typename Context, typename buffertype,
           typename OutputIter, typename T>
 inline void unpack_range (const typename std::vector<buffertype> & buffer,
                           Context * context,
-                          OutputIter out,
+                          OutputIter & out,
                           const T * output_type /* used only to infer T */);
 
 /**
