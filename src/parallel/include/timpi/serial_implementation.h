@@ -341,6 +341,11 @@ Communicator::send_receive_packed_range
   typedef typename std::iterator_traits<RangeIter>::value_type T1;
   typedef typename Packing<T1>::buffer_type buffer_t;
 
+  // OutputIter might not have operator= implemented; for maximum
+  // compatibility we'll rely on its copy constructor.
+  std::unique_ptr<OutputIter> next_out_iter =
+    std::make_unique<OutputIter>(out_iter);
+
   while (send_begin != send_end)
     {
       timpi_assert_greater (std::distance(send_begin, send_end), 0);
@@ -356,8 +361,9 @@ Communicator::send_receive_packed_range
 
       send_begin = next_send_begin;
 
-      out_iter = unpack_range
-        (buffer, context2, out_iter, output_type);
+      auto return_out_iter = unpack_range
+        (buffer, context2, *next_out_iter, output_type);
+      next_out_iter = std::make_unique<OutputIter>(return_out_iter);
     }
 }
 
