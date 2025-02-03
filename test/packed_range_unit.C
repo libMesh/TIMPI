@@ -390,6 +390,37 @@ Communicator *TestCommWorld;
     TIMPI_UNIT_ASSERT(recv[0] == check);
   }
 
+  void testLargeSetUnion()
+  {
+    // Number of entries in the map on each processor
+    const unsigned int n_map_entries = 147;
+
+    // Offset between blocks of entries; must exceed n_map_entries
+    const unsigned int map_offset = 1000;
+
+    // Large enough strings that we'll exceed a single packed buffer
+    const unsigned int string_size = 32768;
+
+    // Each entry in the map will be the same test_string
+    std::string test_string(/*count*/string_size, 'a');
+
+    std::map<unsigned int, std::string> map_of_strings;
+
+    // Use an offset so that the map keys do not overlap
+    const unsigned int my_offset =
+      (TestCommWorld->rank() + 1) * map_offset;
+    for (unsigned int i=0; i != n_map_entries; ++i)
+      map_of_strings[my_offset + i] = test_string;
+
+    TestCommWorld->set_union(map_of_strings);
+
+    TIMPI_UNIT_ASSERT(map_of_strings.size() ==
+                      TestCommWorld->size() * n_map_entries);
+
+    TIMPI_UNIT_ASSERT(map_of_strings.begin()->first == map_offset);
+  }
+
+
   void testPushPackedImpl(int M)
   {
     const int size = TestCommWorld->size(),
@@ -736,6 +767,8 @@ int main(int argc, const char * const * argv)
   testNullSendReceive();
   testContainerAllGather();
   testContainerSendReceive();
+
+  testLargeSetUnion();
 
   testPushPacked();
   testPushPackedOversized();

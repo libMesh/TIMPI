@@ -356,7 +356,7 @@ Communicator::send_receive_packed_range
 
       send_begin = next_send_begin;
 
-      unpack_range
+      out_iter = unpack_range
         (buffer, context2, out_iter, output_type);
     }
 }
