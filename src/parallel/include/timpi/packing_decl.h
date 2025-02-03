@@ -193,13 +193,17 @@ using libMesh::Parallel::Packing;
 /**
  * Decode a range of potentially-variable-size objects from a data
  * array.
+ *
+ * We take \p out_iter by value for maximum compatibility, but we
+ * return it afterward for the use of code that needs to unpack
+ * multiple buffers to the same output iterator.
  */
 template <typename Context, typename buffertype,
           typename OutputIter, typename T>
-inline void unpack_range (const typename std::vector<buffertype> & buffer,
-                          Context * context,
-                          OutputIter & out,
-                          const T * output_type /* used only to infer T */);
+inline OutputIter unpack_range (const typename std::vector<buffertype> & buffer,
+                                Context * context,
+                                OutputIter out_iter,
+                                const T * output_type /* used only to infer T */);
 
 /**
  * Encode a range of potentially-variable-size objects to a data

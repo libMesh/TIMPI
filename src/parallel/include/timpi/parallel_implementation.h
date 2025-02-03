@@ -1217,7 +1217,7 @@ inline void Communicator::receive_packed_range (const unsigned int src_processor
       std::vector<buffer_t> buffer;
       this->receive(stat.source(), buffer, MessageTag(stat.tag()));
       received_buffer_size += buffer.size();
-      unpack_range
+      out_iter = unpack_range
         (buffer, context, out_iter, output_type);
     }
 }
@@ -1520,7 +1520,7 @@ Communicator::send_receive_packed_range (const unsigned int dest_processor_id,
           std::vector<buffer_t> buffer;
           send_begin = pack_range
             (context1, send_begin, send_end, buffer, approx_buffer_size);
-          unpack_range
+          out_iter = unpack_range
             (buffer, context2, out_iter, output_type);
         }
       return;
@@ -3960,7 +3960,7 @@ inline void Communicator::broadcast_packed_range(const Context * context1,
     this->broadcast (buffer, root_id);
 
     if (this->rank() != root_id)
-      unpack_range
+      out_iter = unpack_range
         (buffer, context2, out_iter, (T*)nullptr);
   } while (true);  // break above when we reach buffer_size==0
 }
@@ -3991,7 +3991,7 @@ inline void Communicator::gather_packed_range(const unsigned int root_id,
 
       this->gather(root_id, buffer);
 
-      unpack_range
+      out_iter = unpack_range
         (buffer, context, out_iter, (T*)(nullptr));
 
       nonempty_range = (range_begin != range_end);
@@ -4026,7 +4026,7 @@ inline void Communicator::allgather_packed_range(Context * context,
 
       timpi_assert(buffer.size());
 
-      unpack_range
+      out_iter = unpack_range
         (buffer, context, out_iter, (T*)nullptr);
 
       nonempty_range = (range_begin != range_end);
