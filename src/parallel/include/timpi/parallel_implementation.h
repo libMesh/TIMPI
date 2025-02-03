@@ -1212,13 +1212,20 @@ inline void Communicator::receive_packed_range (const unsigned int src_processor
   // try to receive messages all corresponding to the same send.
 
   std::size_t received_buffer_size = 0;
+
+  // OutputIter might not have operator= implemented; for maximum
+  // compatibility we'll rely on its copy constructor.
+  std::unique_ptr<OutputIter> next_out_iter =
+    std::make_unique<OutputIter>(out_iter);
+
   while (received_buffer_size < total_buffer_size)
     {
       std::vector<buffer_t> buffer;
       this->receive(stat.source(), buffer, MessageTag(stat.tag()));
       received_buffer_size += buffer.size();
-      out_iter = unpack_range
-        (buffer, context, out_iter, output_type);
+      auto return_out_iter = unpack_range
+        (buffer, context, *next_out_iter, output_type);
+      next_out_iter = std::make_unique<OutputIter>(return_out_iter);
     }
 }
 
@@ -1514,14 +1521,20 @@ Communicator::send_receive_packed_range (const unsigned int dest_processor_id,
       // communicate the buffer, just in case user Packing
       // specializations have side effects
 
+      // OutputIter might not have operator= implemented; for maximum
+      // compatibility we'll rely on its copy constructor.
+      std::unique_ptr<OutputIter> next_out_iter =
+        std::make_unique<OutputIter>(out_iter);
+
       typedef typename Packing<T>::buffer_type buffer_t;
       while (send_begin != send_end)
         {
           std::vector<buffer_t> buffer;
           send_begin = pack_range
             (context1, send_begin, send_end, buffer, approx_buffer_size);
-          out_iter = unpack_range
-            (buffer, context2, out_iter, output_type);
+          auto return_out_iter = unpack_range
+            (buffer, context2, *next_out_iter, output_type);
+          next_out_iter = std::make_unique<OutputIter>(return_out_iter);
         }
       return;
     }
@@ -4112,9 +4125,17 @@ inline void Communicator::broadcast_packed_range(const Context * context1,
     // Broadcast the packed data
     this->broadcast (buffer, root_id);
 
+    // OutputIter might not have operator= implemented; for maximum
+    // compatibility we'll rely on its copy constructor.
+    std::unique_ptr<OutputIter> next_out_iter =
+      std::make_unique<OutputIter>(out_iter);
+
     if (this->rank() != root_id)
-      out_iter = unpack_range
-        (buffer, context2, out_iter, (T*)nullptr);
+      {
+        auto return_out_iter = unpack_range
+          (buffer, context2, *next_out_iter, (T*)nullptr);
+        next_out_iter = std::make_unique<OutputIter>(return_out_iter);
+      }
   } while (true);  // break above when we reach buffer_size==0
 }
 
@@ -4133,6 +4154,11 @@ inline void Communicator::gather_packed_range(const unsigned int root_id,
   bool nonempty_range = (range_begin != range_end);
   this->max(nonempty_range);
 
+  // OutputIter might not have operator= implemented; for maximum
+  // compatibility we'll rely on its copy constructor.
+  std::unique_ptr<OutputIter> next_out_iter =
+    std::make_unique<OutputIter>(out_iter);
+
   while (nonempty_range)
     {
       // We will serialize variable size objects from *range_begin to
@@ -4144,8 +4170,9 @@ inline void Communicator::gather_packed_range(const unsigned int root_id,
 
       this->gather(root_id, buffer);
 
-      out_iter = unpack_range
-        (buffer, context, out_iter, (T*)(nullptr));
+      auto return_out_iter = unpack_range
+        (buffer, context, *next_out_iter, (T*)(nullptr));
+      next_out_iter = std::make_unique<OutputIter>(return_out_iter);
 
       nonempty_range = (range_begin != range_end);
       this->max(nonempty_range);
@@ -4166,6 +4193,11 @@ inline void Communicator::allgather_packed_range(Context * context,
   bool nonempty_range = (range_begin != range_end);
   this->max(nonempty_range);
 
+  // OutputIter might not have operator= implemented; for maximum
+  // compatibility we'll rely on its copy constructor.
+  std::unique_ptr<OutputIter> next_out_iter =
+    std::make_unique<OutputIter>(out_iter);
+
   while (nonempty_range)
     {
       // We will serialize variable size objects from *range_begin to
@@ -4179,8 +4211,9 @@ inline void Communicator::allgather_packed_range(Context * context,
 
       timpi_assert(buffer.size());
 
-      out_iter = unpack_range
-        (buffer, context, out_iter, (T*)nullptr);
+      auto return_out_iter = unpack_range
+        (buffer, context, *next_out_iter, (T*)nullptr);
+      next_out_iter = std::make_unique<OutputIter>(return_out_iter);
 
       nonempty_range = (range_begin != range_end);
       this->max(nonempty_range);
