@@ -1093,13 +1093,17 @@ inline Iter pack_range (const Context * context,
 
 /**
  * Helper function for range unpacking
+ *
+ * We take \p out_iter by value for maximum compatibility, but we
+ * return it afterward for the use of code that needs to unpack
+ * multiple buffers to the same output iterator.
  */
 template <typename Context, typename buffertype,
           typename OutputIter, typename T>
-inline void unpack_range (const std::vector<buffertype> & buffer,
-                          Context * context,
-                          OutputIter out_iter,
-                          const T * /* output_type */)
+inline OutputIter unpack_range (const std::vector<buffertype> & buffer,
+                                Context * context,
+                                OutputIter out_iter,
+                                const T * /* output_type */)
 {
   // Loop through the buffer and unpack each object, returning the
   // object pointer via the output iterator
@@ -1115,6 +1119,8 @@ inline void unpack_range (const std::vector<buffertype> & buffer,
 
   // We should have used up the exact amount of data in the buffer
   timpi_assert (next_object_start == buffer.end());
+
+  return out_iter;
 }
 
 } // namespace TIMPI
