@@ -205,7 +205,12 @@ public:
 
   processor_id_type rank() const { return _rank; }
 
+#ifdef TIMPI_HAVE_MPI
   processor_id_type size() const { return _size; }
+#else
+  // Help the compiler optimize in serial
+  constexpr processor_id_type size() const { return 1; }
+#endif
 
   /**
    * Whether to use default or synchronous sends?
