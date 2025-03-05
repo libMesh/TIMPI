@@ -2633,6 +2633,7 @@ inline void Communicator::sum(const T & r,
                               T & o,
                               Request & req) const
 {
+#ifdef TIMPI_HAVE_MPI
   if (this->size() > 1)
     {
       TIMPI_LOG_SCOPE("sum()", "Parallel");
@@ -2645,6 +2646,7 @@ inline void Communicator::sum(const T & r,
                          req.get()));
     }
   else
+#endif
     {
       o = r;
       req = Request::null_request;
