@@ -43,12 +43,25 @@ namespace TIMPI
  */
 typedef MPI_Status status;
 
+#  if MPI_VERSION > 3
+typedef MPI_Count CountType;
+#define TIMPI_GET_COUNT MPI_Get_count_c
+#  else
+typedef int CountType;
+#define TIMPI_GET_COUNT MPI_Get_count
+#  endif
+
 #else
 
 // This shouldn't actually be needed, but must be
 // unique types for function overloading to work
 // properly.
 struct status       { /* unsigned int s; */ };
+
+// This makes backwards compatibility easiest, and it should be fine
+// to use 32 bits here since serial operations are generally no-ops
+// that don't actually use a CountType
+typedef int CountType;
 
 #endif // TIMPI_HAVE_MPI
 
@@ -91,9 +104,9 @@ public:
 
   const data_type & datatype () const { return _datatype; }
 
-  unsigned int size (const data_type & type) const;
+  CountType size (const data_type & type) const;
 
-  unsigned int size () const;
+  CountType size () const;
 
 private:
 
@@ -145,19 +158,19 @@ inline int Status::tag () const
 #endif
 }
 
-inline unsigned int Status::size (const data_type & type) const
+inline CountType Status::size (const data_type & type) const
 {
   ignore(type); // We don't use this ifndef TIMPI_HAVE_MPI
-  int msg_size = 1;
+  CountType msg_size = 1;
   timpi_call_mpi
-    (MPI_Get_count (const_cast<MPI_Status*>(&_status), type,
-                    &msg_size));
+    (TIMPI_GET_COUNT(const_cast<MPI_Status*>(&_status), type,
+                     &msg_size));
 
   timpi_assert_greater_equal (msg_size, 0);
   return msg_size;
 }
 
-inline unsigned int Status::size () const
+inline CountType Status::size () const
 { return this->size (this->datatype()); }
 
 
