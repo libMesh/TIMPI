@@ -51,16 +51,24 @@ struct PostWaitUnpackNestedBuffer : public PostWaitWork {
 
   virtual void run() override {
 #ifdef TIMPI_HAVE_MPI
+
+#if MPI_VERSION > 3
+  MPI_Datatype COUNT_TYPE = MPI_COUNT;
+#  define TIMPI_UNPACK MPI_Unpack_c
+#else
+  MPI_Datatype COUNT_TYPE = MPI_INT;
+#  define TIMPI_UNPACK MPI_Unpack
+#endif
+
   // We should at least have one header datum, for outer vector size
   timpi_assert (!recvbuf.empty());
 
   // Unpack the received buffer
-  int bufsize = cast_int<int>(recvbuf.size());
-  int recvsize, pos=0;
+  CountType bufsize = cast_int<CountType>(recvbuf.size());
+  CountType recvsize, pos=0;
   timpi_call_mpi
-    (MPI_Unpack (recvbuf.data(), bufsize, &pos,
-                 &recvsize, 1, StandardType<unsigned int>(),
-                 comm.get()));
+    (TIMPI_UNPACK(recvbuf.data(), bufsize, &pos, &recvsize, 1,
+                  COUNT_TYPE, comm.get()));
 
   // ... size the outer buffer
   recv.resize (recvsize);
@@ -68,13 +76,11 @@ struct PostWaitUnpackNestedBuffer : public PostWaitWork {
   const std::size_t n_vecs = recvsize;
   for (std::size_t i = 0; i != n_vecs; ++i)
     {
-      int subvec_size;
+      CountType subvec_size;
 
       timpi_call_mpi
-        (MPI_Unpack (recvbuf.data(), bufsize, &pos,
-                     &subvec_size, 1,
-                     StandardType<unsigned int>(),
-                     comm.get()));
+        (TIMPI_UNPACK(recvbuf.data(), bufsize, &pos, &subvec_size, 1,
+                      COUNT_TYPE, comm.get()));
 
       // ... size the inner buffer
       recv[i].resize (subvec_size);
@@ -82,8 +88,8 @@ struct PostWaitUnpackNestedBuffer : public PostWaitWork {
       // ... unpack the inner buffer if it is not empty
       if (!recv[i].empty())
         timpi_call_mpi
-          (MPI_Unpack (recvbuf.data(), bufsize, &pos, recv[i].data(),
-                       subvec_size, type, comm.get()));
+          (TIMPI_UNPACK(recvbuf.data(), bufsize, &pos, recv[i].data(),
+                        subvec_size, type, comm.get()));
     }
 #endif //TIMPI_HAVE_MPI
   }
