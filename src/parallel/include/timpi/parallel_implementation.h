@@ -218,21 +218,69 @@ dataplusint_type_acquire()
 
 
 
+#if MPI_VERSION > 3
+  MPI_Datatype COUNT_TYPE = MPI_COUNT;
+  typedef MPI_Aint DispType;
+#  define TIMPI_PACK_SIZE MPI_Pack_size_c
+#  define TIMPI_SEND MPI_Send_c
+#  define TIMPI_SSEND MPI_Ssend_c
+#  define TIMPI_ALLREDUCE MPI_Allreduce_c
+#  define TIMPI_IALLREDUCE MPI_Iallreduce_c
+#  define TIMPI_ISEND MPI_Isend_c
+#  define TIMPI_ISSEND MPI_Issend_c
+#  define TIMPI_PACK MPI_Pack_c
+#  define TIMPI_UNPACK MPI_Unpack_c
+#  define TIMPI_RECV MPI_Recv_c
+#  define TIMPI_IRECV MPI_Irecv_c
+#  define TIMPI_SENDRECV MPI_Sendrecv_c
+#  define TIMPI_ALLGATHERV MPI_Allgatherv_c
+#  define TIMPI_ALLGATHER MPI_Allgather_c
+#  define TIMPI_BCAST MPI_Bcast_c
+#  define TIMPI_GATHER MPI_Gather_c
+#  define TIMPI_GATHERV MPI_Gatherv_c
+#  define TIMPI_SCATTER MPI_Scatter_c
+#  define TIMPI_SCATTERV MPI_Scatterv_c
+#  define TIMPI_ALLTOALL MPI_Alltoall_c
+#else
+  MPI_Datatype COUNT_TYPE = MPI_INT;
+  typedef int DispType;
+#  define TIMPI_PACK_SIZE MPI_Pack_size
+#  define TIMPI_SEND MPI_Send
+#  define TIMPI_SSEND MPI_Ssend
+#  define TIMPI_ALLREDUCE MPI_Allreduce
+#  define TIMPI_IALLREDUCE MPI_Iallreduce
+#  define TIMPI_ISEND MPI_Isend
+#  define TIMPI_ISSEND MPI_Issend
+#  define TIMPI_PACK MPI_Pack
+#  define TIMPI_UNPACK MPI_Unpack
+#  define TIMPI_RECV MPI_Recv
+#  define TIMPI_IRECV MPI_Irecv
+#  define TIMPI_SENDRECV MPI_Sendrecv
+#  define TIMPI_ALLGATHERV MPI_Allgatherv
+#  define TIMPI_ALLGATHER MPI_Allgather
+#  define TIMPI_BCAST MPI_Bcast
+#  define TIMPI_GATHER MPI_Gather
+#  define TIMPI_GATHERV MPI_Gatherv
+#  define TIMPI_SCATTER MPI_Scatter
+#  define TIMPI_SCATTERV MPI_Scatterv
+#  define TIMPI_ALLTOALL MPI_Alltoall
+#endif
+
+
+
 template <typename T, typename A1, typename A2>
-int Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
-                                 const DataType & type) const
+std::size_t Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
+                                         const DataType & type) const
 {
-  // figure out how many bytes we need to pack all the data
-  int packedsize=0;
+  // Figure out how many bytes we need to pack all the data
+  //
+  // Start with the outer buffer size
+  CountType packedsize=0;
 
-  // The outer buffer size
   timpi_call_mpi
-    (MPI_Pack_size (1,
-                    StandardType<unsigned int>(),
-                    this->get(),
-                    &packedsize));
+    (TIMPI_PACK_SIZE (1, COUNT_TYPE, this->get(), &packedsize));
 
-  int sendsize = packedsize;
+  std::size_t sendsize = packedsize;
 
   const std::size_t n_vecs = buf.size();
 
@@ -240,17 +288,14 @@ int Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
     {
       // The size of the ith inner buffer
       timpi_call_mpi
-        (MPI_Pack_size (1,
-                        StandardType<unsigned int>(),
-                        this->get(),
-                        &packedsize));
+        (TIMPI_PACK_SIZE (1, COUNT_TYPE, this->get(), &packedsize));
 
       sendsize += packedsize;
 
       // The data for each inner buffer
       timpi_call_mpi
-        (MPI_Pack_size (cast_int<int>(buf[i].size()), type,
-                        this->get(), &packedsize));
+        (TIMPI_PACK_SIZE (cast_int<CountType>(buf[i].size()),
+                          type, this->get(), &packedsize));
 
       sendsize += packedsize;
     }
@@ -273,12 +318,10 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
   timpi_call_mpi
     (((this->send_mode() == SYNCHRONOUS) ?
-      MPI_Ssend : MPI_Send) (dataptr,
-                             cast_int<int>(buf.size()),
-                             StandardType<T>(dataptr),
-                             dest_processor_id,
-                             tag.value(),
-                             this->get()));
+      TIMPI_SSEND : TIMPI_SEND)
+        (dataptr, cast_int<CountType>(buf.size()),
+         StandardType<T>(dataptr), dest_processor_id, tag.value(),
+         this->get()));
 }
 
 
@@ -297,13 +340,10 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
   timpi_call_mpi
     (((this->send_mode() == SYNCHRONOUS) ?
-      MPI_Issend : MPI_Isend) (dataptr,
-                               cast_int<int>(buf.size()),
-                               StandardType<T>(dataptr),
-                               dest_processor_id,
-                               tag.value(),
-                               this->get(),
-                               req.get()));
+      TIMPI_ISSEND : TIMPI_ISEND)
+        (dataptr, cast_int<CountType>(buf.size()),
+         StandardType<T>(dataptr), dest_processor_id, tag.value(),
+         this->get(), req.get()));
 
   // The MessageTag should stay registered for the Request lifetime
   req.add_post_wait_work
@@ -325,12 +365,9 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
   timpi_call_mpi
     (((this->send_mode() == SYNCHRONOUS) ?
-      MPI_Ssend : MPI_Send) (dataptr,
-                             1,
-                             StandardType<T>(dataptr),
-                             dest_processor_id,
-                             tag.value(),
-                             this->get()));
+      TIMPI_SSEND : TIMPI_SEND)
+        (dataptr, 1, StandardType<T>(dataptr), dest_processor_id,
+         tag.value(), this->get()));
 }
 
 
@@ -349,13 +386,9 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
   timpi_call_mpi
     (((this->send_mode() == SYNCHRONOUS) ?
-      MPI_Issend : MPI_Isend) (dataptr,
-                               1,
-                               StandardType<T>(dataptr),
-                               dest_processor_id,
-                               tag.value(),
-                               this->get(),
-                               req.get()));
+      TIMPI_ISSEND : TIMPI_ISEND)
+        (dataptr, 1, StandardType<T>(dataptr), dest_processor_id,
+         tag.value(), this->get(), req.get()));
 
   // The MessageTag should stay registered for the Request lifetime
   req.add_post_wait_work
@@ -472,12 +505,10 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
   timpi_call_mpi
     (((this->send_mode() == SYNCHRONOUS) ?
-      MPI_Ssend : MPI_Send) (buf.empty() ? nullptr : const_cast<T*>(buf.data()),
-                             cast_int<int>(buf.size()),
-                             type,
-                             dest_processor_id,
-                             tag.value(),
-                             this->get()));
+      TIMPI_SSEND : TIMPI_SEND)
+        (buf.empty() ? nullptr : const_cast<T*>(buf.data()),
+         cast_int<CountType>(buf.size()), type, dest_processor_id,
+         tag.value(), this->get()));
 }
 
 
@@ -495,13 +526,10 @@ inline void Communicator::send (const unsigned int dest_processor_id,
 
   timpi_call_mpi
     (((this->send_mode() == SYNCHRONOUS) ?
-      MPI_Issend : MPI_Isend) (buf.empty() ? nullptr : const_cast<T*>(buf.data()),
-                               cast_int<int>(buf.size()),
-                               type,
-                               dest_processor_id,
-                               tag.value(),
-                               this->get(),
-                               req.get()));
+      TIMPI_ISSEND : TIMPI_ISEND)
+        (buf.empty() ? nullptr : const_cast<T*>(buf.data()),
+         cast_int<CountType>(buf.size()), type, dest_processor_id,
+         tag.value(), this->get(), req.get()));
 
   // The MessageTag should stay registered for the Request lifetime
   req.add_post_wait_work
@@ -577,39 +605,40 @@ inline void Communicator::send (const unsigned int dest_processor_id,
                                 const MessageTag & tag) const
 {
   // figure out how many bytes we need to pack all the data
-  const int sendsize = this->packed_size_of(send_vecs, type);
+  const CountType sendsize =
+    cast_int<CountType>(this->packed_size_of(send_vecs, type));
 
   // temporary buffer - this will be sized in bytes
   // and manipulated with MPI_Pack
   std::vector<char> * sendbuf = new std::vector<char>(sendsize);
 
   // Pack the send buffer
-  int pos=0;
+  CountType pos=0;
 
   // ... the size of the outer buffer
   const std::size_t n_vecs = send_vecs.size();
-  const int mpi_n_vecs = cast_int<int>(n_vecs);
+  const CountType mpi_n_vecs = cast_int<CountType>(n_vecs);
 
   timpi_call_mpi
-    (MPI_Pack (&mpi_n_vecs, 1,
-               StandardType<unsigned int>(),
-               sendbuf->data(), sendsize, &pos, this->get()));
+    (TIMPI_PACK (&mpi_n_vecs, 1, COUNT_TYPE, sendbuf->data(),
+                 sendsize, &pos, this->get()));
 
   for (std::size_t i = 0; i != n_vecs; ++i)
     {
       // ... the size of the ith inner buffer
-      const int subvec_size = cast_int<int>(send_vecs[i].size());
+      const CountType subvec_size =
+        cast_int<CountType>(send_vecs[i].size());
 
       timpi_call_mpi
-        (MPI_Pack (&subvec_size, 1, StandardType<unsigned int>(),
-                   sendbuf->data(), sendsize, &pos, this->get()));
+        (TIMPI_PACK (&subvec_size, 1, COUNT_TYPE,
+                     sendbuf->data(), sendsize, &pos, this->get()));
 
       // ... the contents of the ith inner buffer
       if (!send_vecs[i].empty())
         timpi_call_mpi
-          (MPI_Pack (const_cast<T*>(send_vecs[i].data()),
-                     cast_int<int>(subvec_size), type,
-                     sendbuf->data(), sendsize, &pos, this->get()));
+          (TIMPI_PACK (const_cast<T*>(send_vecs[i].data()),
+                       subvec_size, type, sendbuf->data(), sendsize,
+                       &pos, this->get()));
     }
 
   timpi_assert_equal_to (pos, sendsize);
@@ -768,11 +797,13 @@ inline void Communicator::nonblocking_send_packed_range (const unsigned int dest
                    range_begin,
                    range_end,
                    *buffer,
-                   // MPI-2 can only use integers for size
-                   std::numeric_limits<int>::max());
+                   // MPI-2/3 can only use signed integers for size,
+                   // and with this API we need to fit a non-blocking
+                   // send into one buffer
+                   std::numeric_limits<CountType>::max());
 
       if (range_begin != range_end)
-        timpi_error_msg("Non-blocking packed range sends cannot exceed " << std::numeric_limits<int>::max() << "in size");
+        timpi_error_msg("Non-blocking packed range sends cannot exceed " << std::numeric_limits<CountType>::max() << "in size");
 
       // Make the Request::wait() handle deleting the buffer
       req.add_post_wait_work
@@ -844,8 +875,8 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
                   src_processor_id == any_source);
 
   timpi_call_mpi
-    (MPI_Recv (&buf, 1, StandardType<T>(&buf), src_processor_id,
-               tag.value(), this->get(), stat.get()));
+    (TIMPI_RECV (&buf, 1, StandardType<T>(&buf), src_processor_id,
+                 tag.value(), this->get(), stat.get()));
 
   return stat;
 }
@@ -864,8 +895,8 @@ inline void Communicator::receive (const unsigned int src_processor_id,
                   src_processor_id == any_source);
 
   timpi_call_mpi
-    (MPI_Irecv (&buf, 1, StandardType<T>(&buf), src_processor_id,
-                tag.value(), this->get(), req.get()));
+    (TIMPI_IRECV (&buf, 1, StandardType<T>(&buf), src_processor_id,
+                  tag.value(), this->get(), req.get()));
 
   // The MessageTag should stay registered for the Request lifetime
   req.add_post_wait_work
@@ -1004,11 +1035,12 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
   // src_processor_id is or tag is "any" then we want to be sure we
   // try to receive the same message we just probed.
   timpi_call_mpi
-    (MPI_Recv (buf.empty() ? nullptr : buf.data(),
-               cast_int<int>(buf.size()), type, stat.source(),
-               stat.tag(), this->get(), stat.get()));
+    (TIMPI_RECV (buf.empty() ? nullptr : buf.data(),
+                 cast_int<CountType>(buf.size()), type, stat.source(),
+                 stat.tag(), this->get(), stat.get()));
 
-  timpi_assert_equal_to (stat.size(), buf.size());
+  timpi_assert_equal_to (cast_int<std::size_t>(stat.size()),
+                         buf.size());
 
   return stat;
 }
@@ -1072,9 +1104,9 @@ inline void Communicator::receive (const unsigned int src_processor_id,
                   src_processor_id == any_source);
 
   timpi_call_mpi
-    (MPI_Irecv (buf.empty() ? nullptr : buf.data(),
-                cast_int<int>(buf.size()), type, src_processor_id,
-                tag.value(), this->get(), req.get()));
+    (TIMPI_IRECV(buf.empty() ? nullptr : buf.data(),
+                 cast_int<CountType>(buf.size()), type, src_processor_id,
+                 tag.value(), this->get(), req.get()));
 
   // The MessageTag should stay registered for the Request lifetime
   req.add_post_wait_work
@@ -1125,12 +1157,11 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
   timpi_assert (!recvbuf.empty());
 
   // Unpack the received buffer
-  int bufsize = cast_int<int>(recvbuf.size());
-  int recvsize, pos=0;
+  CountType bufsize = cast_int<CountType>(recvbuf.size());
+  CountType recvsize, pos=0;
   timpi_call_mpi
-    (MPI_Unpack (recvbuf.data(), bufsize, &pos,
-                 &recvsize, 1, StandardType<unsigned int>(),
-                 this->get()));
+    (TIMPI_UNPACK(recvbuf.data(), bufsize, &pos, &recvsize, 1,
+                  COUNT_TYPE, this->get()));
 
   // ... size the outer buffer
   recv.resize (recvsize);
@@ -1138,13 +1169,11 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
   const std::size_t n_vecs = recvsize;
   for (std::size_t i = 0; i != n_vecs; ++i)
     {
-      int subvec_size;
+      CountType subvec_size;
 
       timpi_call_mpi
-        (MPI_Unpack (recvbuf.data(), bufsize, &pos,
-                     &subvec_size, 1,
-                     StandardType<unsigned int>(),
-                     this->get()));
+        (TIMPI_UNPACK (recvbuf.data(), bufsize, &pos, &subvec_size, 1,
+                       COUNT_TYPE, this->get()));
 
       // ... size the inner buffer
       recv[i].resize (subvec_size);
@@ -1152,8 +1181,8 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
       // ... unpack the inner buffer if it is not empty
       if (!recv[i].empty())
         timpi_call_mpi
-          (MPI_Unpack (recvbuf.data(), bufsize, &pos, recv[i].data(),
-                       subvec_size, type, this->get()));
+          (TIMPI_UNPACK(recvbuf.data(), bufsize, &pos, recv[i].data(),
+                        subvec_size, type, this->get()));
     }
 
   return stat;
@@ -1170,7 +1199,8 @@ inline void Communicator::receive (const unsigned int src_processor_id,
 {
   // figure out how many bytes we need to receive all the data into
   // our properly pre-sized buf
-  const int sendsize = this->packed_size_of(buf, type);
+  const CountType sendsize =
+    cast_int<CountType>(this->packed_size_of(buf, type));
 
   // temporary buffer - this will be sized in bytes
   // and manipulated with MPI_Unpack
@@ -1390,10 +1420,10 @@ inline void Communicator::send_receive(const unsigned int dest_processor_id,
   // MPICH may cause a crash:
   // https://bugzilla.mcs.anl.gov/globus/show_bug.cgi?id=1798
   timpi_call_mpi
-    (MPI_Sendrecv(const_cast<T1*>(&sendvec), 1, StandardType<T1>(&sendvec),
-                  dest_processor_id, send_tag.value(), &recv, 1,
-                  StandardType<T2>(&recv), source_processor_id,
-                  recv_tag.value(), this->get(), MPI_STATUS_IGNORE));
+    (TIMPI_SENDRECV(const_cast<T1*>(&sendvec), 1, StandardType<T1>(&sendvec),
+                    dest_processor_id, send_tag.value(), &recv, 1,
+                    StandardType<T2>(&recv), source_processor_id,
+                    recv_tag.value(), this->get(), MPI_STATUS_IGNORE));
 }
 
 
@@ -1578,11 +1608,13 @@ inline void Communicator::nonblocking_send_packed_range (const unsigned int dest
                    range_begin,
                    range_end,
                    *buffer,
-                   // MPI-2 can only use integers for size
-                   std::numeric_limits<int>::max());
+                   // MPI-2/3 can only use signed integers for size,
+                   // and with this API we need to fit a non-blocking
+                   // send into one buffer
+                   std::numeric_limits<CountType>::max());
 
       if (range_begin != range_end)
-        timpi_error_msg("Non-blocking packed range sends cannot exceed " << std::numeric_limits<int>::max() << "in size");
+        timpi_error_msg("Non-blocking packed range sends cannot exceed " << std::numeric_limits<CountType>::max() << "in size");
 
       // Make it dereference the shared pointer (possibly freeing the buffer)
       req.add_post_wait_work
@@ -1613,11 +1645,12 @@ inline void Communicator::allgather(const std::basic_string<T> & sendval,
       return;
     }
 
-  std::vector<int>
-    sendlengths  (this->size(), 0),
+  std::vector<CountType>
+    sendlengths  (this->size(), 0);
+  std::vector<DispType>
     displacements(this->size(), 0);
 
-  const int mysize = static_cast<int>(sendval.size());
+  const CountType mysize = cast_int<CountType>(sendval.size());
 
   if (identical_buffer_sizes)
     sendlengths.assign(this->size(), mysize);
@@ -1627,7 +1660,7 @@ inline void Communicator::allgather(const std::basic_string<T> & sendval,
 
   // Find the total size of the final array and
   // set up the displacement offsets for each processor
-  unsigned int globalsize = 0;
+  CountType globalsize = 0;
   for (unsigned int i=0; i != this->size(); ++i)
     {
       displacements[i] = globalsize;
@@ -1643,10 +1676,10 @@ inline void Communicator::allgather(const std::basic_string<T> & sendval,
 
   // and get the data from the remote processors.
   timpi_call_mpi
-    (MPI_Allgatherv (const_cast<T*>(mysize ? sendval.data() : nullptr),
-                     mysize, StandardType<T>(),
-                     &r[0], sendlengths.data(), displacements.data(),
-                     StandardType<T>(), this->get()));
+    (TIMPI_ALLGATHERV(const_cast<T*>(mysize ? sendval.data() : nullptr),
+                      mysize, StandardType<T>(),
+                      &r[0], sendlengths.data(), displacements.data(),
+                      StandardType<T>(), this->get()));
 
   // slice receive buffer up
   for (unsigned int i=0; i != this->size(); ++i)
@@ -1678,8 +1711,8 @@ inline void Communicator::broadcast (bool & data,
 
   // Spread data to remote processors.
   timpi_call_mpi
-    (MPI_Bcast (&char_data, 1, StandardType<char>(&char_data),
-                root_id, this->get()));
+    (TIMPI_BCAST (&char_data, 1, StandardType<char>(&char_data),
+                  root_id, this->get()));
 
   data = char_data;
 }
@@ -1965,13 +1998,9 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
     src_processor_id = stat.source();
 
     timpi_call_mpi
-      (MPI_Irecv (buf.data(),
-                  cast_int<int>(buf.size()),
-                  type,
-                  src_processor_id,
-                  tag.value(),
-                  this->get(),
-                  req.get()));
+      (TIMPI_IRECV(buf.data(), cast_int<CountType>(buf.size()), type,
+                   src_processor_id, tag.value(), this->get(),
+                   req.get()));
 
     // The MessageTag should stay registered for the Request lifetime
     req.add_post_wait_work
@@ -2048,7 +2077,8 @@ inline bool Communicator::possibly_receive (unsigned int & src_processor_id,
   return int_flag;
 }
 
-
+#else
+  typedef int DispType;
 #endif // TIMPI_HAVE_MPI
 
 
@@ -2161,11 +2191,9 @@ inline void Communicator::min(const T & r,
       TIMPI_LOG_SCOPE("min()", "Parallel");
 
       timpi_call_mpi
-        (MPI_Iallreduce (&r, &o, 1,
-                         StandardType<T>(&r),
-                         OpFunction<T>::min(),
-                         this->get(),
-                         req.get()));
+        (TIMPI_IALLREDUCE(&r, &o, 1, StandardType<T>(&r),
+                          OpFunction<T>::min(), this->get(),
+                          req.get()));
     }
   else
     {
@@ -2184,9 +2212,9 @@ inline void Communicator::min(T & timpi_mpi_var(r)) const
       TIMPI_LOG_SCOPE("min(scalar)", "Parallel");
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, &r, 1,
-                        StandardType<T>(&r), OpFunction<T>::min(),
-                        this->get()));
+        (TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1,
+                         StandardType<T>(&r), OpFunction<T>::min(),
+                         this->get()));
     }
 }
 
@@ -2202,11 +2230,10 @@ inline void Communicator::min(std::vector<T,A> & r) const
       timpi_assert(this->verify(r.size()));
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, r.data(),
-                        cast_int<int>(r.size()),
-                        StandardType<T>(r.data()),
-                        OpFunction<T>::min(),
-                        this->get()));
+        (TIMPI_ALLREDUCE
+          (MPI_IN_PLACE, r.data(), cast_int<CountType>(r.size()),
+           StandardType<T>(r.data()), OpFunction<T>::min(),
+           this->get()));
     }
 }
 
@@ -2224,10 +2251,10 @@ inline void Communicator::min(std::vector<bool,A> & r) const
       pack_vector_bool(r, ruint);
       std::vector<unsigned int> temp(ruint.size());
       timpi_call_mpi
-        (MPI_Allreduce (ruint.data(), temp.data(),
-                        cast_int<int>(ruint.size()),
-                        StandardType<unsigned int>(), MPI_BAND,
-                        this->get()));
+        (TIMPI_ALLREDUCE
+          (ruint.data(), temp.data(),
+           cast_int<CountType>(ruint.size()),
+           StandardType<unsigned int>(), MPI_BAND, this->get()));
       unpack_vector_bool(temp, r);
     }
 }
@@ -2247,9 +2274,9 @@ inline void Communicator::minloc(T & r,
       data_in.rank = this->rank();
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, &data_in, 1,
-                        dataplusint_type_acquire<T>().first,
-                        OpFunction<T>::min_location(), this->get()));
+        (TIMPI_ALLREDUCE (MPI_IN_PLACE, &data_in, 1,
+                          dataplusint_type_acquire<T>().first,
+                          OpFunction<T>::min_location(), this->get()));
       r = data_in.val;
       min_id = data_in.rank;
     }
@@ -2277,10 +2304,10 @@ inline void Communicator::minloc(std::vector<T,A1> & r,
       std::vector<DataPlusInt<T>> data_out(r.size());
 
       timpi_call_mpi
-        (MPI_Allreduce (data_in.data(), data_out.data(),
-                        cast_int<int>(r.size()),
-                        dataplusint_type_acquire<T>().first,
-                        OpFunction<T>::min_location(), this->get()));
+        (TIMPI_ALLREDUCE (data_in.data(), data_out.data(),
+                          cast_int<CountType>(r.size()),
+                          dataplusint_type_acquire<T>().first,
+                          OpFunction<T>::min_location(), this->get()));
       for (std::size_t i=0; i != r.size(); ++i)
         {
           r[i]      = data_out[i].val;
@@ -2313,10 +2340,10 @@ inline void Communicator::minloc(std::vector<bool,A1> & r,
         }
       std::vector<DataPlusInt<int>> data_out(r.size());
       timpi_call_mpi
-        (MPI_Allreduce (data_in.data(), data_out.data(),
-                        cast_int<int>(r.size()),
-                        StandardType<int>(),
-                        OpFunction<int>::min_location(), this->get()));
+        (TIMPI_ALLREDUCE
+          (data_in.data(), data_out.data(),
+           cast_int<CountType>(r.size()), StandardType<int>(),
+           OpFunction<int>::min_location(), this->get()));
       for (std::size_t i=0; i != r.size(); ++i)
         {
           r[i]      = data_out[i].val;
@@ -2341,11 +2368,9 @@ inline void Communicator::max(const T & r,
       TIMPI_LOG_SCOPE("max()", "Parallel");
 
       timpi_call_mpi
-        (MPI_Iallreduce (&r, &o, 1,
-                         StandardType<T>(&r),
-                         OpFunction<T>::max(),
-                         this->get(),
-                         req.get()));
+        (TIMPI_IALLREDUCE(&r, &o, 1, StandardType<T>(&r),
+                          OpFunction<T>::max(), this->get(),
+                          req.get()));
     }
   else
     {
@@ -2363,10 +2388,8 @@ inline void Communicator::max(T & timpi_mpi_var(r)) const
       TIMPI_LOG_SCOPE("max(scalar)", "Parallel");
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, &r, 1,
-                        StandardType<T>(&r),
-                        OpFunction<T>::max(),
-                        this->get()));
+        (TIMPI_ALLREDUCE (MPI_IN_PLACE, &r, 1, StandardType<T>(&r),
+                          OpFunction<T>::max(), this->get()));
     }
 }
 
@@ -2381,11 +2404,10 @@ inline void Communicator::max(std::vector<T,A> & r) const
       timpi_assert(this->verify(r.size()));
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, r.data(),
-                        cast_int<int>(r.size()),
-                        StandardType<T>(r.data()),
-                        OpFunction<T>::max(),
-                        this->get()));
+        (TIMPI_ALLREDUCE (MPI_IN_PLACE, r.data(),
+                          cast_int<CountType>(r.size()),
+                          StandardType<T>(r.data()),
+                          OpFunction<T>::max(), this->get()));
     }
 }
 
@@ -2403,10 +2425,10 @@ inline void Communicator::max(std::vector<bool,A> & r) const
       pack_vector_bool(r, ruint);
       std::vector<unsigned int> temp(ruint.size());
       timpi_call_mpi
-        (MPI_Allreduce (ruint.data(), temp.data(),
-                        cast_int<int>(ruint.size()),
-                        StandardType<unsigned int>(), MPI_BOR,
-                        this->get()));
+        (TIMPI_ALLREDUCE (ruint.data(), temp.data(),
+                          cast_int<CountType>(ruint.size()),
+                          StandardType<unsigned int>(), MPI_BOR,
+                          this->get()));
       unpack_vector_bool(temp, r);
     }
 }
@@ -2542,9 +2564,9 @@ inline void Communicator::maxloc(T & r,
       data_in.rank = this->rank();
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, &data_in, 1,
-                        dataplusint_type_acquire<T>().first,
-                        OpFunction<T>::max_location(), this->get()));
+        (TIMPI_ALLREDUCE (MPI_IN_PLACE, &data_in, 1,
+                          dataplusint_type_acquire<T>().first,
+                          OpFunction<T>::max_location(), this->get()));
       r = data_in.val;
       max_id = data_in.rank;
     }
@@ -2572,11 +2594,11 @@ inline void Communicator::maxloc(std::vector<T,A1> & r,
       std::vector<DataPlusInt<T>> data_out(r.size());
 
       timpi_call_mpi
-        (MPI_Allreduce (data_in.data(), data_out.data(),
-                        cast_int<int>(r.size()),
-                        dataplusint_type_acquire<T>().first,
-                        OpFunction<T>::max_location(),
-                        this->get()));
+        (TIMPI_ALLREDUCE(data_in.data(), data_out.data(),
+                         cast_int<CountType>(r.size()),
+                         dataplusint_type_acquire<T>().first,
+                         OpFunction<T>::max_location(),
+                         this->get()));
       for (std::size_t i=0; i != r.size(); ++i)
         {
           r[i]      = data_out[i].val;
@@ -2609,11 +2631,11 @@ inline void Communicator::maxloc(std::vector<bool,A1> & r,
         }
       std::vector<DataPlusInt<int>> data_out(r.size());
       timpi_call_mpi
-        (MPI_Allreduce (data_in.data(), data_out.data(),
-                        cast_int<int>(r.size()),
-                        StandardType<int>(),
-                        OpFunction<int>::max_location(),
-                        this->get()));
+        (TIMPI_ALLREDUCE(data_in.data(), data_out.data(),
+                         cast_int<CountType>(r.size()),
+                         StandardType<int>(),
+                         OpFunction<int>::max_location(),
+                         this->get()));
       for (std::size_t i=0; i != r.size(); ++i)
         {
           r[i]      = data_out[i].val;
@@ -2633,18 +2655,18 @@ inline void Communicator::sum(const T & r,
                               T & o,
                               Request & req) const
 {
+#ifdef TIMPI_HAVE_MPI
   if (this->size() > 1)
     {
       TIMPI_LOG_SCOPE("sum()", "Parallel");
 
       timpi_call_mpi
-        (MPI_Iallreduce (&r, &o, 1,
-                         StandardType<T>(&r),
-                         OpFunction<T>::sum(),
-                         this->get(),
-                         req.get()));
+        (TIMPI_IALLREDUCE(&r, &o, 1, StandardType<T>(&r),
+                          OpFunction<T>::sum(), this->get(),
+                          req.get()));
     }
   else
+#endif
     {
       o = r;
       req = Request::null_request;
@@ -2660,10 +2682,10 @@ inline void Communicator::sum(T & timpi_mpi_var(r)) const
       TIMPI_LOG_SCOPE("sum()", "Parallel");
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, &r, 1,
-                        StandardType<T>(&r),
-                        OpFunction<T>::sum(),
-                        this->get()));
+        (TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1,
+                         StandardType<T>(&r),
+                         OpFunction<T>::sum(),
+                         this->get()));
     }
 }
 
@@ -2678,11 +2700,11 @@ inline void Communicator::sum(std::vector<T,A> & r) const
       timpi_assert(this->verify(r.size()));
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, r.data(),
-                        cast_int<int>(r.size()),
-                        StandardType<T>(r.data()),
-                        OpFunction<T>::sum(),
-                        this->get()));
+        (TIMPI_ALLREDUCE(MPI_IN_PLACE, r.data(),
+                         cast_int<CountType>(r.size()),
+                         StandardType<T>(r.data()),
+                         OpFunction<T>::sum(),
+                         this->get()));
     }
 }
 
@@ -2697,10 +2719,10 @@ inline void Communicator::sum(std::complex<T> & timpi_mpi_var(r)) const
       TIMPI_LOG_SCOPE("sum()", "Parallel");
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, &r, 2,
-                        StandardType<T>(),
-                        OpFunction<T>::sum(),
-                        this->get()));
+        (TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 2,
+                         StandardType<T>(),
+                         OpFunction<T>::sum(),
+                         this->get()));
     }
 }
 
@@ -2715,10 +2737,10 @@ inline void Communicator::sum(std::vector<std::complex<T>,A> & r) const
       timpi_assert(this->verify(r.size()));
 
       timpi_call_mpi
-        (MPI_Allreduce (MPI_IN_PLACE, r.data(),
-                        cast_int<int>(r.size() * 2),
-                        StandardType<T>(nullptr),
-                        OpFunction<T>::sum(), this->get()));
+        (TIMPI_ALLREDUCE(MPI_IN_PLACE, r.data(),
+                         cast_int<CountType>(r.size() * 2),
+                         StandardType<T>(nullptr),
+                         OpFunction<T>::sum(), this->get()));
     }
 }
 
@@ -2833,11 +2855,12 @@ inline void Communicator::allgather(const std::vector<T,A1> & sendval,
   recv.clear();
   recv.resize(this->size());
 
-  std::vector<int>
-    sendlengths  (this->size(), 0),
+  std::vector<CountType>
+    sendlengths  (this->size(), 0);
+  std::vector<DispType>
     displacements(this->size(), 0);
 
-  const int mysize = static_cast<int>(sendval.size());
+  const CountType mysize = cast_int<CountType>(sendval.size());
 
   if (identical_buffer_sizes)
     sendlengths.assign(this->size(), mysize);
@@ -2847,7 +2870,7 @@ inline void Communicator::allgather(const std::vector<T,A1> & sendval,
 
   // Find the total size of the final array and
   // set up the displacement offsets for each processor
-  unsigned int globalsize = 0;
+  CountType globalsize = 0;
   for (unsigned int i=0; i != this->size(); ++i)
     {
       displacements[i] = globalsize;
@@ -2863,10 +2886,10 @@ inline void Communicator::allgather(const std::vector<T,A1> & sendval,
 
   // and get the data from the remote processors.
   timpi_call_mpi
-    (MPI_Allgatherv (const_cast<T*>(mysize ? sendval.data() : nullptr),
-                     mysize, StandardType<T>(),
-                     &r[0], sendlengths.data(), displacements.data(),
-                     StandardType<T>(), this->get()));
+    (TIMPI_ALLGATHERV(const_cast<T*>(mysize ? sendval.data() : nullptr),
+                      mysize, StandardType<T>(),
+                      &r[0], sendlengths.data(), displacements.data(),
+                      StandardType<T>(), this->get()));
 
   // slice receive buffer up
   for (unsigned int i=0; i != this->size(); ++i)
@@ -2887,8 +2910,12 @@ inline void Communicator::allgather(const std::vector<T,A1> & sendval,
   typedef typename Packing<T>::buffer_type buffer_t;
 
   std::vector<buffer_t> buffer;
-  pack_range ((void *)nullptr, sendval.begin(), sendval.end(), buffer,
-              std::numeric_limits<int>::max());
+  auto next_iter = pack_range ((void *)nullptr, sendval.begin(),
+                               sendval.end(), buffer,
+                               std::numeric_limits<CountType>::max());
+
+  if (next_iter != sendval.end())
+    timpi_error_msg("Non-blocking packed range sends cannot exceed " << std::numeric_limits<CountType>::max() << "in size");
 
   std::vector<std::vector<buffer_t>> allbuffers;
 
@@ -3212,9 +3239,9 @@ inline void Communicator::gather(const unsigned int root_id,
       timpi_assert_less(root_id, this->size());
 
       timpi_call_mpi
-        (MPI_Gather(const_cast<T*>(&sendval), 1, send_type,
-                    recv.empty() ? nullptr : recv.data(), 1, send_type,
-                    root_id, this->get()));
+        (TIMPI_GATHER(const_cast<T*>(&sendval), 1, send_type,
+                      recv.empty() ? nullptr : recv.data(), 1, send_type,
+                      root_id, this->get()));
     }
   else
     recv[0] = sendval;
@@ -3236,18 +3263,18 @@ inline void Communicator::gather(const unsigned int root_id,
 
   timpi_assert_less (root_id, this->size());
 
-  std::vector<int>
+  std::vector<CountType>
     sendlengths  (this->size(), 0),
     displacements(this->size(), 0);
 
-  const int mysize = static_cast<int>(r.size());
+  const CountType mysize = cast_int<CountType>(r.size());
   this->allgather(mysize, sendlengths);
 
   TIMPI_LOG_SCOPE("gather()", "Parallel");
 
   // Find the total size of the final array and
   // set up the displacement offsets for each processor.
-  unsigned int globalsize = 0;
+  CountType globalsize = 0;
   for (unsigned int i=0; i != this->size(); ++i)
     {
       displacements[i] = globalsize;
@@ -3270,10 +3297,10 @@ inline void Communicator::gather(const unsigned int root_id,
 
   // and get the data from the remote processors
   timpi_call_mpi
-    (MPI_Gatherv (r_src.empty() ? nullptr : r_src.data(), mysize,
-                  StandardType<T>(), r.empty() ? nullptr : r.data(),
-                  sendlengths.data(), displacements.data(),
-                  StandardType<T>(), root_id, this->get()));
+    (TIMPI_GATHERV(r_src.empty() ? nullptr : r_src.data(), mysize,
+                   StandardType<T>(), r.empty() ? nullptr : r.data(),
+                   sendlengths.data(), displacements.data(),
+                   StandardType<T>(), root_id, this->get()));
 }
 
 
@@ -3307,11 +3334,12 @@ inline void Communicator::gather(const unsigned int root_id,
     {
       TIMPI_LOG_SCOPE ("gather()","Parallel");
 
-      std::vector<int>
-        sendlengths  (this->size(), 0),
+      std::vector<CountType>
+        sendlengths  (this->size(), 0);
+      std::vector<DispType>
         displacements(this->size(), 0);
 
-      const int mysize = static_cast<int>(sendval.size());
+      const CountType mysize = cast_int<CountType>(sendval.size());
 
       if (identical_buffer_sizes)
         sendlengths.assign(this->size(), mysize);
@@ -3321,7 +3349,7 @@ inline void Communicator::gather(const unsigned int root_id,
 
       // Find the total size of the final array and
       // set up the displacement offsets for each processor
-      unsigned int globalsize = 0;
+      CountType globalsize = 0;
       for (unsigned int i=0; i < this->size(); ++i)
         {
           displacements[i] = globalsize;
@@ -3337,11 +3365,11 @@ inline void Communicator::gather(const unsigned int root_id,
 
       // and get the data from the remote processors.
       timpi_call_mpi
-        (MPI_Gatherv (const_cast<T*>(sendval.data()),
-                      mysize, StandardType<T>(),
-                      this->rank() == root_id ? &r[0] : nullptr,
-                      sendlengths.data(), displacements.data(),
-                      StandardType<T>(), root_id, this->get()));
+        (TIMPI_GATHERV(const_cast<T*>(sendval.data()),
+                       mysize, StandardType<T>(),
+                       this->rank() == root_id ? &r[0] : nullptr,
+                       sendlengths.data(), displacements.data(),
+                       StandardType<T>(), root_id, this->get()));
 
       // slice receive buffer up
       if (this->rank() == root_id)
@@ -3364,14 +3392,14 @@ inline void Communicator::allgather(const T & sendval,
   timpi_assert(this->size());
   recv.resize(this->size());
 
-  unsigned int comm_size = this->size();
+  const unsigned int comm_size = this->size();
   if (comm_size > 1)
     {
       StandardType<T> send_type(&sendval);
 
       timpi_call_mpi
-        (MPI_Allgather (const_cast<T*>(&sendval), 1, send_type, recv.data(), 1,
-                        send_type, this->get()));
+        (TIMPI_ALLGATHER(const_cast<T*>(&sendval), 1, send_type, recv.data(), 1,
+                         send_type, this->get()));
     }
   else if (comm_size > 0)
     recv[0] = sendval;
@@ -3424,23 +3452,24 @@ inline void Communicator::allgather(std::vector<T,A> & r,
       StandardType<T> send_type(r_src.data());
 
       timpi_call_mpi
-        (MPI_Allgather (r_src.data(), cast_int<int>(r_src.size()),
-                        send_type, r.data(), cast_int<int>(r_src.size()),
-                        send_type, this->get()));
+        (TIMPI_ALLGATHER(r_src.data(), cast_int<CountType>(r_src.size()),
+                         send_type, r.data(), cast_int<CountType>(r_src.size()),
+                         send_type, this->get()));
       // timpi_assert(this->verify(r));
       return;
     }
 
-  std::vector<int>
-    sendlengths  (this->size(), 0),
+  std::vector<CountType>
+    sendlengths  (this->size(), 0);
+  std::vector<DispType>
     displacements(this->size(), 0);
 
-  const int mysize = static_cast<int>(r.size());
+  const CountType mysize = cast_int<CountType>(r.size());
   this->allgather(mysize, sendlengths);
 
   // Find the total size of the final array and
   // set up the displacement offsets for each processor.
-  unsigned int globalsize = 0;
+  CountType globalsize = 0;
   for (unsigned int i=0; i != this->size(); ++i)
     {
       displacements[i] = globalsize;
@@ -3460,9 +3489,9 @@ inline void Communicator::allgather(std::vector<T,A> & r,
   // and get the data from the remote processors.
   // Pass nullptr if our vector is empty.
   timpi_call_mpi
-    (MPI_Allgatherv (r_src.empty() ? nullptr : r_src.data(), mysize,
-                     send_type, r.data(), sendlengths.data(),
-                     displacements.data(), send_type, this->get()));
+    (TIMPI_ALLGATHERV(r_src.empty() ? nullptr : r_src.data(), mysize,
+                      send_type, r.data(), sendlengths.data(),
+                      displacements.data(), send_type, this->get()));
 }
 
 template <typename T, typename A,
@@ -3492,15 +3521,15 @@ inline void Communicator::allgather(std::vector<T,A> & r,
       return;
     }
 
-  std::vector<int>
+  std::vector<CountType>
     sendlengths  (this->size(), 0),
     displacements(this->size(), 0);
 
-  const int mysize = static_cast<int>(r.size());
+  const CountType mysize = cast_int<CountType>(r.size());
   this->allgather(mysize, sendlengths);
 
   // Find the total size of the final array
-  unsigned int globalsize = 0;
+  CountType globalsize = 0;
   for (unsigned int i=0; i != this->size(); ++i)
       globalsize += sendlengths[i];
 
@@ -3539,36 +3568,36 @@ inline void Communicator::allgather(std::vector<std::basic_string<T>,A> & r,
 
   // Concatenate the input buffer into a send buffer, and keep track
   // of input string lengths
-  std::vector<int> mystrlengths (r.size());
+  std::vector<CountType> mystrlengths (r.size());
   std::vector<T> concat_src;
 
-  int myconcatsize = 0;
-  for (unsigned int i=0; i != r.size(); ++i)
+  CountType myconcatsize = 0;
+  for (std::size_t i=0; i != r.size(); ++i)
     {
-      int stringlen = cast_int<int>(r[i].size());
+      CountType stringlen = cast_int<CountType>(r[i].size());
       mystrlengths[i] = stringlen;
       myconcatsize += stringlen;
     }
   concat_src.reserve(myconcatsize);
-  for (unsigned int i=0; i != r.size(); ++i)
+  for (std::size_t i=0; i != r.size(); ++i)
     concat_src.insert
       (concat_src.end(), r[i].begin(), r[i].end());
 
   // Get the string lengths from all other processors
-  std::vector<int> strlengths = mystrlengths;
+  std::vector<CountType> strlengths = mystrlengths;
   this->allgather(strlengths, identical_buffer_sizes);
 
   // We now know how many strings we'll be receiving
   r.resize(strlengths.size());
 
   // Get the concatenated data sizes from all other processors
-  std::vector<int> concat_sizes;
+  std::vector<CountType> concat_sizes;
   this->allgather(myconcatsize, concat_sizes);
 
   // Find the total size of the final concatenated array and
   // set up the displacement offsets for each processor.
-  std::vector<int> displacements(this->size(), 0);
-  unsigned int globalsize = 0;
+  std::vector<DispType> displacements(this->size(), 0);
+  CountType globalsize = 0;
   for (unsigned int i=0; i != this->size(); ++i)
     {
       displacements[i] = globalsize;
@@ -3588,14 +3617,14 @@ inline void Communicator::allgather(std::vector<std::basic_string<T>,A> & r,
   StandardType<T> send_type(concat.data());
 
   timpi_call_mpi
-    (MPI_Allgatherv (concat_src.empty() ?
-                     nullptr : concat_src.data(), myconcatsize,
-                     send_type, concat.data(), concat_sizes.data(),
-                     displacements.data(), send_type, this->get()));
+    (TIMPI_ALLGATHERV(concat_src.empty() ?
+                      nullptr : concat_src.data(), myconcatsize,
+                      send_type, concat.data(), concat_sizes.data(),
+                      displacements.data(), send_type, this->get()));
 
   // Finally, split concatenated data into strings
   const T * begin = concat.data();
-  for (unsigned int i=0; i != r.size(); ++i)
+  for (std::size_t i=0; i != r.size(); ++i)
     {
       const T * end = begin + strlengths[i];
       r[i].assign(begin, end);
@@ -3633,8 +3662,8 @@ void Communicator::scatter(const std::vector<T,A> & data,
   timpi_assert_less(root_id, this->size());
 
   timpi_call_mpi
-    (MPI_Scatter (data_ptr, 1, StandardType<T>(data_ptr),
-                  &recv, 1, StandardType<T>(&recv), root_id, this->get()));
+    (TIMPI_SCATTER(data_ptr, 1, StandardType<T>(data_ptr),
+                   &recv, 1, StandardType<T>(&recv), root_id, this->get()));
 }
 
 
@@ -3656,11 +3685,11 @@ void Communicator::scatter(const std::vector<T,A> & data,
 
   TIMPI_LOG_SCOPE("scatter()", "Parallel");
 
-  int recv_buffer_size = 0;
+  std::size_t recv_buffer_size = 0;
   if (this->rank() == root_id)
     {
       timpi_assert(data.size() % this->size() == 0);
-      recv_buffer_size = cast_int<int>(data.size() / this->size());
+      recv_buffer_size = cast_int<std::size_t>(data.size() / this->size());
     }
 
   this->broadcast(recv_buffer_size);
@@ -3673,15 +3702,16 @@ void Communicator::scatter(const std::vector<T,A> & data,
   timpi_assert_less(root_id, this->size());
 
   timpi_call_mpi
-    (MPI_Scatter (data_ptr, recv_buffer_size, StandardType<T>(data_ptr),
-                  recv_ptr, recv_buffer_size, StandardType<T>(recv_ptr), root_id, this->get()));
+    (TIMPI_SCATTER(data_ptr, recv_buffer_size, StandardType<T>(data_ptr),
+                   recv_ptr, recv_buffer_size, StandardType<T>(recv_ptr),
+                   root_id, this->get()));
 }
 
 
 
 template <typename T, typename A1, typename A2>
 void Communicator::scatter(const std::vector<T,A1> & data,
-                           const std::vector<int,A2> counts,
+                           const std::vector<CountType,A2> counts,
                            std::vector<T,A1> & recv,
                            const unsigned int root_id) const
 {
@@ -3696,13 +3726,13 @@ void Communicator::scatter(const std::vector<T,A1> & data,
       return;
     }
 
-  std::vector<int,A2> displacements(this->size(), 0);
+  std::vector<DispType> displacements(this->size(), 0);
   if (root_id == this->rank())
     {
       timpi_assert(counts.size() == this->size());
 
       // Create a displacements vector from the incoming counts vector
-      unsigned int globalsize = 0;
+      std::size_t globalsize = 0;
       for (unsigned int i=0; i < this->size(); ++i)
         {
           displacements[i] = globalsize;
@@ -3715,12 +3745,12 @@ void Communicator::scatter(const std::vector<T,A1> & data,
   TIMPI_LOG_SCOPE("scatter()", "Parallel");
 
   // Scatter the buffer sizes to size remote buffers
-  int recv_buffer_size = 0;
+  CountType recv_buffer_size = 0;
   this->scatter(counts, recv_buffer_size, root_id);
   recv.resize(recv_buffer_size);
 
   T * data_ptr = const_cast<T*>(data.empty() ? nullptr : data.data());
-  int * count_ptr = const_cast<int*>(counts.empty() ? nullptr : counts.data());
+  CountType * count_ptr = const_cast<CountType*>(counts.empty() ? nullptr : counts.data());
   T * recv_ptr = recv.empty() ? nullptr : recv.data();
   ignore(data_ptr, count_ptr, recv_ptr); // unused ifndef TIMPI_HAVE_MPI
 
@@ -3728,9 +3758,27 @@ void Communicator::scatter(const std::vector<T,A1> & data,
 
   // Scatter the non-uniform chunks
   timpi_call_mpi
-    (MPI_Scatterv (data_ptr, count_ptr, displacements.data(), StandardType<T>(data_ptr),
-                   recv_ptr, recv_buffer_size, StandardType<T>(recv_ptr), root_id, this->get()));
+    (TIMPI_SCATTERV(data_ptr, count_ptr, displacements.data(), StandardType<T>(data_ptr),
+                    recv_ptr, recv_buffer_size, StandardType<T>(recv_ptr), root_id, this->get()));
 }
+
+
+#ifdef TIMPI_HAVE_MPI
+#if MPI_VERSION > 3
+  /**
+   * vector<int> based scatter, for backwards compatibility
+   */
+template <typename T, typename A1, typename A2>
+void Communicator::scatter(const std::vector<T,A1> & data,
+                           const std::vector<int,A2> counts,
+                           std::vector<T,A1> & recv,
+                           const unsigned int root_id) const
+{
+  std::vector<CountType> full_counts(counts.begin(), counts.end());
+  this->scatter(data, full_counts, recv, root_id);
+}
+#endif
+#endif
 
 
 
@@ -3752,7 +3800,7 @@ void Communicator::scatter(const std::vector<std::vector<T,A1>,A2> & data,
     }
 
   std::vector<T,A1> stacked_data;
-  std::vector<int> counts;
+  std::vector<CountType> counts;
 
   if (root_id == this->rank())
     {
@@ -3764,7 +3812,7 @@ void Communicator::scatter(const std::vector<std::vector<T,A1>,A2> & data,
       for (std::size_t i=0; i < data.size(); ++i)
         {
           if (!identical_buffer_sizes)
-            counts[i] = cast_int<int>(data[i].size());
+            counts[i] = cast_int<CountType>(data[i].size());
 #ifndef NDEBUG
           else
             // Check that buffer sizes are indeed equal
@@ -3793,8 +3841,8 @@ inline void Communicator::alltoall(std::vector<T,A> & buf) const
   // the per-processor size.  this is the same for all
   // processors using MPI_Alltoall, could be variable
   // using MPI_Alltoallv
-  const int size_per_proc =
-    cast_int<int>(buf.size()/this->size());
+  const CountType size_per_proc =
+    cast_int<CountType>(buf.size()/this->size());
   ignore(size_per_proc);
 
   timpi_assert_equal_to (buf.size()%this->size(), 0);
@@ -3804,8 +3852,8 @@ inline void Communicator::alltoall(std::vector<T,A> & buf) const
   StandardType<T> send_type(buf.data());
 
   timpi_call_mpi
-    (MPI_Alltoall (MPI_IN_PLACE, size_per_proc, send_type, buf.data(),
-                   size_per_proc, send_type, this->get()));
+    (TIMPI_ALLTOALL(MPI_IN_PLACE, size_per_proc, send_type, buf.data(),
+                    size_per_proc, send_type, this->get()));
 }
 
 
@@ -3834,8 +3882,8 @@ inline void Communicator::broadcast (T & timpi_mpi_var(data),
 
   // Spread data to remote processors.
   timpi_call_mpi
-    (MPI_Bcast (&data, 1, StandardType<T>(&data), root_id,
-                this->get()));
+    (TIMPI_BCAST(&data, 1, StandardType<T>(&data), root_id,
+                 this->get()));
 }
 
 #ifdef TIMPI_HAVE_MPI
@@ -3912,8 +3960,8 @@ inline void Communicator::broadcast (std::vector<T,A> & timpi_mpi_var(data),
   timpi_assert_less(root_id, this->size());
 
   timpi_call_mpi
-    (MPI_Bcast (data_ptr, cast_int<int>(data.size()),
-                StandardType<T>(data_ptr), root_id, this->get()));
+    (TIMPI_BCAST(data_ptr, cast_int<CountType>(data.size()),
+                 StandardType<T>(data_ptr), root_id, this->get()));
 #endif
 }
 

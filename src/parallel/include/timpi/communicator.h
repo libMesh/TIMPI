@@ -205,7 +205,12 @@ public:
 
   processor_id_type rank() const { return _rank; }
 
+#ifdef TIMPI_HAVE_MPI
   processor_id_type size() const { return _size; }
+#else
+  // Help the compiler optimize in serial
+  constexpr processor_id_type size() const { return 1; }
+#endif
 
   /**
    * Whether to use default or synchronous sends?
@@ -314,8 +319,8 @@ private:
   // Utility function for determining size for buffering of
   // vector<vector<T>> into vector<char> via MPI_Pack*
   template <typename T, typename A1, typename A2>
-  int packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
-                     const DataType & type) const;
+  std::size_t packed_size_of(const std::vector<std::vector<T,A1>,A2> & buf,
+                             const DataType & type) const;
 
   // Communication operations:
 public:
@@ -1205,9 +1210,22 @@ public:
    */
   template <typename T, typename A1, typename A2>
   inline void scatter(const std::vector<T,A1> & data,
+                      const std::vector<CountType,A2> counts,
+                      std::vector<T,A1> & recv,
+                      const unsigned int root_id=0) const;
+
+#ifdef TIMPI_HAVE_MPI
+#if MPI_VERSION > 3
+  /**
+   * vector<int> based scatter, for backwards compatibility
+   */
+  template <typename T, typename A1, typename A2>
+  inline void scatter(const std::vector<T,A1> & data,
                       const std::vector<int,A2> counts,
                       std::vector<T,A1> & recv,
                       const unsigned int root_id=0) const;
+#endif
+#endif
 
   /**
    * Take a vector of vectors and scatter the ith inner vector
