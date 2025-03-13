@@ -69,6 +69,9 @@ Communicator *TestCommWorld;
 
         TIMPI::MessageTag tag_move = std::move(tag_copy);
         TIMPI_UNIT_ASSERT(i == tag_move.value());
+
+        TIMPI::MessageTag stupidly_manual_tag(i);
+        TIMPI_UNIT_ASSERT(i == stupidly_manual_tag.value());
       }
   }
 
