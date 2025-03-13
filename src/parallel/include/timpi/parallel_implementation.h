@@ -219,8 +219,8 @@ dataplusint_type_acquire()
 
 
 #if MPI_VERSION > 3
-  MPI_Datatype COUNT_TYPE = MPI_COUNT;
   typedef MPI_Aint DispType;
+#  define TIMPI_COUNT_TYPE MPI_COUNT
 #  define TIMPI_PACK_SIZE MPI_Pack_size_c
 #  define TIMPI_SEND MPI_Send_c
 #  define TIMPI_SSEND MPI_Ssend_c
@@ -242,8 +242,8 @@ dataplusint_type_acquire()
 #  define TIMPI_SCATTERV MPI_Scatterv_c
 #  define TIMPI_ALLTOALL MPI_Alltoall_c
 #else
-  MPI_Datatype COUNT_TYPE = MPI_INT;
   typedef int DispType;
+#  define TIMPI_COUNT_TYPE MPI_INT
 #  define TIMPI_PACK_SIZE MPI_Pack_size
 #  define TIMPI_SEND MPI_Send
 #  define TIMPI_SSEND MPI_Ssend
@@ -278,7 +278,7 @@ std::size_t Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2>
   CountType packedsize=0;
 
   timpi_call_mpi
-    (TIMPI_PACK_SIZE (1, COUNT_TYPE, this->get(), &packedsize));
+    (TIMPI_PACK_SIZE (1, TIMPI_COUNT_TYPE, this->get(), &packedsize));
 
   std::size_t sendsize = packedsize;
 
@@ -288,7 +288,7 @@ std::size_t Communicator::packed_size_of(const std::vector<std::vector<T,A1>,A2>
     {
       // The size of the ith inner buffer
       timpi_call_mpi
-        (TIMPI_PACK_SIZE (1, COUNT_TYPE, this->get(), &packedsize));
+        (TIMPI_PACK_SIZE (1, TIMPI_COUNT_TYPE, this->get(), &packedsize));
 
       sendsize += packedsize;
 
@@ -620,7 +620,7 @@ inline void Communicator::send (const unsigned int dest_processor_id,
   const CountType mpi_n_vecs = cast_int<CountType>(n_vecs);
 
   timpi_call_mpi
-    (TIMPI_PACK (&mpi_n_vecs, 1, COUNT_TYPE, sendbuf->data(),
+    (TIMPI_PACK (&mpi_n_vecs, 1, TIMPI_COUNT_TYPE, sendbuf->data(),
                  sendsize, &pos, this->get()));
 
   for (std::size_t i = 0; i != n_vecs; ++i)
@@ -630,7 +630,7 @@ inline void Communicator::send (const unsigned int dest_processor_id,
         cast_int<CountType>(send_vecs[i].size());
 
       timpi_call_mpi
-        (TIMPI_PACK (&subvec_size, 1, COUNT_TYPE,
+        (TIMPI_PACK (&subvec_size, 1, TIMPI_COUNT_TYPE,
                      sendbuf->data(), sendsize, &pos, this->get()));
 
       // ... the contents of the ith inner buffer
@@ -1161,7 +1161,7 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
   CountType recvsize, pos=0;
   timpi_call_mpi
     (TIMPI_UNPACK(recvbuf.data(), bufsize, &pos, &recvsize, 1,
-                  COUNT_TYPE, this->get()));
+                  TIMPI_COUNT_TYPE, this->get()));
 
   // ... size the outer buffer
   recv.resize (recvsize);
@@ -1173,7 +1173,7 @@ inline Status Communicator::receive (const unsigned int src_processor_id,
 
       timpi_call_mpi
         (TIMPI_UNPACK (recvbuf.data(), bufsize, &pos, &subvec_size, 1,
-                       COUNT_TYPE, this->get()));
+                       TIMPI_COUNT_TYPE, this->get()));
 
       // ... size the inner buffer
       recv[i].resize (subvec_size);
@@ -3264,7 +3264,8 @@ inline void Communicator::gather(const unsigned int root_id,
   timpi_assert_less (root_id, this->size());
 
   std::vector<CountType>
-    sendlengths  (this->size(), 0),
+    sendlengths  (this->size(), 0);
+  std::vector<DispType>
     displacements(this->size(), 0);
 
   const CountType mysize = cast_int<CountType>(r.size());
@@ -3522,7 +3523,8 @@ inline void Communicator::allgather(std::vector<T,A> & r,
     }
 
   std::vector<CountType>
-    sendlengths  (this->size(), 0),
+    sendlengths  (this->size(), 0);
+  std::vector<DispType>
     displacements(this->size(), 0);
 
   const CountType mysize = cast_int<CountType>(r.size());

@@ -53,10 +53,10 @@ struct PostWaitUnpackNestedBuffer : public PostWaitWork {
 #ifdef TIMPI_HAVE_MPI
 
 #if MPI_VERSION > 3
-  MPI_Datatype COUNT_TYPE = MPI_COUNT;
+#  define TIMPI_COUNT_TYPE MPI_COUNT
 #  define TIMPI_UNPACK MPI_Unpack_c
 #else
-  MPI_Datatype COUNT_TYPE = MPI_INT;
+#  define TIMPI_COUNT_TYPE MPI_INT
 #  define TIMPI_UNPACK MPI_Unpack
 #endif
 
@@ -68,7 +68,7 @@ struct PostWaitUnpackNestedBuffer : public PostWaitWork {
   CountType recvsize, pos=0;
   timpi_call_mpi
     (TIMPI_UNPACK(recvbuf.data(), bufsize, &pos, &recvsize, 1,
-                  COUNT_TYPE, comm.get()));
+                  TIMPI_COUNT_TYPE, comm.get()));
 
   // ... size the outer buffer
   recv.resize (recvsize);
@@ -80,7 +80,7 @@ struct PostWaitUnpackNestedBuffer : public PostWaitWork {
 
       timpi_call_mpi
         (TIMPI_UNPACK(recvbuf.data(), bufsize, &pos, &subvec_size, 1,
-                      COUNT_TYPE, comm.get()));
+                      TIMPI_COUNT_TYPE, comm.get()));
 
       // ... size the inner buffer
       recv[i].resize (subvec_size);
