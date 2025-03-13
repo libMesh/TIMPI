@@ -64,6 +64,8 @@ coverage:
 
 CLEANFILES = src/apps/*.gcda src/apps/*.gcno
 
+.PHONY: lcov-report lcov-reset coverage
+
 endif
 
 
