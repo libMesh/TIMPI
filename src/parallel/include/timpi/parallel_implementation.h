@@ -3264,7 +3264,8 @@ inline void Communicator::gather(const unsigned int root_id,
   timpi_assert_less (root_id, this->size());
 
   std::vector<CountType>
-    sendlengths  (this->size(), 0),
+    sendlengths  (this->size(), 0);
+  std::vector<DispType>
     displacements(this->size(), 0);
 
   const CountType mysize = cast_int<CountType>(r.size());
@@ -3522,7 +3523,8 @@ inline void Communicator::allgather(std::vector<T,A> & r,
     }
 
   std::vector<CountType>
-    sendlengths  (this->size(), 0),
+    sendlengths  (this->size(), 0);
+  std::vector<DispType>
     displacements(this->size(), 0);
 
   const CountType mysize = cast_int<CountType>(r.size());
