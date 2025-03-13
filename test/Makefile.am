@@ -48,12 +48,18 @@ if BUILD_DBG_MODE
   dispatch_to_packed_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
   dispatch_to_packed_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)
 
+  utility_unit_dbg_SOURCES = utility_unit.C
+  utility_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
+  utility_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
+  utility_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)
+
   check_PROGRAMS += message_tag_unit-dbg
   check_PROGRAMS += packed_range_unit-dbg
   check_PROGRAMS += parallel_sync_unit-dbg
   check_PROGRAMS += parallel_unit-dbg
   check_PROGRAMS += set_unit-dbg
   check_PROGRAMS += dispatch_to_packed_unit-dbg
+  check_PROGRAMS += utility_unit-dbg
 endif
 
 if BUILD_DEVEL_MODE
@@ -87,12 +93,18 @@ if BUILD_DEVEL_MODE
   dispatch_to_packed_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
   dispatch_to_packed_unit_devel_CXXFLAGS = $(CXXFLAGS_DEVEL)
 
+  utility_unit_devel_SOURCES = utility_unit.C
+  utility_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
+  utility_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
+  utility_unit_devel_CXXFLAGS = $(CXXFLAGS_DEVEL)
+
   check_PROGRAMS += message_tag_unit-devel
   check_PROGRAMS += packed_range_unit-devel
   check_PROGRAMS += parallel_sync_unit-devel
   check_PROGRAMS += parallel_unit-devel
   check_PROGRAMS += set_unit-devel
   check_PROGRAMS += dispatch_to_packed_unit-devel
+  check_PROGRAMS += utility_unit-devel
 endif
 
 if BUILD_OPT_MODE
@@ -126,12 +138,18 @@ if BUILD_OPT_MODE
   dispatch_to_packed_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
   dispatch_to_packed_unit_opt_CXXFLAGS = $(CXXFLAGS_OPT)
 
+  utility_unit_opt_SOURCES = utility_unit.C
+  utility_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
+  utility_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
+  utility_unit_opt_CXXFLAGS = $(CXXFLAGS_OPT)
+
   check_PROGRAMS += message_tag_unit-opt
   check_PROGRAMS += packed_range_unit-opt
   check_PROGRAMS += parallel_sync_unit-opt
   check_PROGRAMS += parallel_unit-opt
   check_PROGRAMS += set_unit-opt
   check_PROGRAMS += dispatch_to_packed_unit-opt
+  check_PROGRAMS += utility_unit-opt
 endif
 
 if BUILD_OPROF_MODE
@@ -165,12 +183,18 @@ if BUILD_OPROF_MODE
   dispatch_to_packed_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
   dispatch_to_packed_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
 
+  utility_unit_oprof_SOURCES = utility_unit.C
+  utility_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
+  utility_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
+  utility_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
+
   check_PROGRAMS += message_tag_unit-oprof
   check_PROGRAMS += packed_range_unit-oprof
   check_PROGRAMS += parallel_sync_unit-oprof
   check_PROGRAMS += parallel_unit-oprof
   check_PROGRAMS += set_unit-oprof
   check_PROGRAMS += dispatch_to_packed_unit-oprof
+  check_PROGRAMS += utility_unit-oprof
 endif
 
 if BUILD_PROF_MODE
@@ -204,12 +228,18 @@ if BUILD_PROF_MODE
   dispatch_to_packed_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
   dispatch_to_packed_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
 
+  utility_unit_prof_SOURCES = utility_unit.C
+  utility_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
+  utility_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
+  utility_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
+
   check_PROGRAMS += message_tag_unit-prof
   check_PROGRAMS += packed_range_unit-prof
   check_PROGRAMS += parallel_sync_unit-prof
   check_PROGRAMS += parallel_unit-prof
   check_PROGRAMS += set_unit-prof
   check_PROGRAMS += dispatch_to_packed_unit-prof
+  check_PROGRAMS += utility_unit-prof
 endif
 
 ######################################################################
