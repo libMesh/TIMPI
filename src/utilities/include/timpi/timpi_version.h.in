@@ -22,17 +22,13 @@
 #define TIMPI_MINOR_VERSION  @GENERIC_MINOR_VERSION@
 #define TIMPI_MICRO_VERSION  @GENERIC_MICRO_VERSION@
 
-#define TIMPI_BUILD_USER     "@BUILD_USER@"
-#define TIMPI_BUILD_ARCH     "@BUILD_ARCH@"
-#define TIMPI_BUILD_HOST     "@BUILD_HOST@"
-#define TIMPI_BUILD_DATE     "@BUILD_DATE@"
-#define TIMPI_BUILD_VERSION  "@BUILD_VERSION@"
-
 #define TIMPI_LIB_VERSION    "@VERSION@"
 #define TIMPI_LIB_RELEASE    "@BUILD_DEVSTATUS@"
 
 #define TIMPI_CXX            "@CXX@"
 #define TIMPI_CXXFLAGS       "@CXXFLAGS@"
+
+#include "timpi/timpi_config.h"
 
 #include <iostream>
 #include <iomanip>
@@ -40,6 +36,7 @@
 namespace TIMPI
 {
   void timpi_version_stdout();
+  std::string timpi_version_string();
   int  get_timpi_version();
 } // end namespace TIMPI
 
