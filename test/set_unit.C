@@ -98,10 +98,10 @@ void tester(const std::multimap<int, int> & m, int i)
   TIMPI_UNIT_ASSERT( m.count(-1) * 3 == m.size() );
 
   std::bitset<2> found;
-  auto [begin, end] = m.equal_range(i);
-  for (auto it = begin; it != end; ++it)
+  auto pr = m.equal_range(i);
+  for (auto it = pr.first; it != pr.second; ++it)
     {
-      auto [key, val] = *it;
+      auto val = it->second;
       TIMPI_UNIT_ASSERT( val > 3*i && val < 3*i+3 );
       TIMPI_UNIT_ASSERT( !found[val-3*i-1] );
       found[val-3*i-1] = true;
@@ -114,10 +114,10 @@ void tester(const std::unordered_multimap<int, int> & m, int i)
   TIMPI_UNIT_ASSERT( m.count(-1) * 3 == m.size() );
 
   std::bitset<2> found;
-  auto [begin, end] = m.equal_range(i);
-  for (auto it = begin; it != end; ++it)
+  const auto pr = m.equal_range(i);
+  for (auto it = pr.first; it != pr.second; ++it)
     {
-      auto [key, val] = *it;
+      auto val = it->second;
       TIMPI_UNIT_ASSERT( val > 3*i && val < 3*i+3 );
       TIMPI_UNIT_ASSERT( !found[val-3*i-1] );
       found[val-3*i-1] = true;
@@ -223,8 +223,10 @@ void tester(const std::unordered_map<int, std::vector<int>> & m, int i)
     // same surface_ids, the ones from pid 0.
     TIMPI_UNIT_ASSERT( mapset.size() == 1 );
     const std::set<unsigned short> goodset {20201, 60201};
-    for (const auto & [key, boundary_id_set] : mapset)
+    for (const auto & pr : mapset)
     {
+      const auto & key = pr.first;
+      const auto & boundary_id_set = pr.second;
       TIMPI_UNIT_ASSERT( key == 0 );
       TIMPI_UNIT_ASSERT( boundary_id_set == goodset );
     }
@@ -254,8 +256,10 @@ void tester(const std::unordered_map<int, std::vector<int>> & m, int i)
     TIMPI_UNIT_ASSERT( mapmap.size() == 1 );
     const std::map<unsigned short, double> goodmap {{20201, 0.8},
                                                     {60201, 1}};
-    for (const auto & [key, boundary_id_map] : mapmap)
+    for (const auto & pr : mapmap)
     {
+      const auto & key = pr.first;
+      const auto & boundary_id_map = pr.second;
       TIMPI_UNIT_ASSERT( key == 0 );
       TIMPI_UNIT_ASSERT( boundary_id_map == goodmap );
     }
