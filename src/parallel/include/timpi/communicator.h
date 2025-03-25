@@ -364,8 +364,12 @@ public:
   void nonblocking_barrier (Request & req) const;
 
   /**
-   * Verify that a local variable has the same value on all processors.
-   * Containers must have the same value in every entry.
+   * Check whether a local variable has the same value on all
+   * processors, returning true if it does or false if not.  Useful in
+   * assertions and possibly in user error checking.
+   *
+   * Containers must have the same value in every entry for this
+   * function to return true.
    */
   template <typename T>
   timpi_pure
@@ -373,9 +377,14 @@ public:
   bool verify(const T & r) const;
 
   /**
-   * Verify that a local pointer points to the same value on all
-   * processors where it is not nullptr.
-   * Containers must have the same value in every entry.
+   * Check whether a local pointer points to the same value on all
+   * processors where it is not null, returning true if it does or
+   * false if not.  Useful in assertions and possibly in user error
+   * checking.
+   *
+   * Containers must have the same value in every entry on all
+   * processors where the pointer is not null for this function to
+   * return true.
    */
   template <typename T>
   timpi_pure
