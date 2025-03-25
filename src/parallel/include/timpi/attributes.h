@@ -46,8 +46,10 @@ template<typename T>
 struct Attributes
 {
   static const bool has_min_max = false;
-  static void set_lowest(T &) {}
-  static void set_highest(T &) {}
+  /*
+  static void set_lowest(T & x) { x = as_low_as_it_can_be; }
+  static void set_highest(T & x) { x = as_high_as_it_can_be; }
+  */
 };
 
 // ------------------------------------------------------------
