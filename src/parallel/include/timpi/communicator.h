@@ -20,12 +20,13 @@
 #define TIMPI_COMMUNICATOR_H
 
 // TIMPI includes
-#include "timpi/standard_type.h"
-#include "timpi/packing.h"
 #include "timpi/message_tag.h"
-#include "timpi/timpi_config.h"
+#include "timpi/packing.h"
 #include "timpi/request.h"
+#include "timpi/standard_type.h"
 #include "timpi/status.h"
+#include "timpi/timpi_config.h"
+#include "timpi/timpi_macros.h"
 
 // C++ includes
 #include <map>
@@ -367,6 +368,7 @@ public:
    * Containers must have the same value in every entry.
    */
   template <typename T>
+  timpi_pure
   inline
   bool verify(const T & r) const;
 
@@ -376,6 +378,7 @@ public:
    * Containers must have the same value in every entry.
    */
   template <typename T>
+  timpi_pure
   inline
   bool semiverify(const T * r) const;
 
