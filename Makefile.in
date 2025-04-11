@@ -1057,7 +1057,7 @@ test_headers:
 @CODE_COVERAGE_ENABLED_TRUE@	@mkdir -p $(lcov_dir)
 @CODE_COVERAGE_ENABLED_TRUE@	lcov --compat-libtool --directory . --capture --output-file $(lcov_dir)/lcov.info
 @CODE_COVERAGE_ENABLED_TRUE@	lcov --list-full-path -l $(lcov_dir)/lcov.info | grep -v "`cd -P $(top_srcdir)/src && pwd`" | cut -d\| -f1 > $(lcov_dir)/remove
-@CODE_COVERAGE_ENABLED_TRUE@	lcov -q -r $(lcov_dir)/lcov.info `cat $(lcov_dir)/remove` > $(lcov_dir)/lcov.cleaned.info
+@CODE_COVERAGE_ENABLED_TRUE@	lcov --ignore-errors unused -q -r $(lcov_dir)/lcov.info `cat $(lcov_dir)/remove` > $(lcov_dir)/lcov.cleaned.info
 @CODE_COVERAGE_ENABLED_TRUE@	@rm $(lcov_dir)/remove
 @CODE_COVERAGE_ENABLED_TRUE@	@mv -f $(lcov_dir)/lcov.cleaned.info $(lcov_dir)/lcov.info
 @CODE_COVERAGE_ENABLED_TRUE@	genhtml -t "TIMPI" -o $(lcov_dir) $(lcov_dir)/lcov.info
@@ -1071,6 +1071,8 @@ test_headers:
 @CODE_COVERAGE_ENABLED_TRUE@	$(MAKE) lcov-reset
 @CODE_COVERAGE_ENABLED_TRUE@	$(MAKE) check
 @CODE_COVERAGE_ENABLED_TRUE@	$(MAKE) lcov-report
+
+@CODE_COVERAGE_ENABLED_TRUE@.PHONY: lcov-report lcov-reset coverage
 
 # Support 'make install prefix=/other/path' with pkgconfig
 install-data-hook:

@@ -665,6 +665,7 @@ include_HEADERS = algorithms/include/timpi/parallel_sync.h \
 	utilities/include/timpi/timpi_assert.h \
 	utilities/include/timpi/timpi_call_mpi.h \
 	utilities/include/timpi/timpi_init.h \
+	utilities/include/timpi/timpi_macros.h \
 	utilities/include/timpi/restore_warnings.h \
 	$(top_builddir)/src/utilities/include/timpi/timpi_version.h \
 	$(top_builddir)/src/utilities/include/timpi/timpi_config.h

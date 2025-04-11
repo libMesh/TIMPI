@@ -93,26 +93,31 @@ check_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
 @BUILD_DBG_MODE_TRUE@am__append_1 = message_tag_unit-dbg \
 @BUILD_DBG_MODE_TRUE@	packed_range_unit-dbg \
 @BUILD_DBG_MODE_TRUE@	parallel_sync_unit-dbg parallel_unit-dbg \
-@BUILD_DBG_MODE_TRUE@	set_unit-dbg dispatch_to_packed_unit-dbg
+@BUILD_DBG_MODE_TRUE@	set_unit-dbg dispatch_to_packed_unit-dbg \
+@BUILD_DBG_MODE_TRUE@	utility_unit-dbg
 @BUILD_DEVEL_MODE_TRUE@am__append_2 = message_tag_unit-devel \
 @BUILD_DEVEL_MODE_TRUE@	packed_range_unit-devel \
 @BUILD_DEVEL_MODE_TRUE@	parallel_sync_unit-devel \
 @BUILD_DEVEL_MODE_TRUE@	parallel_unit-devel set_unit-devel \
-@BUILD_DEVEL_MODE_TRUE@	dispatch_to_packed_unit-devel
+@BUILD_DEVEL_MODE_TRUE@	dispatch_to_packed_unit-devel \
+@BUILD_DEVEL_MODE_TRUE@	utility_unit-devel
 @BUILD_OPT_MODE_TRUE@am__append_3 = message_tag_unit-opt \
 @BUILD_OPT_MODE_TRUE@	packed_range_unit-opt \
 @BUILD_OPT_MODE_TRUE@	parallel_sync_unit-opt parallel_unit-opt \
-@BUILD_OPT_MODE_TRUE@	set_unit-opt dispatch_to_packed_unit-opt
+@BUILD_OPT_MODE_TRUE@	set_unit-opt dispatch_to_packed_unit-opt \
+@BUILD_OPT_MODE_TRUE@	utility_unit-opt
 @BUILD_OPROF_MODE_TRUE@am__append_4 = message_tag_unit-oprof \
 @BUILD_OPROF_MODE_TRUE@	packed_range_unit-oprof \
 @BUILD_OPROF_MODE_TRUE@	parallel_sync_unit-oprof \
 @BUILD_OPROF_MODE_TRUE@	parallel_unit-oprof set_unit-oprof \
-@BUILD_OPROF_MODE_TRUE@	dispatch_to_packed_unit-oprof
+@BUILD_OPROF_MODE_TRUE@	dispatch_to_packed_unit-oprof \
+@BUILD_OPROF_MODE_TRUE@	utility_unit-oprof
 @BUILD_PROF_MODE_TRUE@am__append_5 = message_tag_unit-prof \
 @BUILD_PROF_MODE_TRUE@	packed_range_unit-prof \
 @BUILD_PROF_MODE_TRUE@	parallel_sync_unit-prof \
 @BUILD_PROF_MODE_TRUE@	parallel_unit-prof set_unit-prof \
-@BUILD_PROF_MODE_TRUE@	dispatch_to_packed_unit-prof
+@BUILD_PROF_MODE_TRUE@	dispatch_to_packed_unit-prof \
+@BUILD_PROF_MODE_TRUE@	utility_unit-prof
 subdir = test
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps =  \
@@ -152,31 +157,36 @@ CONFIG_CLEAN_VPATH_FILES =
 @BUILD_DBG_MODE_TRUE@	parallel_sync_unit-dbg$(EXEEXT) \
 @BUILD_DBG_MODE_TRUE@	parallel_unit-dbg$(EXEEXT) \
 @BUILD_DBG_MODE_TRUE@	set_unit-dbg$(EXEEXT) \
-@BUILD_DBG_MODE_TRUE@	dispatch_to_packed_unit-dbg$(EXEEXT)
+@BUILD_DBG_MODE_TRUE@	dispatch_to_packed_unit-dbg$(EXEEXT) \
+@BUILD_DBG_MODE_TRUE@	utility_unit-dbg$(EXEEXT)
 @BUILD_DEVEL_MODE_TRUE@am__EXEEXT_2 = message_tag_unit-devel$(EXEEXT) \
 @BUILD_DEVEL_MODE_TRUE@	packed_range_unit-devel$(EXEEXT) \
 @BUILD_DEVEL_MODE_TRUE@	parallel_sync_unit-devel$(EXEEXT) \
 @BUILD_DEVEL_MODE_TRUE@	parallel_unit-devel$(EXEEXT) \
 @BUILD_DEVEL_MODE_TRUE@	set_unit-devel$(EXEEXT) \
-@BUILD_DEVEL_MODE_TRUE@	dispatch_to_packed_unit-devel$(EXEEXT)
+@BUILD_DEVEL_MODE_TRUE@	dispatch_to_packed_unit-devel$(EXEEXT) \
+@BUILD_DEVEL_MODE_TRUE@	utility_unit-devel$(EXEEXT)
 @BUILD_OPT_MODE_TRUE@am__EXEEXT_3 = message_tag_unit-opt$(EXEEXT) \
 @BUILD_OPT_MODE_TRUE@	packed_range_unit-opt$(EXEEXT) \
 @BUILD_OPT_MODE_TRUE@	parallel_sync_unit-opt$(EXEEXT) \
 @BUILD_OPT_MODE_TRUE@	parallel_unit-opt$(EXEEXT) \
 @BUILD_OPT_MODE_TRUE@	set_unit-opt$(EXEEXT) \
-@BUILD_OPT_MODE_TRUE@	dispatch_to_packed_unit-opt$(EXEEXT)
+@BUILD_OPT_MODE_TRUE@	dispatch_to_packed_unit-opt$(EXEEXT) \
+@BUILD_OPT_MODE_TRUE@	utility_unit-opt$(EXEEXT)
 @BUILD_OPROF_MODE_TRUE@am__EXEEXT_4 = message_tag_unit-oprof$(EXEEXT) \
 @BUILD_OPROF_MODE_TRUE@	packed_range_unit-oprof$(EXEEXT) \
 @BUILD_OPROF_MODE_TRUE@	parallel_sync_unit-oprof$(EXEEXT) \
 @BUILD_OPROF_MODE_TRUE@	parallel_unit-oprof$(EXEEXT) \
 @BUILD_OPROF_MODE_TRUE@	set_unit-oprof$(EXEEXT) \
-@BUILD_OPROF_MODE_TRUE@	dispatch_to_packed_unit-oprof$(EXEEXT)
+@BUILD_OPROF_MODE_TRUE@	dispatch_to_packed_unit-oprof$(EXEEXT) \
+@BUILD_OPROF_MODE_TRUE@	utility_unit-oprof$(EXEEXT)
 @BUILD_PROF_MODE_TRUE@am__EXEEXT_5 = message_tag_unit-prof$(EXEEXT) \
 @BUILD_PROF_MODE_TRUE@	packed_range_unit-prof$(EXEEXT) \
 @BUILD_PROF_MODE_TRUE@	parallel_sync_unit-prof$(EXEEXT) \
 @BUILD_PROF_MODE_TRUE@	parallel_unit-prof$(EXEEXT) \
 @BUILD_PROF_MODE_TRUE@	set_unit-prof$(EXEEXT) \
-@BUILD_PROF_MODE_TRUE@	dispatch_to_packed_unit-prof$(EXEEXT)
+@BUILD_PROF_MODE_TRUE@	dispatch_to_packed_unit-prof$(EXEEXT) \
+@BUILD_PROF_MODE_TRUE@	utility_unit-prof$(EXEEXT)
 am__dispatch_to_packed_unit_dbg_SOURCES_DIST =  \
 	dispatch_to_packed_unit.C
 @BUILD_DBG_MODE_TRUE@am_dispatch_to_packed_unit_dbg_OBJECTS = dispatch_to_packed_unit_dbg-dispatch_to_packed_unit.$(OBJEXT)
@@ -439,6 +449,48 @@ set_unit_prof_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
 	$(set_unit_prof_CXXFLAGS) $(CXXFLAGS) $(set_unit_prof_LDFLAGS) \
 	$(LDFLAGS) -o $@
+am__utility_unit_dbg_SOURCES_DIST = utility_unit.C
+@BUILD_DBG_MODE_TRUE@am_utility_unit_dbg_OBJECTS =  \
+@BUILD_DBG_MODE_TRUE@	utility_unit_dbg-utility_unit.$(OBJEXT)
+utility_unit_dbg_OBJECTS = $(am_utility_unit_dbg_OBJECTS)
+utility_unit_dbg_LDADD = $(LDADD)
+utility_unit_dbg_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(utility_unit_dbg_CXXFLAGS) $(CXXFLAGS) \
+	$(utility_unit_dbg_LDFLAGS) $(LDFLAGS) -o $@
+am__utility_unit_devel_SOURCES_DIST = utility_unit.C
+@BUILD_DEVEL_MODE_TRUE@am_utility_unit_devel_OBJECTS = utility_unit_devel-utility_unit.$(OBJEXT)
+utility_unit_devel_OBJECTS = $(am_utility_unit_devel_OBJECTS)
+utility_unit_devel_LDADD = $(LDADD)
+utility_unit_devel_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(utility_unit_devel_CXXFLAGS) $(CXXFLAGS) \
+	$(utility_unit_devel_LDFLAGS) $(LDFLAGS) -o $@
+am__utility_unit_oprof_SOURCES_DIST = utility_unit.C
+@BUILD_OPROF_MODE_TRUE@am_utility_unit_oprof_OBJECTS = utility_unit_oprof-utility_unit.$(OBJEXT)
+utility_unit_oprof_OBJECTS = $(am_utility_unit_oprof_OBJECTS)
+utility_unit_oprof_LDADD = $(LDADD)
+utility_unit_oprof_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(utility_unit_oprof_CXXFLAGS) $(CXXFLAGS) \
+	$(utility_unit_oprof_LDFLAGS) $(LDFLAGS) -o $@
+am__utility_unit_opt_SOURCES_DIST = utility_unit.C
+@BUILD_OPT_MODE_TRUE@am_utility_unit_opt_OBJECTS =  \
+@BUILD_OPT_MODE_TRUE@	utility_unit_opt-utility_unit.$(OBJEXT)
+utility_unit_opt_OBJECTS = $(am_utility_unit_opt_OBJECTS)
+utility_unit_opt_LDADD = $(LDADD)
+utility_unit_opt_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(utility_unit_opt_CXXFLAGS) $(CXXFLAGS) \
+	$(utility_unit_opt_LDFLAGS) $(LDFLAGS) -o $@
+am__utility_unit_prof_SOURCES_DIST = utility_unit.C
+@BUILD_PROF_MODE_TRUE@am_utility_unit_prof_OBJECTS = utility_unit_prof-utility_unit.$(OBJEXT)
+utility_unit_prof_OBJECTS = $(am_utility_unit_prof_OBJECTS)
+utility_unit_prof_LDADD = $(LDADD)
+utility_unit_prof_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(utility_unit_prof_CXXFLAGS) $(CXXFLAGS) \
+	$(utility_unit_prof_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -483,7 +535,12 @@ am__depfiles_remade = ./$(DEPDIR)/dispatch_to_packed_unit_dbg-dispatch_to_packed
 	./$(DEPDIR)/set_unit_devel-set_unit.Po \
 	./$(DEPDIR)/set_unit_oprof-set_unit.Po \
 	./$(DEPDIR)/set_unit_opt-set_unit.Po \
-	./$(DEPDIR)/set_unit_prof-set_unit.Po
+	./$(DEPDIR)/set_unit_prof-set_unit.Po \
+	./$(DEPDIR)/utility_unit_dbg-utility_unit.Po \
+	./$(DEPDIR)/utility_unit_devel-utility_unit.Po \
+	./$(DEPDIR)/utility_unit_oprof-utility_unit.Po \
+	./$(DEPDIR)/utility_unit_opt-utility_unit.Po \
+	./$(DEPDIR)/utility_unit_prof-utility_unit.Po
 am__mv = mv -f
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -527,7 +584,10 @@ SOURCES = $(dispatch_to_packed_unit_dbg_SOURCES) \
 	$(parallel_unit_oprof_SOURCES) $(parallel_unit_opt_SOURCES) \
 	$(parallel_unit_prof_SOURCES) $(set_unit_dbg_SOURCES) \
 	$(set_unit_devel_SOURCES) $(set_unit_oprof_SOURCES) \
-	$(set_unit_opt_SOURCES) $(set_unit_prof_SOURCES)
+	$(set_unit_opt_SOURCES) $(set_unit_prof_SOURCES) \
+	$(utility_unit_dbg_SOURCES) $(utility_unit_devel_SOURCES) \
+	$(utility_unit_oprof_SOURCES) $(utility_unit_opt_SOURCES) \
+	$(utility_unit_prof_SOURCES)
 DIST_SOURCES = $(am__dispatch_to_packed_unit_dbg_SOURCES_DIST) \
 	$(am__dispatch_to_packed_unit_devel_SOURCES_DIST) \
 	$(am__dispatch_to_packed_unit_oprof_SOURCES_DIST) \
@@ -557,7 +617,12 @@ DIST_SOURCES = $(am__dispatch_to_packed_unit_dbg_SOURCES_DIST) \
 	$(am__set_unit_devel_SOURCES_DIST) \
 	$(am__set_unit_oprof_SOURCES_DIST) \
 	$(am__set_unit_opt_SOURCES_DIST) \
-	$(am__set_unit_prof_SOURCES_DIST)
+	$(am__set_unit_prof_SOURCES_DIST) \
+	$(am__utility_unit_dbg_SOURCES_DIST) \
+	$(am__utility_unit_devel_SOURCES_DIST) \
+	$(am__utility_unit_oprof_SOURCES_DIST) \
+	$(am__utility_unit_opt_SOURCES_DIST) \
+	$(am__utility_unit_prof_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -1011,6 +1076,10 @@ TESTS = run_unit_tests.sh
 @BUILD_DBG_MODE_TRUE@dispatch_to_packed_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
 @BUILD_DBG_MODE_TRUE@dispatch_to_packed_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
 @BUILD_DBG_MODE_TRUE@dispatch_to_packed_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)
+@BUILD_DBG_MODE_TRUE@utility_unit_dbg_SOURCES = utility_unit.C
+@BUILD_DBG_MODE_TRUE@utility_unit_dbg_LDFLAGS = $(top_builddir)/src/libtimpi_dbg.la
+@BUILD_DBG_MODE_TRUE@utility_unit_dbg_CPPFLAGS = $(CPPFLAGS_DBG) $(AM_CPPFLAGS)
+@BUILD_DBG_MODE_TRUE@utility_unit_dbg_CXXFLAGS = $(CXXFLAGS_DBG)
 @BUILD_DEVEL_MODE_TRUE@message_tag_unit_devel_SOURCES = message_tag_unit.C
 @BUILD_DEVEL_MODE_TRUE@message_tag_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
 @BUILD_DEVEL_MODE_TRUE@message_tag_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
@@ -1035,6 +1104,10 @@ TESTS = run_unit_tests.sh
 @BUILD_DEVEL_MODE_TRUE@dispatch_to_packed_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
 @BUILD_DEVEL_MODE_TRUE@dispatch_to_packed_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
 @BUILD_DEVEL_MODE_TRUE@dispatch_to_packed_unit_devel_CXXFLAGS = $(CXXFLAGS_DEVEL)
+@BUILD_DEVEL_MODE_TRUE@utility_unit_devel_SOURCES = utility_unit.C
+@BUILD_DEVEL_MODE_TRUE@utility_unit_devel_LDFLAGS = $(top_builddir)/src/libtimpi_devel.la
+@BUILD_DEVEL_MODE_TRUE@utility_unit_devel_CPPFLAGS = $(CPPFLAGS_DEVEL) $(AM_CPPFLAGS)
+@BUILD_DEVEL_MODE_TRUE@utility_unit_devel_CXXFLAGS = $(CXXFLAGS_DEVEL)
 @BUILD_OPT_MODE_TRUE@message_tag_unit_opt_SOURCES = message_tag_unit.C
 @BUILD_OPT_MODE_TRUE@message_tag_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
 @BUILD_OPT_MODE_TRUE@message_tag_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
@@ -1059,6 +1132,10 @@ TESTS = run_unit_tests.sh
 @BUILD_OPT_MODE_TRUE@dispatch_to_packed_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
 @BUILD_OPT_MODE_TRUE@dispatch_to_packed_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
 @BUILD_OPT_MODE_TRUE@dispatch_to_packed_unit_opt_CXXFLAGS = $(CXXFLAGS_OPT)
+@BUILD_OPT_MODE_TRUE@utility_unit_opt_SOURCES = utility_unit.C
+@BUILD_OPT_MODE_TRUE@utility_unit_opt_LDFLAGS = $(top_builddir)/src/libtimpi_opt.la
+@BUILD_OPT_MODE_TRUE@utility_unit_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
+@BUILD_OPT_MODE_TRUE@utility_unit_opt_CXXFLAGS = $(CXXFLAGS_OPT)
 @BUILD_OPROF_MODE_TRUE@message_tag_unit_oprof_SOURCES = message_tag_unit.C
 @BUILD_OPROF_MODE_TRUE@message_tag_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
 @BUILD_OPROF_MODE_TRUE@message_tag_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
@@ -1083,6 +1160,10 @@ TESTS = run_unit_tests.sh
 @BUILD_OPROF_MODE_TRUE@dispatch_to_packed_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
 @BUILD_OPROF_MODE_TRUE@dispatch_to_packed_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
 @BUILD_OPROF_MODE_TRUE@dispatch_to_packed_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
+@BUILD_OPROF_MODE_TRUE@utility_unit_oprof_SOURCES = utility_unit.C
+@BUILD_OPROF_MODE_TRUE@utility_unit_oprof_LDFLAGS = $(top_builddir)/src/libtimpi_oprof.la
+@BUILD_OPROF_MODE_TRUE@utility_unit_oprof_CPPFLAGS = $(CPPFLAGS_OPROF) $(AM_CPPFLAGS)
+@BUILD_OPROF_MODE_TRUE@utility_unit_oprof_CXXFLAGS = $(CXXFLAGS_OPROF)
 @BUILD_PROF_MODE_TRUE@message_tag_unit_prof_SOURCES = message_tag_unit.C
 @BUILD_PROF_MODE_TRUE@message_tag_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
 @BUILD_PROF_MODE_TRUE@message_tag_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
@@ -1107,6 +1188,10 @@ TESTS = run_unit_tests.sh
 @BUILD_PROF_MODE_TRUE@dispatch_to_packed_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
 @BUILD_PROF_MODE_TRUE@dispatch_to_packed_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
 @BUILD_PROF_MODE_TRUE@dispatch_to_packed_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
+@BUILD_PROF_MODE_TRUE@utility_unit_prof_SOURCES = utility_unit.C
+@BUILD_PROF_MODE_TRUE@utility_unit_prof_LDFLAGS = $(top_builddir)/src/libtimpi_prof.la
+@BUILD_PROF_MODE_TRUE@utility_unit_prof_CPPFLAGS = $(CPPFLAGS_PROF) $(AM_CPPFLAGS)
+@BUILD_PROF_MODE_TRUE@utility_unit_prof_CXXFLAGS = $(CXXFLAGS_PROF)
 
 ######################################################################
 #
@@ -1277,6 +1362,26 @@ set_unit-prof$(EXEEXT): $(set_unit_prof_OBJECTS) $(set_unit_prof_DEPENDENCIES) $
 	@rm -f set_unit-prof$(EXEEXT)
 	$(AM_V_CXXLD)$(set_unit_prof_LINK) $(set_unit_prof_OBJECTS) $(set_unit_prof_LDADD) $(LIBS)
 
+utility_unit-dbg$(EXEEXT): $(utility_unit_dbg_OBJECTS) $(utility_unit_dbg_DEPENDENCIES) $(EXTRA_utility_unit_dbg_DEPENDENCIES) 
+	@rm -f utility_unit-dbg$(EXEEXT)
+	$(AM_V_CXXLD)$(utility_unit_dbg_LINK) $(utility_unit_dbg_OBJECTS) $(utility_unit_dbg_LDADD) $(LIBS)
+
+utility_unit-devel$(EXEEXT): $(utility_unit_devel_OBJECTS) $(utility_unit_devel_DEPENDENCIES) $(EXTRA_utility_unit_devel_DEPENDENCIES) 
+	@rm -f utility_unit-devel$(EXEEXT)
+	$(AM_V_CXXLD)$(utility_unit_devel_LINK) $(utility_unit_devel_OBJECTS) $(utility_unit_devel_LDADD) $(LIBS)
+
+utility_unit-oprof$(EXEEXT): $(utility_unit_oprof_OBJECTS) $(utility_unit_oprof_DEPENDENCIES) $(EXTRA_utility_unit_oprof_DEPENDENCIES) 
+	@rm -f utility_unit-oprof$(EXEEXT)
+	$(AM_V_CXXLD)$(utility_unit_oprof_LINK) $(utility_unit_oprof_OBJECTS) $(utility_unit_oprof_LDADD) $(LIBS)
+
+utility_unit-opt$(EXEEXT): $(utility_unit_opt_OBJECTS) $(utility_unit_opt_DEPENDENCIES) $(EXTRA_utility_unit_opt_DEPENDENCIES) 
+	@rm -f utility_unit-opt$(EXEEXT)
+	$(AM_V_CXXLD)$(utility_unit_opt_LINK) $(utility_unit_opt_OBJECTS) $(utility_unit_opt_LDADD) $(LIBS)
+
+utility_unit-prof$(EXEEXT): $(utility_unit_prof_OBJECTS) $(utility_unit_prof_DEPENDENCIES) $(EXTRA_utility_unit_prof_DEPENDENCIES) 
+	@rm -f utility_unit-prof$(EXEEXT)
+	$(AM_V_CXXLD)$(utility_unit_prof_LINK) $(utility_unit_prof_OBJECTS) $(utility_unit_prof_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -1313,6 +1418,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/set_unit_oprof-set_unit.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/set_unit_opt-set_unit.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/set_unit_prof-set_unit.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utility_unit_dbg-utility_unit.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utility_unit_devel-utility_unit.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utility_unit_oprof-utility_unit.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utility_unit_opt-utility_unit.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utility_unit_prof-utility_unit.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -1764,6 +1874,76 @@ set_unit_prof-set_unit.obj: set_unit.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(set_unit_prof_CPPFLAGS) $(CPPFLAGS) $(set_unit_prof_CXXFLAGS) $(CXXFLAGS) -c -o set_unit_prof-set_unit.obj `if test -f 'set_unit.C'; then $(CYGPATH_W) 'set_unit.C'; else $(CYGPATH_W) '$(srcdir)/set_unit.C'; fi`
 
+utility_unit_dbg-utility_unit.o: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_dbg_CPPFLAGS) $(CPPFLAGS) $(utility_unit_dbg_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_dbg-utility_unit.o -MD -MP -MF $(DEPDIR)/utility_unit_dbg-utility_unit.Tpo -c -o utility_unit_dbg-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_dbg-utility_unit.Tpo $(DEPDIR)/utility_unit_dbg-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_dbg-utility_unit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_dbg_CPPFLAGS) $(CPPFLAGS) $(utility_unit_dbg_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_dbg-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+
+utility_unit_dbg-utility_unit.obj: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_dbg_CPPFLAGS) $(CPPFLAGS) $(utility_unit_dbg_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_dbg-utility_unit.obj -MD -MP -MF $(DEPDIR)/utility_unit_dbg-utility_unit.Tpo -c -o utility_unit_dbg-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_dbg-utility_unit.Tpo $(DEPDIR)/utility_unit_dbg-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_dbg-utility_unit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_dbg_CPPFLAGS) $(CPPFLAGS) $(utility_unit_dbg_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_dbg-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+
+utility_unit_devel-utility_unit.o: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_devel_CPPFLAGS) $(CPPFLAGS) $(utility_unit_devel_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_devel-utility_unit.o -MD -MP -MF $(DEPDIR)/utility_unit_devel-utility_unit.Tpo -c -o utility_unit_devel-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_devel-utility_unit.Tpo $(DEPDIR)/utility_unit_devel-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_devel-utility_unit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_devel_CPPFLAGS) $(CPPFLAGS) $(utility_unit_devel_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_devel-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+
+utility_unit_devel-utility_unit.obj: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_devel_CPPFLAGS) $(CPPFLAGS) $(utility_unit_devel_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_devel-utility_unit.obj -MD -MP -MF $(DEPDIR)/utility_unit_devel-utility_unit.Tpo -c -o utility_unit_devel-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_devel-utility_unit.Tpo $(DEPDIR)/utility_unit_devel-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_devel-utility_unit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_devel_CPPFLAGS) $(CPPFLAGS) $(utility_unit_devel_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_devel-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+
+utility_unit_oprof-utility_unit.o: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_oprof_CPPFLAGS) $(CPPFLAGS) $(utility_unit_oprof_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_oprof-utility_unit.o -MD -MP -MF $(DEPDIR)/utility_unit_oprof-utility_unit.Tpo -c -o utility_unit_oprof-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_oprof-utility_unit.Tpo $(DEPDIR)/utility_unit_oprof-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_oprof-utility_unit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_oprof_CPPFLAGS) $(CPPFLAGS) $(utility_unit_oprof_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_oprof-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+
+utility_unit_oprof-utility_unit.obj: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_oprof_CPPFLAGS) $(CPPFLAGS) $(utility_unit_oprof_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_oprof-utility_unit.obj -MD -MP -MF $(DEPDIR)/utility_unit_oprof-utility_unit.Tpo -c -o utility_unit_oprof-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_oprof-utility_unit.Tpo $(DEPDIR)/utility_unit_oprof-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_oprof-utility_unit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_oprof_CPPFLAGS) $(CPPFLAGS) $(utility_unit_oprof_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_oprof-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+
+utility_unit_opt-utility_unit.o: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_opt_CPPFLAGS) $(CPPFLAGS) $(utility_unit_opt_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_opt-utility_unit.o -MD -MP -MF $(DEPDIR)/utility_unit_opt-utility_unit.Tpo -c -o utility_unit_opt-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_opt-utility_unit.Tpo $(DEPDIR)/utility_unit_opt-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_opt-utility_unit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_opt_CPPFLAGS) $(CPPFLAGS) $(utility_unit_opt_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_opt-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+
+utility_unit_opt-utility_unit.obj: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_opt_CPPFLAGS) $(CPPFLAGS) $(utility_unit_opt_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_opt-utility_unit.obj -MD -MP -MF $(DEPDIR)/utility_unit_opt-utility_unit.Tpo -c -o utility_unit_opt-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_opt-utility_unit.Tpo $(DEPDIR)/utility_unit_opt-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_opt-utility_unit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_opt_CPPFLAGS) $(CPPFLAGS) $(utility_unit_opt_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_opt-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+
+utility_unit_prof-utility_unit.o: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_prof_CPPFLAGS) $(CPPFLAGS) $(utility_unit_prof_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_prof-utility_unit.o -MD -MP -MF $(DEPDIR)/utility_unit_prof-utility_unit.Tpo -c -o utility_unit_prof-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_prof-utility_unit.Tpo $(DEPDIR)/utility_unit_prof-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_prof-utility_unit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_prof_CPPFLAGS) $(CPPFLAGS) $(utility_unit_prof_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_prof-utility_unit.o `test -f 'utility_unit.C' || echo '$(srcdir)/'`utility_unit.C
+
+utility_unit_prof-utility_unit.obj: utility_unit.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_prof_CPPFLAGS) $(CPPFLAGS) $(utility_unit_prof_CXXFLAGS) $(CXXFLAGS) -MT utility_unit_prof-utility_unit.obj -MD -MP -MF $(DEPDIR)/utility_unit_prof-utility_unit.Tpo -c -o utility_unit_prof-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utility_unit_prof-utility_unit.Tpo $(DEPDIR)/utility_unit_prof-utility_unit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='utility_unit.C' object='utility_unit_prof-utility_unit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(utility_unit_prof_CPPFLAGS) $(CPPFLAGS) $(utility_unit_prof_CXXFLAGS) $(CXXFLAGS) -c -o utility_unit_prof-utility_unit.obj `if test -f 'utility_unit.C'; then $(CYGPATH_W) 'utility_unit.C'; else $(CYGPATH_W) '$(srcdir)/utility_unit.C'; fi`
+
 mostlyclean-libtool:
 	-rm -f *.lo
 
@@ -2093,6 +2273,11 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/set_unit_oprof-set_unit.Po
 	-rm -f ./$(DEPDIR)/set_unit_opt-set_unit.Po
 	-rm -f ./$(DEPDIR)/set_unit_prof-set_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_dbg-utility_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_devel-utility_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_oprof-utility_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_opt-utility_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_prof-utility_unit.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -2168,6 +2353,11 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/set_unit_oprof-set_unit.Po
 	-rm -f ./$(DEPDIR)/set_unit_opt-set_unit.Po
 	-rm -f ./$(DEPDIR)/set_unit_prof-set_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_dbg-utility_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_devel-utility_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_oprof-utility_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_opt-utility_unit.Po
+	-rm -f ./$(DEPDIR)/utility_unit_prof-utility_unit.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
