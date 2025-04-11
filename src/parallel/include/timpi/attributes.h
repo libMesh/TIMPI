@@ -1,5 +1,5 @@
 // The TIMPI Message-Passing Parallelism Library.
-// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2025 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -46,8 +46,10 @@ template<typename T>
 struct Attributes
 {
   static const bool has_min_max = false;
-  static void set_lowest(T &) {}
-  static void set_highest(T &) {}
+  /*
+  static void set_lowest(T & x) { x = as_low_as_it_can_be; }
+  static void set_highest(T & x) { x = as_high_as_it_can_be; }
+  */
 };
 
 // ------------------------------------------------------------

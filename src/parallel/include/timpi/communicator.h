@@ -1,5 +1,5 @@
 // The TIMPI Message-Passing Parallelism Library.
-// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2025 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -20,12 +20,13 @@
 #define TIMPI_COMMUNICATOR_H
 
 // TIMPI includes
-#include "timpi/standard_type.h"
-#include "timpi/packing.h"
 #include "timpi/message_tag.h"
-#include "timpi/timpi_config.h"
+#include "timpi/packing.h"
 #include "timpi/request.h"
+#include "timpi/standard_type.h"
 #include "timpi/status.h"
+#include "timpi/timpi_config.h"
+#include "timpi/timpi_macros.h"
 
 // C++ includes
 #include <map>
@@ -363,19 +364,30 @@ public:
   void nonblocking_barrier (Request & req) const;
 
   /**
-   * Verify that a local variable has the same value on all processors.
-   * Containers must have the same value in every entry.
+   * Check whether a local variable has the same value on all
+   * processors, returning true if it does or false if not.  Useful in
+   * assertions and possibly in user error checking.
+   *
+   * Containers must have the same value in every entry for this
+   * function to return true.
    */
   template <typename T>
+  timpi_pure
   inline
   bool verify(const T & r) const;
 
   /**
-   * Verify that a local pointer points to the same value on all
-   * processors where it is not nullptr.
-   * Containers must have the same value in every entry.
+   * Check whether a local pointer points to the same value on all
+   * processors where it is not null, returning true if it does or
+   * false if not.  Useful in assertions and possibly in user error
+   * checking.
+   *
+   * Containers must have the same value in every entry on all
+   * processors where the pointer is not null for this function to
+   * return true.
    */
   template <typename T>
+  timpi_pure
   inline
   bool semiverify(const T * r) const;
 

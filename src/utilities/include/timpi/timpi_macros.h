@@ -16,18 +16,20 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-// Note: no include guards!  We want to be able to #include this
-// header multiple times.
 
+#ifndef TIMPI_MACROS_H
+#define TIMPI_MACROS_H
+
+
+// Local includes
 #include "timpi/timpi_config.h"
 
-#ifdef __clang__
-#pragma clang diagnostic pop
+#ifdef TIMPI_HAVE_CXX20
+#  define timpi_pure [[nodiscard("Pure-function return values should not be discarded")]]
+#elif defined(TIMPI_HAVE_CXX17)
+#  define timpi_pure [[nodiscard]]
+#else
+#  define timpi_pure
 #endif
 
-#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__)
-// GCC > 4.5 supports diagnostic pragmas with push/pop
-#if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ > 5)
-#pragma GCC diagnostic pop
-#endif // GCC > 4.5
-#endif // __GNUC__ && !__INTEL_COMPILER
+#endif // TIMPI_MACROS_H

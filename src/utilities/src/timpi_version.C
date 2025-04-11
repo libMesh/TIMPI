@@ -1,5 +1,5 @@
 // The TIMPI Message-Passing Parallelism Library.
-// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2025 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -17,27 +17,37 @@
 
 #include "timpi/timpi_version.h"
 
+#include <iostream>
+#include <sstream>
+
 namespace TIMPI
 {
 
   void timpi_version_stdout()
   {
-    std::cout << "--------------------------------------------------------" << std::endl;
-    std::cout << "TIMPI Package: Version = " << TIMPI_LIB_VERSION;
-    std::cout << " (" << get_timpi_version() << ")" << std::endl << std::endl;
+    std::cout << timpi_version_string() << std::flush;
+  }
 
-    std::cout << TIMPI_LIB_RELEASE << std::endl << std::endl;
+  std::string timpi_version_string()
+  {
+    std::ostringstream oss;
 
-    std::cout << "Build Date   = " << TIMPI_BUILD_DATE     << std::endl;
-    std::cout << "Build Host   = " << TIMPI_BUILD_HOST     << std::endl;
-    std::cout << "Build User   = " << TIMPI_BUILD_USER     << std::endl;
-    std::cout << "Build Arch   = " << TIMPI_BUILD_ARCH     << std::endl;
-    std::cout << "Build Rev    = " << TIMPI_BUILD_VERSION  << std::endl << std::endl;
+    oss << "--------------------------------------------------------" << std::endl;
+    oss << "TIMPI Package: Version = " << TIMPI_LIB_VERSION;
+    oss << " (" << get_timpi_version() << ")" << std::endl << std::endl;
 
-    std::cout << "C++ Config   = " << TIMPI_CXX << " " << TIMPI_CXXFLAGS << std::endl;
-    std::cout << "--------------------------------------------------------" << std::endl;
+    oss << TIMPI_LIB_RELEASE << std::endl << std::endl;
 
-    return;
+    oss << "Build Date   = " << TIMPI_BUILD_DATE     << std::endl;
+    oss << "Build Host   = " << TIMPI_BUILD_HOST     << std::endl;
+    oss << "Build User   = " << TIMPI_BUILD_USER     << std::endl;
+    oss << "Build Arch   = " << TIMPI_BUILD_ARCH     << std::endl;
+    oss << "Build Rev    = " << TIMPI_BUILD_VERSION  << std::endl << std::endl;
+
+    oss << "C++ Config   = " << TIMPI_CXX << " " << TIMPI_CXXFLAGS << std::endl;
+    oss << "--------------------------------------------------------" << std::endl;
+
+    return oss.str();
   }
 
   int get_timpi_version()

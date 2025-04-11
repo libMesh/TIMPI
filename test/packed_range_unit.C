@@ -223,6 +223,7 @@ Communicator *TestCommWorld;
   // other types.
   void testTupleStringAllGather()
   {
+#ifdef TIMPI_HAVE_CXX17 // static_assert without message
     static_assert(Has_buffer_type<Packing<std::string>>::value);
     static_assert(libMesh::Parallel::TupleHasPacking<std::string>::value);
     static_assert(Has_buffer_type<Packing<std::tuple<std::string>>>::value);
@@ -230,6 +231,7 @@ Communicator *TestCommWorld;
     static_assert(Has_buffer_type<Packing<std::tuple<std::string, std::string>>>::value);
     static_assert(libMesh::Parallel::TupleHasPacking<std::string, std::string, int>::value);
     static_assert(Has_buffer_type<Packing<std::tuple<std::string, std::string, int>>>::value);
+#endif
 
     std::vector<std::tuple<std::string, std::string, int>> sendv(2);
 
@@ -278,8 +280,10 @@ Communicator *TestCommWorld;
   {
     typedef std::tuple<unsigned int, std::vector<std::tuple<char,int,std::size_t>>, unsigned int> send_type;
 
+#ifdef TIMPI_HAVE_CXX17 // static_assert without message
     static_assert(Has_buffer_type<Packing<std::vector<std::tuple<char,int,std::size_t>>>>::value);
     static_assert(Has_buffer_type<Packing<send_type>>::value);
+#endif
 
     std::vector<send_type> sendv(2);
 
@@ -624,6 +628,7 @@ Communicator *TestCommWorld;
   void testPushPackedOneTuple()
   {
     typedef std::tuple<std::unordered_map<unsigned int, std::string>> tuple_type;
+#ifdef TIMPI_HAVE_CXX17 // static_assert without message
     static_assert(Has_buffer_type<Packing<std::string>>::value);
     static_assert(TIMPI::StandardType<std::pair<unsigned int, unsigned int>>::is_fixed_type);
     static_assert(TIMPI::StandardType<std::pair<const unsigned int, unsigned int>>::is_fixed_type);
@@ -635,6 +640,7 @@ Communicator *TestCommWorld;
     static_assert(Has_buffer_type<Packing<std::pair<const unsigned int, std::string>>>::value);
     static_assert(Has_buffer_type<Packing<std::unordered_map<unsigned int, std::string>>>::value);
     static_assert(Has_buffer_type<Packing<tuple_type>>::value);
+#endif
 
     auto fill_tuple = [] (int n)
       {
