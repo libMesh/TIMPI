@@ -112,3 +112,25 @@
   * Avoid overwriting user-specified $LIBS
   * More parallel unit testing
   * Disable overzealous compiler warning
+
+1.9.0
+  * Packing<string> now uses unsigned int buffer_type too, for better
+    compatibility in nested Packing types
+  * More unit test coverage, including for packed ranges, vector<bool>
+    specializations, allgather<vector<vector>>
+  * Auto-dispatch from parallel push to packed_range
+  * Multiset (multimap, etc) support in set_union()
+  * Break out Packing declarations in their own header
+  * Many assorted compiler warning and bug fixes
+  * Wider compiler support
+  * Better error messages
+  * More assertions
+  * Clarified comments
+  * Autoconf submodule updates
+  * Support for 64-bit counts when MPI-4 is available
+  * Enabled `MPI_THREAD_SERIALIZED` and `MPI_THREAD_MULTIPLE`
+  * More efficient parallel_sync with rvalue references
+  * Non-Blocking eXchange algorithm improvements.
+  * Options to use older parallel synch algorithms in lieu of
+    Non-Blocking eXchange.
+  * Default to FPE-safe flags when building
