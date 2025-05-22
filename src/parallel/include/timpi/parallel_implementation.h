@@ -78,7 +78,7 @@ using libMesh::Parallel::Packing;
  * or MPI_DATATYPE_NULL for types which have no predefined datatype.
  */
 template <typename T>
-inline data_type dataplusint_type();
+inline data_type dataplusint_type() { return MPI_DATATYPE_NULL; }
 
 #endif // TIMPI_HAVE_MPI
 
@@ -194,12 +194,6 @@ inline data_type dataplusint_type<double>() { return MPI_DOUBLE_INT; }
 
 template<>
 inline data_type dataplusint_type<long double>() { return MPI_LONG_DOUBLE_INT; }
-
-#ifdef TIMPI_DEFAULT_QUADRUPLE_PRECISION
-// We'll have to fall back on the pair<float128,int> derived type here
-template<>
-inline data_type dataplusint_type<TIMPI_DEFAULT_SCALAR_TYPE>() { return MPI_DATATYPE_NULL; }
-#endif
 
 template <typename T>
 inline
