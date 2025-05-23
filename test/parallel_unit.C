@@ -788,6 +788,42 @@ void testGather()
 
 
 
+  void testMinlocPair ()
+  {
+    int min = (TestCommWorld->rank() + 1) % TestCommWorld->size();
+    int min_tag = min + 3;
+    unsigned int minid = 0;
+
+    std::pair<int, int> p{min, min_tag};
+
+    TestCommWorld->minloc(p, minid);
+
+    TIMPI_UNIT_ASSERT (p.first == static_cast<int>(0));
+    TIMPI_UNIT_ASSERT (p.second == static_cast<int>(3));
+    TIMPI_UNIT_ASSERT (minid == static_cast<unsigned int>(TestCommWorld->size()-1));
+  }
+
+
+
+  void testMaxlocPair ()
+  {
+    int max = TestCommWorld->rank();
+    int max_tag = max + 3;
+    unsigned int maxid = 0;
+
+    std::pair<int, int> p{max, max_tag};
+
+    TestCommWorld->maxloc(p, maxid);
+
+    TIMPI_UNIT_ASSERT (p.first+1 ==
+                       cast_int<int>(TestCommWorld->size()));
+    TIMPI_UNIT_ASSERT (p.second+1 ==
+                       cast_int<int>(TestCommWorld->size())+3);
+    TIMPI_UNIT_ASSERT (maxid == static_cast<unsigned int>(TestCommWorld->size()-1));
+  }
+
+
+
   void testInfinityMin ()
   {
     double min = std::numeric_limits<double>::infinity();
@@ -1207,6 +1243,8 @@ int main(int argc, const char * const * argv)
   testMaxlocBool();
   testMinlocDouble();
   testMaxlocDouble();
+  testMinlocPair();
+  testMaxlocPair();
   testInfinityMin();
   testInfinityMax();
   testIsendRecv();
