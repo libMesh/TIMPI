@@ -29,6 +29,7 @@
 #include "timpi/timpi_macros.h"
 
 // C++ includes
+#include <cstdint>
 #include <map>
 #include <memory> // shared_ptr
 #include <string>
