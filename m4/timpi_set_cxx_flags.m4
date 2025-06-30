@@ -21,6 +21,7 @@
 # -------------------------------------------------------------
 AC_DEFUN([TIMPI_SET_CXX_FLAGS],
 [
+  ACSM_SET_GLIBCXX_DEBUG_FLAGS
   ACSM_SET_CXX_FLAGS
 
   #-----------------------------------------------------
@@ -29,8 +30,6 @@ AC_DEFUN([TIMPI_SET_CXX_FLAGS],
   # hate to be surprised by it later.
   #-----------------------------------------------------
   ACSM_SET_FPE_SAFETY_FLAGS
-
-  ACSM_SET_GLIBCXX_DEBUG_FLAGS
 
   CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT"
   CXXFLAGS_DEVEL="$ACSM_CXXFLAGS_DEVEL"
