@@ -742,16 +742,16 @@ ac_ct_FC
 FCFLAGS
 FC
 have_gcov
-ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE
-ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE
-ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE
-ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE
 am__fastdepCC_FALSE
 am__fastdepCC_TRUE
 CCDEPMODE
 ac_ct_CC
 CFLAGS
 CC
+ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE
+ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE
+ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE
+ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE
 HAVE_CXX11
 HAVE_CXX14
 HAVE_CXX17
@@ -882,10 +882,10 @@ enable_dependency_tracking
 with_cxx_std_max
 with_cxx_std_min
 with_cxx_std
-enable_sanitize
-enable_fpe_safety
 enable_glibcxx_debugging
 enable_glibcxx_debugging_cppunit
+enable_sanitize
+enable_fpe_safety
 enable_coverage
 with_methods
 enable_paranoid_warnings
@@ -1569,14 +1569,14 @@ Optional Features:
                           do not reject slow dependency extractors
   --disable-dependency-tracking
                           speeds up one-time build
-  --enable-sanitize="opt dbg devel prof oprof"
-                          turn on sanitizer flags for the given methods
-  --disable-fpe-safety    remove FPE-trapping compiler flags
   --enable-glibcxx-debugging
                           enable -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC in
                           dbg mode
   --enable-glibcxx-debugging-cppunit
                           Use GLIBCXX debugging flags for unit tests
+  --enable-sanitize="opt dbg devel prof oprof"
+                          turn on sanitizer flags for the given methods
+  --disable-fpe-safety    remove FPE-trapping compiler flags
   --enable-coverage       configure code coverage analysis tools
   --enable-paranoid-warnings
                           Turn on paranoid compiler warnings
@@ -16772,6 +16772,73 @@ fi
 
 
 
+  # in the case blocks below we may add GLIBCXX-specific pedantic debugging preprocessor
+  # definitions. Should only be used by a knowing user, because these options break
+  # ABI compatibility.
+  # Check whether --enable-glibcxx-debugging was given.
+if test ${enable_glibcxx_debugging+y}
+then :
+  enableval=$enable_glibcxx_debugging; case "${enableval}" in #(
+  yes) :
+    acsm_enableglibcxxdebugging=yes ;; #(
+  no) :
+    acsm_enableglibcxxdebugging=no ;; #(
+  *) :
+    as_fn_error $? "bad value ${enableval} for --enable-glibcxx-debugging" "$LINENO" 5 ;;
+esac
+else $as_nop
+  acsm_enableglibcxxdebugging=no
+fi
+
+
+  # GLIBCXX debugging causes untold woes on mac machines - so disable it
+  if test `uname` = "Darwin"
+then :
+
+          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Disabling GLIBCXX debugging on Darwin >>>" >&5
+printf "%s\n" "<<< Disabling GLIBCXX debugging on Darwin >>>" >&6; }
+          acsm_enableglibcxxdebugging=no
+
+fi
+   if test x$acsm_enableglibcxxdebugging = xyes; then
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE=
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE='#'
+else
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE='#'
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE=
+fi
+
+
+
+  # GLIBCXX-specific debugging flags conflict with cppunit on many of
+  # our users' systems.  However, being able to override this allows
+  # us to increase our unit test coverage.
+  # Check whether --enable-glibcxx-debugging-cppunit was given.
+if test ${enable_glibcxx_debugging_cppunit+y}
+then :
+  enableval=$enable_glibcxx_debugging_cppunit; case "${enableval}" in #(
+  yes) :
+    acsm_enableglibcxxdebuggingcppunit=yes ;; #(
+  no) :
+    acsm_enableglibcxxdebuggingcppunit=no ;; #(
+  *) :
+    as_fn_error $? "bad value ${enableval} for --enable-glibcxx-debugging-cppunit" "$LINENO" 5 ;;
+esac
+else $as_nop
+  acsm_enableglibcxxdebuggingcppunit=no
+fi
+
+
+   if test x$acsm_enableglibcxxdebuggingcppunit = xyes; then
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE=
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE='#'
+else
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE='#'
+  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE=
+fi
+
+
+
 
 
   # method-specific preprocessor flags, independent of compiler.
@@ -17002,9 +17069,11 @@ fi
           ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wunused-parameter -Wunused-value -Wvariadic-macros"
           ACSM_PARANOID_FLAGS="$ACSM_PARANOID_FLAGS -Wvolatile-register-var -Wwrite-strings"
 
-          if test "x$enableglibcxxdebugging" = "xyes"
+          if test "x$acsm_enableglibcxxdebugging" = "xyes"
 then :
-  ACSM_CPPFLAGS_DBG="$ACSM_CPPFLAGS_DBG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC"
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Adding GLIBCXX debugging flags >>>" >&5
+printf "%s\n" "<<< Adding GLIBCXX debugging flags >>>" >&6; }
+                 ACSM_CPPFLAGS_DBG="$ACSM_CPPFLAGS_DBG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC"
 fi
 
           # GCC 4.6.3 warns about variadic macros but supports them just
@@ -17187,6 +17256,64 @@ then :
                                ACSM_CXXFLAGS_DBG="$ACSM_CFLAGS_DBG -fno-assume-unique-vtables"
 
 fi
+                       if test "x$acsm_enableglibcxxdebugging" = "xyes"
+then :
+
+                              ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+                              { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether Clang is using libstdc++" >&5
+printf %s "checking whether Clang is using libstdc++... " >&6; }
+                              cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+                                  #include <vector>
+                                  #ifndef __GLIBCXX__
+                                  #error Not using libstdc++
+                                  #endif
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+
+                                  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+                                  clang_uses_libstdcpp=yes
+
+else $as_nop
+
+                                  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+                                  clang_uses_libstdcpp=no
+
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+                              ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+                              if test "x$clang_uses_libstdcpp" = "xyes"
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Adding GLIBCXX debugging flags >>>" >&5
+printf "%s\n" "<<< Adding GLIBCXX debugging flags >>>" >&6; }
+                                     ACSM_CPPFLAGS_DBG="$ACSM_CPPFLAGS_DBG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC"
+fi
+
+fi
+
                       ;; #(
   *) :
 
@@ -17335,74 +17462,6 @@ else $as_nop
 printf "%s\n" "<<< Not enabling flags for FPE safety >>>" >&6; }
 
 fi
-
-
-
-  # in the case blocks below we may add GLIBCXX-specific pedantic debugging preprocessor
-  # definitions. Should only be used by a knowing user, because these options break
-  # ABI compatibility.
-  # Check whether --enable-glibcxx-debugging was given.
-if test ${enable_glibcxx_debugging+y}
-then :
-  enableval=$enable_glibcxx_debugging; case "${enableval}" in #(
-  yes) :
-    acsm_enableglibcxxdebugging=yes ;; #(
-  no) :
-    acsm_enableglibcxxdebugging=no ;; #(
-  *) :
-    as_fn_error $? "bad value ${enableval} for --enable-glibcxx-debugging" "$LINENO" 5 ;;
-esac
-else $as_nop
-  acsm_enableglibcxxdebugging=no
-fi
-
-
-  # GLIBCXX debugging causes untold woes on mac machines - so disable it
-  if test `uname` = "Darwin"
-then :
-
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <<< Disabling GLIBCXX debugging on Darwin >>>" >&5
-printf "%s\n" "<<< Disabling GLIBCXX debugging on Darwin >>>" >&6; }
-          acsm_enableglibcxxdebugging=no
-
-fi
-   if test x$acsm_enableglibcxxdebugging = xyes; then
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE=
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE='#'
-else
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE='#'
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE=
-fi
-
-
-
-  # GLIBCXX-specific debugging flags conflict with cppunit on many of
-  # our users' systems.  However, being able to override this allows
-  # us to increase our unit test coverage.
-  # Check whether --enable-glibcxx-debugging-cppunit was given.
-if test ${enable_glibcxx_debugging_cppunit+y}
-then :
-  enableval=$enable_glibcxx_debugging_cppunit; case "${enableval}" in #(
-  yes) :
-    acsm_enableglibcxxdebuggingcppunit=yes ;; #(
-  no) :
-    acsm_enableglibcxxdebuggingcppunit=no ;; #(
-  *) :
-    as_fn_error $? "bad value ${enableval} for --enable-glibcxx-debugging-cppunit" "$LINENO" 5 ;;
-esac
-else $as_nop
-  acsm_enableglibcxxdebuggingcppunit=no
-fi
-
-
-   if test x$acsm_enableglibcxxdebuggingcppunit = xyes; then
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE=
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE='#'
-else
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE='#'
-  ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE=
-fi
-
 
 
   CXXFLAGS_OPT="$ACSM_CXXFLAGS_OPT"
@@ -19247,7 +19306,7 @@ printf "%s\n" "<<< Default floating point is quadruple precision (boost::multipr
 printf %s "checking whether we can build a trivial quad precision program... " >&6; }
 
         saveLIBS="$LIBS"
-        if test "x$REAL_GXX" != "x"
+        if test "x$ACSM_REAL_GXX" != "x"
 then :
   acsm_precision_LIBS="-lquadmath"
                LIBS="$saveLIBS -lquadmath"
@@ -34196,16 +34255,16 @@ if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
-  as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
 if test -z "${ACSM_ENABLE_GLIBCXX_DEBUGGING_TRUE}" && test -z "${ACSM_ENABLE_GLIBCXX_DEBUGGING_FALSE}"; then
   as_fn_error $? "conditional \"ACSM_ENABLE_GLIBCXX_DEBUGGING\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_TRUE}" && test -z "${ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT_FALSE}"; then
   as_fn_error $? "conditional \"ACSM_ENABLE_GLIBCXX_DEBUGGING_CPPUNIT\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
+  as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CODE_COVERAGE_ENABLED_TRUE}" && test -z "${CODE_COVERAGE_ENABLED_FALSE}"; then
