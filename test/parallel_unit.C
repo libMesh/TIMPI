@@ -463,7 +463,10 @@ void testGather()
 
     TIMPI_UNIT_ASSERT (min == static_cast<unsigned int>(3));
 
-    // We'll let the destructor do the wait this time
+    // We could get away with destruct-before-wait since there's no
+    // post-wait-work attached to req, but that's not really
+    // *supported* behavior...
+    req.wait();
   }
 
 
