@@ -470,6 +470,33 @@ void testGather()
   }
 
 
+  void testNonblockingString ()
+  {
+    // We don't support non-blocking I/O in serial
+    if (TestCommWorld->size() < 2)
+      return;
+
+    const std::string send_string =
+      "More than 64 bytes to avoid false positives with Small String Optimization libraries";
+
+    // We need pre-sized buffers for non-blocking receive.
+    std::string recv_string(send_string.size(), ' ');
+
+    const processor_id_type dest_pid =
+      (TestCommWorld->rank() + 1) % TestCommWorld->size();
+
+    Request send_req, recv_req;
+    TestCommWorld->send(dest_pid, send_string, send_req);
+    TestCommWorld->receive(any_source, recv_string, recv_req);
+
+    recv_req.wait();
+
+    TIMPI_UNIT_ASSERT (send_string == recv_string);
+
+    send_req.wait();
+  }
+
+
   void testNonblockingWaitany ()
   {
     constexpr std::size_t N=5;
@@ -1275,6 +1302,7 @@ int main(int argc, const char * const * argv)
   testSplit();
   testSplitByType();
   testNonblockingTest();
+  testNonblockingString();
   testNonblockingWaitany();
   testNonblockingSum();
   testNonblockingMin();
