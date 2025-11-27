@@ -834,7 +834,7 @@ inline void Communicator::receive (const unsigned int src_processor_id,
   // Officially C++ won't let us get a modifiable array from a
   // string, and we can't even put one on the stack for the
   // non-blocking case.
-  std::vector<T> * tempbuf = new std::vector<T>();
+  std::vector<T> * tempbuf = new std::vector<T>(buf.size());
 
   // We can clear the string, but the Request::wait() will need to
   // handle copying our temporary buffer to it
@@ -843,13 +843,13 @@ inline void Communicator::receive (const unsigned int src_processor_id,
   req.add_post_wait_work
     (new PostWaitCopyBuffer<std::vector<T>,
      std::back_insert_iterator<std::basic_string<T>>>
-     (tempbuf, std::back_inserter(buf)));
+     (*tempbuf, std::back_inserter(buf)));
 
   // Make the Request::wait() then handle deleting the buffer
   req.add_post_wait_work
     (new PostWaitDeleteBuffer<std::vector<T>>(tempbuf));
 
-  this->receive(src_processor_id, tempbuf, req, tag);
+  this->receive(src_processor_id, *tempbuf, req, tag);
 }
 
 
