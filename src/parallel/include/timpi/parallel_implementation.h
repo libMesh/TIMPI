@@ -2293,7 +2293,7 @@ inline void Communicator::minloc(std::vector<bool,A1> & r,
     }
 }
 
- 
+
 
 template <typename A>
 inline void Communicator::max(std::vector<bool,A> & r) const
@@ -2532,11 +2532,11 @@ inline void Communicator::maxloc(std::vector<bool,A1> & r,
     }
 }
 
-#define TIMPI_DEFINE_COMMUNICATOR_OPS(OPNAME)                                   \
+#define TIMPI_DEFINE_COMMUNICATOR_OPS(OPNAME)                                  \
   template <typename T>                                                        \
   inline void Communicator::OPNAME(T &timpi_mpi_var(r)) const {                \
     if (this->size() > 1) {                                                    \
-      TIMPI_LOG_SCOPE(#OPNAME "(scalar)", "Parallel");                         \
+      TIMPI_LOG_SCOPE(#OPNAME "(scalar, blocking)", "Parallel");               \
                                                                                \
       timpi_call_mpi(TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1, StandardType<T>(&r), \
                                      OpFunction<T>::OPNAME(), this->get()));   \
@@ -2546,7 +2546,7 @@ inline void Communicator::maxloc(std::vector<bool,A1> & r,
   template <typename T, typename A>                                            \
   inline void Communicator::OPNAME(std::vector<T, A> &r) const {               \
     if (this->size() > 1 && !r.empty()) {                                      \
-      TIMPI_LOG_SCOPE(#OPNAME "(vector)", "Parallel");                         \
+      TIMPI_LOG_SCOPE(#OPNAME "(vector, blocking)", "Parallel");               \
                                                                                \
       timpi_assert(this->verify(r.size()));                                    \
                                                                                \
