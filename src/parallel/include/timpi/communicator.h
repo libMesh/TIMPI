@@ -466,59 +466,115 @@ public:
 
   /**
    * Take a local variable and replace it with the product of its values
-   * on all processors
+   * on all processors. Containers are replaced element-wise.
    */
   template <typename T>
   inline
   void product(T & r) const;
 
   /**
+   * Non-blocking product of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void product(const T & r, T & o, Request & req) const;
+
+  /**
    * Take a local variable and replace it with the logical_and of its values
-   * on all processors
+   * on all processors. Containers are replaced element-wise.
    */
   template <typename T>
   inline
   void logical_and(T & r) const;
 
   /**
+   * Non-blocking logical_and of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void logical_and(const T & r, T & o, Request & req) const;
+
+  /**
    * Take a local variable and replace it with the bitwise_and of its values
-   * on all processors
+   * on all processors. Containers are replaced element-wise.
    */
   template <typename T>
   inline
   void bitwise_and(T & r) const;
 
   /**
+   * Non-blocking bitwise_and of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void bitwise_and(const T & r, T & o, Request & req) const;
+
+  /**
    * Take a local variable and replace it with the logical_or of its values
-   * on all processors
+   * on all processors. Containers are replaced element-wise.
    */
   template <typename T>
   inline
   void logical_or(T & r) const;
 
   /**
+   * Non-blocking logical_or of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void logical_or(const T & r, T & o, Request & req) const;
+
+  /**
    * Take a local variable and replace it with the bitwise_or of its values
-   * on all processors
+   * on all processors. Containers are replaced element-wise.
    */
   template <typename T>
   inline
   void bitwise_or(T & r) const;
 
   /**
+   * Non-blocking bitwise_or of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void bitwise_or(const T & r, T & o, Request & req) const;
+
+  /**
    * Take a local variable and replace it with the logical_xor of its values
-   * on all processors
+   * on all processors. Containers are replaced element-wise.
    */
   template <typename T>
   inline
   void logical_xor(T & r) const;
 
   /**
+   * Non-blocking logical_xor of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void logical_xor(const T & r, T & o, Request & req) const;
+
+  /**
    * Take a local variable and replace it with the bitwise_xor of its values
-   * on all processors
+   * on all processors. Containers are replaced element-wise.
    */
   template <typename T>
   inline
   void bitwise_xor(T & r) const;
+
+  /**
+   * Non-blocking bitwise_xor of the local value \p r into \p o
+   * with the request \p req.
+   */
+  template <typename T>
+  inline
+  void bitwise_xor(const T & r, T & o, Request & req) const;
 
   /**
    * Take a local variable and replace it with the sum of it's values

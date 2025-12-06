@@ -2174,48 +2174,6 @@ inline bool Communicator::semiverify(const std::vector<T,A> * r) const
 
 
 
-
-template <typename T>
-inline void Communicator::min(const T & r,
-                              T & o,
-                              Request & req) const
-{
-  if (this->size() > 1)
-    {
-      TIMPI_LOG_SCOPE("min()", "Parallel");
-
-      timpi_call_mpi
-        (TIMPI_IALLREDUCE(&r, &o, 1, StandardType<T>(&r),
-                          OpFunction<T>::min(), this->get(),
-                          req.get()));
-    }
-  else
-    {
-      o = r;
-      req = Request::null_request;
-    }
-}
-
-
-
-template <typename T, typename A>
-inline void Communicator::min(std::vector<T,A> & r) const
-{
-  if (this->size() > 1 && !r.empty())
-    {
-      TIMPI_LOG_SCOPE("min(vector)", "Parallel");
-
-      timpi_assert(this->verify(r.size()));
-
-      timpi_call_mpi
-        (TIMPI_ALLREDUCE
-          (MPI_IN_PLACE, r.data(), cast_int<CountType>(r.size()),
-           StandardType<T>(r.data()), OpFunction<T>::min(),
-           this->get()));
-    }
-}
-
-
 template <typename A>
 inline void Communicator::min(std::vector<bool,A> & r) const
 {
@@ -2335,46 +2293,7 @@ inline void Communicator::minloc(std::vector<bool,A1> & r,
     }
 }
 
-
-template <typename T>
-inline void Communicator::max(const T & r,
-                              T & o,
-                              Request & req) const
-{
-  if (this->size() > 1)
-    {
-      TIMPI_LOG_SCOPE("max()", "Parallel");
-
-      timpi_call_mpi
-        (TIMPI_IALLREDUCE(&r, &o, 1, StandardType<T>(&r),
-                          OpFunction<T>::max(), this->get(),
-                          req.get()));
-    }
-  else
-    {
-      o = r;
-      req = Request::null_request;
-    }
-}
-
-
-template <typename T, typename A>
-inline void Communicator::max(std::vector<T,A> & r) const
-{
-  if (this->size() > 1 && !r.empty())
-    {
-      TIMPI_LOG_SCOPE("max(vector)", "Parallel");
-
-      timpi_assert(this->verify(r.size()));
-
-      timpi_call_mpi
-        (TIMPI_ALLREDUCE (MPI_IN_PLACE, r.data(),
-                          cast_int<CountType>(r.size()),
-                          StandardType<T>(r.data()),
-                          OpFunction<T>::max(), this->get()));
-    }
-}
-
+ 
 
 template <typename A>
 inline void Communicator::max(std::vector<bool,A> & r) const
@@ -2613,73 +2532,54 @@ inline void Communicator::maxloc(std::vector<bool,A1> & r,
     }
 }
 
-#define TIMPI_DEFINE_COMMUNICATOR_OP(OPNAME)                                   \
-template <typename T>                                                          \
-inline void Communicator::OPNAME(T & timpi_mpi_var(r)) const                   \
-{                                                                              \
-  if (this->size() > 1)                                                        \
-    {                                                                          \
+#define TIMPI_DEFINE_COMMUNICATOR_OPS(OPNAME)                                   \
+  template <typename T>                                                        \
+  inline void Communicator::OPNAME(T &timpi_mpi_var(r)) const {                \
+    if (this->size() > 1) {                                                    \
       TIMPI_LOG_SCOPE(#OPNAME "(scalar)", "Parallel");                         \
                                                                                \
-      timpi_call_mpi                                                           \
-        (TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1,                                  \
-                         StandardType<T>(&r), OpFunction<T>::OPNAME(),         \
-                         this->get()));                                        \
+      timpi_call_mpi(TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1, StandardType<T>(&r), \
+                                     OpFunction<T>::OPNAME(), this->get()));   \
     }                                                                          \
-}
+  }                                                                            \
+                                                                               \
+  template <typename T, typename A>                                            \
+  inline void Communicator::OPNAME(std::vector<T, A> &r) const {               \
+    if (this->size() > 1 && !r.empty()) {                                      \
+      TIMPI_LOG_SCOPE(#OPNAME "(vector)", "Parallel");                         \
+                                                                               \
+      timpi_assert(this->verify(r.size()));                                    \
+                                                                               \
+      timpi_call_mpi(TIMPI_ALLREDUCE(                                          \
+          MPI_IN_PLACE, r.data(), cast_int<CountType>(r.size()),               \
+          StandardType<T>(r.data()), OpFunction<T>::OPNAME(), this->get()));   \
+    }                                                                          \
+  }                                                                            \
+  template <typename T>                                                        \
+  inline void Communicator::OPNAME(const T &r, T &o, Request &req) const {     \
+    if (this->size() > 1) {                                                    \
+      TIMPI_LOG_SCOPE(#OPNAME "(scalar, nonblocking)", "Parallel");            \
+                                                                               \
+      timpi_call_mpi(TIMPI_IALLREDUCE(&r, &o, 1, StandardType<T>(&r),          \
+                                      OpFunction<T>::OPNAME(), this->get(),    \
+                                      req.get()));                             \
+    } else {                                                                   \
+      o = r;                                                                   \
+      req = Request::null_request;                                             \
+    }                                                                          \
+  }
 
-TIMPI_DEFINE_COMMUNICATOR_OP(sum)
-TIMPI_DEFINE_COMMUNICATOR_OP(max)
-TIMPI_DEFINE_COMMUNICATOR_OP(min)
-TIMPI_DEFINE_COMMUNICATOR_OP(product)
-TIMPI_DEFINE_COMMUNICATOR_OP(logical_and)
-TIMPI_DEFINE_COMMUNICATOR_OP(bitwise_and)
-TIMPI_DEFINE_COMMUNICATOR_OP(logical_or)
-TIMPI_DEFINE_COMMUNICATOR_OP(bitwise_or)
-TIMPI_DEFINE_COMMUNICATOR_OP(logical_xor)
-TIMPI_DEFINE_COMMUNICATOR_OP(bitwise_xor)
+TIMPI_DEFINE_COMMUNICATOR_OPS(sum)
+TIMPI_DEFINE_COMMUNICATOR_OPS(max)
+TIMPI_DEFINE_COMMUNICATOR_OPS(min)
+TIMPI_DEFINE_COMMUNICATOR_OPS(product)
+TIMPI_DEFINE_COMMUNICATOR_OPS(logical_and)
+TIMPI_DEFINE_COMMUNICATOR_OPS(bitwise_and)
+TIMPI_DEFINE_COMMUNICATOR_OPS(logical_or)
+TIMPI_DEFINE_COMMUNICATOR_OPS(bitwise_or)
+TIMPI_DEFINE_COMMUNICATOR_OPS(logical_xor)
+TIMPI_DEFINE_COMMUNICATOR_OPS(bitwise_xor)
 
-template <typename T>
-inline void Communicator::sum(const T & r,
-                              T & o,
-                              Request & req) const
-{
-#ifdef TIMPI_HAVE_MPI
-  if (this->size() > 1)
-    {
-      TIMPI_LOG_SCOPE("sum()", "Parallel");
-
-      timpi_call_mpi
-        (TIMPI_IALLREDUCE(&r, &o, 1, StandardType<T>(&r),
-                          OpFunction<T>::sum(), this->get(),
-                          req.get()));
-    }
-  else
-#endif
-    {
-      o = r;
-      req = Request::null_request;
-    }
-}
-
-
-template <typename T, typename A>
-inline void Communicator::sum(std::vector<T,A> & r) const
-{
-  if (this->size() > 1 && !r.empty())
-    {
-      TIMPI_LOG_SCOPE("sum()", "Parallel");
-
-      timpi_assert(this->verify(r.size()));
-
-      timpi_call_mpi
-        (TIMPI_ALLREDUCE(MPI_IN_PLACE, r.data(),
-                         cast_int<CountType>(r.size()),
-                         StandardType<T>(r.data()),
-                         OpFunction<T>::sum(),
-                         this->get()));
-    }
-}
 
 
 // We still do function overloading for complex sums - in a perfect
