@@ -2198,22 +2198,6 @@ inline void Communicator::min(const T & r,
 
 
 
-template <typename T>
-inline void Communicator::min(T & timpi_mpi_var(r)) const
-{
-  if (this->size() > 1)
-    {
-      TIMPI_LOG_SCOPE("min(scalar)", "Parallel");
-
-      timpi_call_mpi
-        (TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1,
-                         StandardType<T>(&r), OpFunction<T>::min(),
-                         this->get()));
-    }
-}
-
-
-
 template <typename T, typename A>
 inline void Communicator::min(std::vector<T,A> & r) const
 {
@@ -2370,20 +2354,6 @@ inline void Communicator::max(const T & r,
     {
       o = r;
       req = Request::null_request;
-    }
-}
-
-
-template <typename T>
-inline void Communicator::max(T & timpi_mpi_var(r)) const
-{
-  if (this->size() > 1)
-    {
-      TIMPI_LOG_SCOPE("max(scalar)", "Parallel");
-
-      timpi_call_mpi
-        (TIMPI_ALLREDUCE (MPI_IN_PLACE, &r, 1, StandardType<T>(&r),
-                          OpFunction<T>::max(), this->get()));
     }
 }
 
@@ -2658,6 +2628,9 @@ inline void Communicator::OPNAME(T & timpi_mpi_var(r)) const                   \
     }                                                                          \
 }
 
+TIMPI_DEFINE_COMMUNICATOR_OP(sum)
+TIMPI_DEFINE_COMMUNICATOR_OP(max)
+TIMPI_DEFINE_COMMUNICATOR_OP(min)
 TIMPI_DEFINE_COMMUNICATOR_OP(product)
 TIMPI_DEFINE_COMMUNICATOR_OP(logical_and)
 TIMPI_DEFINE_COMMUNICATOR_OP(bitwise_and)
@@ -2686,22 +2659,6 @@ inline void Communicator::sum(const T & r,
     {
       o = r;
       req = Request::null_request;
-    }
-}
-
-
-template <typename T>
-inline void Communicator::sum(T & timpi_mpi_var(r)) const
-{
-  if (this->size() > 1)
-    {
-      TIMPI_LOG_SCOPE("sum()", "Parallel");
-
-      timpi_call_mpi
-        (TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1,
-                         StandardType<T>(&r),
-                         OpFunction<T>::sum(),
-                         this->get()));
     }
 }
 
