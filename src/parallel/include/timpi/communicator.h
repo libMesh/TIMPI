@@ -465,6 +465,15 @@ public:
               std::vector<unsigned int,A2> & max_id) const;
 
   /**
+   * Take a local variable and replace it with the bitwise_or of its values
+   * on all processors
+   */
+  template <typename T>
+  inline
+  void bitwise_or(T & r) const;
+
+
+  /**
    * Take a local variable and replace it with the sum of it's values
    * on all processors.  Containers are replaced element-wise.
    */
