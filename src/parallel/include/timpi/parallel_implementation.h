@@ -2643,20 +2643,28 @@ inline void Communicator::maxloc(std::vector<bool,A1> & r,
     }
 }
 
-template <typename T>
-inline void Communicator::bitwise_or(T & timpi_mpi_var(r)) const
-{
-  if (this->size() > 1)
-    {
-      TIMPI_LOG_SCOPE("bitwise_or(scalar)", "Parallel");
-
-      timpi_call_mpi
-        (TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1,
-                         StandardType<T>(&r), OpFunction<T>::bitwise_or(),
-                         this->get()));
-    }
+#define TIMPI_DEFINE_COMMUNICATOR_OP(OPNAME)                                   \
+template <typename T>                                                          \
+inline void Communicator::OPNAME(T & timpi_mpi_var(r)) const                   \
+{                                                                              \
+  if (this->size() > 1)                                                        \
+    {                                                                          \
+      TIMPI_LOG_SCOPE(#OPNAME "(scalar)", "Parallel");                         \
+                                                                               \
+      timpi_call_mpi                                                           \
+        (TIMPI_ALLREDUCE(MPI_IN_PLACE, &r, 1,                                  \
+                         StandardType<T>(&r), OpFunction<T>::OPNAME(),         \
+                         this->get()));                                        \
+    }                                                                          \
 }
 
+TIMPI_DEFINE_COMMUNICATOR_OP(product)
+TIMPI_DEFINE_COMMUNICATOR_OP(logical_and)
+TIMPI_DEFINE_COMMUNICATOR_OP(bitwise_and)
+TIMPI_DEFINE_COMMUNICATOR_OP(logical_or)
+TIMPI_DEFINE_COMMUNICATOR_OP(bitwise_or)
+TIMPI_DEFINE_COMMUNICATOR_OP(logical_xor)
+TIMPI_DEFINE_COMMUNICATOR_OP(bitwise_xor)
 
 template <typename T>
 inline void Communicator::sum(const T & r,

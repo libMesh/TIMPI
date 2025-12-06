@@ -465,6 +465,38 @@ public:
               std::vector<unsigned int,A2> & max_id) const;
 
   /**
+   * Take a local variable and replace it with the product of its values
+   * on all processors
+   */
+  template <typename T>
+  inline
+  void product(T & r) const;
+
+  /**
+   * Take a local variable and replace it with the logical_and of its values
+   * on all processors
+   */
+  template <typename T>
+  inline
+  void logical_and(T & r) const;
+
+  /**
+   * Take a local variable and replace it with the bitwise_and of its values
+   * on all processors
+   */
+  template <typename T>
+  inline
+  void bitwise_and(T & r) const;
+
+  /**
+   * Take a local variable and replace it with the logical_or of its values
+   * on all processors
+   */
+  template <typename T>
+  inline
+  void logical_or(T & r) const;
+
+  /**
    * Take a local variable and replace it with the bitwise_or of its values
    * on all processors
    */
@@ -472,6 +504,21 @@ public:
   inline
   void bitwise_or(T & r) const;
 
+  /**
+   * Take a local variable and replace it with the logical_xor of its values
+   * on all processors
+   */
+  template <typename T>
+  inline
+  void logical_xor(T & r) const;
+
+  /**
+   * Take a local variable and replace it with the bitwise_xor of its values
+   * on all processors
+   */
+  template <typename T>
+  inline
+  void bitwise_xor(T & r) const;
 
   /**
    * Take a local variable and replace it with the sum of it's values
