@@ -98,6 +98,34 @@
     inline
     void sum(std::unordered_map<K,V,H,E,A> &r) const;
 
+    template <typename T, typename A>
+    inline
+    void product(std::vector<T,A> &r) const;
+
+    template <typename T, typename A>
+    inline
+    void logical_and(std::vector<T,A> &r) const;
+
+    template <typename T, typename A>
+    inline
+    void bitwise_and(std::vector<T,A> &r) const;
+
+    template <typename T, typename A>
+    inline
+    void logical_or(std::vector<T,A> &r) const;
+
+    template <typename T, typename A>
+    inline
+    void bitwise_or(std::vector<T,A> &r) const;
+
+    template <typename T, typename A>
+    inline
+    void logical_xor(std::vector<T,A> &r) const;
+
+    template <typename T, typename A>
+    inline
+    void bitwise_xor(std::vector<T,A> &r) const;
+
     template <typename T, typename C, typename A>
     inline
     void set_union(std::set<T,C,A> &data,
