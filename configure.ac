@@ -2,7 +2,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(timpi, 1.9.0, roystgnr@gmail.com)
+AC_INIT([timpi], [1.9.0], [https://github.com/libMesh/TIMPI/issues])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_HEADERS([src/utilities/include/timpi/timpi_config.h.tmp])
