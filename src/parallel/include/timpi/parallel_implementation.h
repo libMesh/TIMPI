@@ -761,6 +761,10 @@ inline void Communicator::send_packed_range (const unsigned int dest_processor_i
       if (range_begin != range_end)
         req.add_prior_request(*my_req);
     }
+
+#ifdef DEBUG
+  timpi_assert_equal_to(used_buffer_size, total_buffer_size);
+#endif
 }
 
 
