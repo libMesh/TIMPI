@@ -101,21 +101,22 @@ void push_parallel_vector_data(const Communicator & comm,
  * Send query vectors, receive and answer them with vectors of data,
  * then act on those answers.
  *
- * The \p data map is indexed by processor ids as keys, and for each
+ * The \p queries map is indexed by processor ids as keys, and for each
  * processor id in the map there should be a vector of query ids to send.
  * For processors to which no data should be sent, there should be no
- * map entry; this will avoid any unnecessary communication.  Unless
+ * map entry; this will avoid any unnecessary communication. Unless
  * NDEBUG is enabled, TIMPI will assert that no empty map entries
- * exist.  In any case empty map entries will not be gathered or acted
- * on.
+ * exist. In any case empty map entries will not be gathered or acted on.
  *
  * Queries will be operated on by the queried processor by
  * gather_data(processor_id_type pid, const std::vector<id> & ids,
  *             std::vector<datum> & data)
+ * where the \p ids are those sent by the querying processor \p pid.
  *
- * Answer data from each query will be operated on by
+ * Answer data from each query will be operated on by the querying processor by
  * act_on_data(processor_id_type pid, const std::vector<id> & ids,
  *             std::vector<datum> && data);
+* where the \p ids are those sent to the queried processor \p pid.
  *
  * If a query vector exists for the local processor in the map,
  * gather_data will be called on it directly, and act_on_data will be
