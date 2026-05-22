@@ -60,6 +60,12 @@
 /* define if the compiler supports basic C++17 syntax */
 #undef HAVE_CXX17
 
+/* define if the compiler supports basic C++20 syntax */
+#undef HAVE_CXX20
+
+/* define if the compiler supports basic C++23 syntax */
+#undef HAVE_CXX23
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
