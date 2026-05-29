@@ -278,7 +278,7 @@ void testGather()
 
     // Workaround for spurious warning from operator=
     // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100366
-    aa x;
+    aa x{{ {0,1,2},{3,4,5} }};
     std::vector<aa> src(3), dest(3,x);
 
     src[0][0][0] = 0;
